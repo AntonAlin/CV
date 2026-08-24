@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anton Ålin — CV</title>
 <meta name="description" content="Anton Ålin — Head of Data & BI. Digitalt CV.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+<meta property="og:type" content="profile">
+<meta property="og:title" content="Anton Ålin — Head of Data & BI">
+<meta property="og:description" content="Data- och BI-ledare med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ modellering och analysstrategi.">
+<meta property="og:url" content="https://antonalin.github.io/CV/">
+<meta property="og:image" content="https://antonalin.github.io/CV/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Anton Ålin — Head of Data & BI">
+<meta name="twitter:description" content="Data- och BI-ledare med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ modellering och analysstrategi.">
+<meta name="twitter:image" content="https://antonalin.github.io/CV/og-image.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -234,6 +248,16 @@
   .verify-trigger:hover{border-color:var(--teal);color:var(--teal);}
   .verify-trigger[hidden]{display:none;}
   .verify-trigger svg{width:13px;height:13px;stroke:currentColor;flex:none;}
+  .vcard-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    appearance:none;border:1px solid var(--hairline-strong);border-radius:999px;
+    background:transparent;color:var(--text-lo);
+    font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.03em;
+    padding:5px 12px 5px 10px;cursor:pointer;transition:border-color .2s ease,color .2s ease;
+  }
+  .vcard-btn:hover{border-color:var(--green);color:var(--green);}
+  .vcard-btn[hidden]{display:none;}
+  .vcard-btn svg{width:12px;height:12px;stroke:currentColor;flex:none;}
   .verify-popover{
     position:absolute;top:calc(100% + 10px);left:0;z-index:20;
     width:min(280px,80vw);
@@ -261,7 +285,7 @@
     .contact-block{flex-wrap:wrap;}
   }
   @media print{
-    .verify-trigger, .verify-popover{display:none !important;}
+    .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
   }
 
   .kicker-summary{
@@ -321,6 +345,7 @@
   /* Projects */
   .projects-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
   .project-card{
+    display:block;text-decoration:none;
     background:var(--panel);border:1px solid var(--hairline);border-radius:14px;
     padding:22px;transition:border-color .2s ease, transform .2s ease;
   }
@@ -334,6 +359,30 @@
     border:1px solid var(--hairline-strong);color:var(--teal);
   }
   .project-desc{color:var(--text-lo);font-size:14px;}
+
+  /* Live/linked project card */
+  .project-live-badge{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--green);margin-bottom:11px;
+  }
+  .pulse-dot{
+    width:7px;height:7px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 8px 1px var(--green);animation:pulse-dot 1.8s ease-in-out infinite;flex:none;
+  }
+  @keyframes pulse-dot{
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:.5;transform:scale(.7);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pulse-dot{animation:none;}
+  }
+  .project-open-link{
+    display:inline-flex;align-items:center;gap:6px;margin-top:14px;
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--teal);
+    transition:gap .2s ease;
+  }
+  .project-card:hover .project-open-link{gap:10px;}
 
   /* Skills */
   .skills-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px 40px;}
@@ -353,6 +402,10 @@
   .skill-tags.en-only{display:none;}
   body.lang-en .skill-tags.sv-only{display:none;}
   body.lang-en .skill-tags.en-only{display:flex;}
+
+  .skill-tags-icons span{display:inline-flex;align-items:center;gap:7px;transition:border-color .2s ease,color .2s ease;}
+  .skill-tags-icons span:hover{border-color:var(--teal);color:var(--teal);}
+  .skill-icon{width:13px;height:13px;flex:none;color:var(--teal);}
 
   /* Education */
   .edu-item{padding:20px 0;border-top:1px solid var(--hairline);}
@@ -408,7 +461,7 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
-    .verify-trigger, .verify-popover{display:none !important;}
+    .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
     .reveal{opacity:1 !important;transform:none !important;transition:none !important;}
@@ -480,6 +533,12 @@
     .tag-row{gap:3pt;margin-bottom:4pt;}
     .tag{font-size:6.4pt;padding:1.5pt 4.5pt;color:#39414d;border-color:#c9ced6;}
     .project-desc{font-size:8pt;color:#39414d;}
+    .project-live-badge{color:#39414d !important;margin-bottom:4pt;}
+    .pulse-dot{animation:none;box-shadow:none;background:#8b93a0;}
+    .project-open-link{
+      display:block;margin-top:5pt;color:#5a6270;font-size:7pt;word-break:break-all;
+    }
+    .project-open-link::after{content:" — " attr(data-href);}
 
     /* --- Skills --- */
     #skills .skills-grid{grid-template-columns:repeat(3,1fr);gap:8pt 14pt;}
@@ -565,6 +624,10 @@
         <a href="#" id="contact-email" hidden></a>
         <span class="dot" id="contact-dot" hidden>·</span>
         <a href="#" id="contact-phone" hidden></a>
+        <button type="button" class="vcard-btn" id="vcard-btn" onclick="downloadVCard()" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span class="sv-only">Spara kontakt</span><span class="en-only">Save contact</span>
+        </button>
 
         <div class="verify-popover" id="verify-popover" role="dialog" aria-label="Human verification" hidden>
           <p class="verify-q">
@@ -730,6 +793,14 @@
       <div class="section-line"></div>
     </div>
     <div class="projects-grid">
+      <a class="project-card" href="https://antonalin.github.io/options-lab/" target="_blank" rel="noopener">
+        <div class="project-live-badge"><span class="pulse-dot"></span><span class="sv-only">Live-verktyg</span><span class="en-only">Live tool</span></div>
+        <div class="project-title">Nexus Options Lab</div>
+        <div class="tag-row"><span class="tag">Black-Scholes-Merton</span><span class="tag">Monte Carlo</span><span class="tag">Plotly.js</span></div>
+        <p class="project-desc sv-only">Visualiseringsverktyg för multi-leg europeiska optioner: payoff, Greeks, Monte Carlo-simulering, volatilitetsytor och IV-solver.</p>
+        <p class="project-desc en-only">Visualization tool for multi-leg European options: payoff, Greeks, Monte Carlo simulation, volatility surfaces, and an IV solver.</p>
+        <span class="project-open-link" data-href="https://antonalin.github.io/options-lab/"><span class="sv-only">Öppna verktyget</span><span class="en-only">Open the tool</span> →</span>
+      </a>
       <div class="project-card">
         <div class="project-title"><span class="sv-only">Modell för svenska börsnoterade fastighetsbolag</span><span class="en-only">Swedish Listed Real Estate Model</span></div>
         <div class="tag-row"><span class="tag">LightGBM</span><span class="tag">Python</span><span class="tag">Automation</span></div>
@@ -761,8 +832,12 @@
     <div class="skills-grid">
       <div>
         <div class="skill-group-title"><span class="sv-only">Plattformar</span><span class="en-only">Platforms</span></div>
-        <div class="skill-tags">
-          <span>Microsoft Fabric</span><span>Power BI</span><span>Tableau</span><span>Azure</span><span>AWS Athena</span>
+        <div class="skill-tags skill-tags-icons">
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>Microsoft Fabric</span>
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>Power BI</span>
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>Tableau</span>
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>Azure</span>
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>AWS Athena</span>
         </div>
       </div>
       <div>
@@ -936,9 +1011,13 @@
     return false;
   }
 
+  var revealedEmail = null, revealedPhone = null;
+
   function revealContact(){
     var email = atob(CONTACT_EMAIL_B64);
     var phone = atob(CONTACT_PHONE_B64);
+    revealedEmail = email;
+    revealedPhone = phone;
     var emailEl = document.getElementById('contact-email');
     var phoneEl = document.getElementById('contact-phone');
     emailEl.href = 'mailto:' + email;
@@ -949,12 +1028,39 @@
     phoneEl.removeAttribute('hidden');
     document.getElementById('contact-dot').removeAttribute('hidden');
     document.getElementById('verify-trigger').setAttribute('hidden', '');
+    document.getElementById('vcard-btn').removeAttribute('hidden');
 
     /* The footer line is the contact block on paper, where the gate can't be solved */
     document.getElementById('footer-contact').textContent = email + '  ·  +46 73 724 96 87';
     document.getElementById('footer-contact-link').setAttribute('hidden', '');
 
     try { sessionStorage.setItem('cv-verified', '1'); } catch(e) {}
+  }
+
+  function downloadVCard(){
+    if(!revealedEmail){ return; }
+    var lines = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      'N:Ålin;Anton;;;',
+      'FN:Anton Ålin',
+      'ORG:Diös Fastigheter AB',
+      'TITLE:Head of Data & BI',
+      'TEL;TYPE=CELL:' + revealedPhone,
+      'EMAIL:' + revealedEmail,
+      'URL:https://github.com/AntonAlin/',
+      'END:VCARD',
+      ''
+    ];
+    var blob = new Blob([lines.join('\r\n')], {type:'text/vcard;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'anton-alin.vcf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
 
   (function(){
