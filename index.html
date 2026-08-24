@@ -269,30 +269,6 @@
     color:var(--text-lo);font-size:15.5px;
   }
 
-  /* ---------- Hero stat strip ---------- */
-  .stat-strip{
-    margin-top:32px;display:flex;flex-wrap:wrap;gap:0;
-    border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);
-    max-width:640px;
-  }
-  .stat{
-    flex:1 1 140px;padding:16px 22px 15px 0;
-  }
-  .stat + .stat{
-    padding-left:22px;border-left:1px solid var(--hairline);
-  }
-  .stat-num{
-    font-family:'Fraunces',serif;font-size:30px;font-weight:600;line-height:1;
-    background:linear-gradient(120deg,var(--green),var(--teal));
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-    font-variant-numeric:tabular-nums;
-  }
-  .stat-label{
-    margin-top:7px;
-    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;
-    text-transform:uppercase;color:var(--text-faint);line-height:1.4;
-  }
-
   /* ---------- Sections ---------- */
   section{padding:56px 0;border-bottom:1px solid var(--hairline);}
   section:last-of-type{border-bottom:none;}
@@ -420,9 +396,6 @@
     .timeline::before, .job::after{display:none;}
     .projects-grid, .skills-grid, .ach-grid{grid-template-columns:1fr;}
     .controlbar-inner{padding:12px 20px;}
-    .stat{padding-right:16px;}
-    .stat + .stat{padding-left:16px;}
-    .stat-num{font-size:25px;}
   }
 
   /* ---------- Print ---------- */
@@ -468,19 +441,6 @@
     .kicker-summary{
       margin-top:11pt;max-width:none;font-size:9.2pt;color:#39414d;
     }
-
-    /* Stat strip reads as a compact credential band on paper */
-    .stat-strip{
-      margin-top:10pt;max-width:none;
-      border-top:.5pt solid #c9ced6;border-bottom:.5pt solid #c9ced6;
-      break-inside:avoid;
-    }
-    .stat{padding:7pt 14pt 6pt 0;}
-    .stat + .stat{padding-left:14pt;border-left:.5pt solid #c9ced6;}
-    .stat-num{
-      background:none;-webkit-text-fill-color:initial;color:#0f1319;font-size:16pt;
-    }
-    .stat-label{margin-top:3pt;font-size:6.8pt;color:#5a6270;}
 
     /* --- Sections --- */
     section{
@@ -638,21 +598,6 @@
       and power markets. Skilled at turning market and business data into scalable infrastructure and decision
       support, whether the audience is a trading desk or a boardroom.
     </p>
-
-    <div class="stat-strip" id="stat-strip">
-      <div class="stat">
-        <div class="stat-num" data-count="10" data-suffix="+">10+</div>
-        <div class="stat-label"><span class="sv-only">År inom data<br>&amp; finans</span><span class="en-only">Years in data<br>&amp; finance</span></div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" data-count="800" data-suffix="+">800+</div>
-        <div class="stat-label"><span class="sv-only">ESG-datapunkter<br>modellerade</span><span class="en-only">ESG datapoints<br>modelled</span></div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" data-count="3" data-suffix="">3</div>
-        <div class="stat-label"><span class="sv-only">Egna kvant-<br>modeller</span><span class="en-only">Self-built quant<br>models</span></div>
-      </div>
-    </div>
   </div>
 </header>
 
@@ -927,7 +872,7 @@
       <div>
         <div class="skill-group-title"><span class="sv-only">Intressen</span><span class="en-only">Interests</span></div>
         <p class="project-desc sv-only" style="margin:0;">Tävlingsaktiv skidalpinist. Ivrig terränglöpare, bergsbestigare och klättrare.</p>
-        <p class="project-desc en-only" style="margin:0;">Competitive ski mountaineer. Avid trail runner, mountaineer, and climber.</p>
+        <p class="project-desc en-only" style="margin:0;">Competitive ski mountaineer. Avid trail runner and climber.</p>
       </div>
     </div>
   </section>
@@ -1068,30 +1013,10 @@
     window.addEventListener('resize', updateBar, {passive:true});
     updateBar();
 
-    /* Count-up for the hero stats */
-    function countUp(el){
-      if(el.dataset.done === '1'){ return; }
-      el.dataset.done = '1';
-      var target = parseInt(el.dataset.count, 10);
-      var suffix = el.dataset.suffix || '';
-      if(reduced || !target){ el.textContent = target + suffix; return; }
-      var duration = 1100, start = null;
-      function step(ts){
-        if(start === null){ start = ts; }
-        var p = Math.min(1, (ts - start) / duration);
-        var eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = Math.round(target * eased) + suffix;
-        if(p < 1){ window.requestAnimationFrame(step); }
-      }
-      el.textContent = '0' + suffix;
-      window.requestAnimationFrame(step);
-    }
-
     /* Scroll reveal — targets are collected and classed here so that with JS
        disabled nothing is ever hidden. */
     var targets = [];
-    document.querySelectorAll('#stat-strip, main section').forEach(function(el){
-      if(el.id === 'stat-strip'){ targets.push([el]); return; }
+    document.querySelectorAll('main section').forEach(function(el){
       var head = el.querySelector('.section-head');
       var items = el.querySelectorAll(
         '.job, .project-card, .skills-grid > div, .edu-item, .ach-grid > div'
@@ -1100,7 +1025,6 @@
     });
 
     if(reduced || !('IntersectionObserver' in window)){
-      document.querySelectorAll('.stat-num').forEach(countUp);
       return;
     }
 
@@ -1118,7 +1042,6 @@
         var el = entry.target;
         el.style.transitionDelay = Math.min(groups.get(el) || 0, 6) * 70 + 'ms';
         el.classList.add('is-in');
-        el.querySelectorAll('.stat-num').forEach(countUp);
         io.unobserve(el);
       });
     }, {rootMargin:'0px 0px -8% 0px', threshold:0.12});
