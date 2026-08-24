@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anton Ålin — CV</title>
+<meta name="description" content="Anton Ålin — Head of Data & BI. Digitalt CV.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#070b14;
+    --panel:#0d1420;
+    --panel-2:#111a29;
+    --hairline:rgba(255,255,255,.09);
+    --hairline-strong:rgba(255,255,255,.16);
+    --text-hi:#eef3f8;
+    --text-lo:#8b98ac;
+    --text-faint:#5c6579;
+    --green:#3ddc97;
+    --teal:#22b8cf;
+    --violet:#8b7cf6;
+    --pink:#ff6fae;
+    --max-w:920px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--void);
+    color:var(--text-hi);
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--green);color:#04120c;}
+
+  a{color:inherit;}
+
+  h1,h2,h3{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+
+  .wrap{max-width:var(--max-w);margin:0 auto;padding:0 28px;}
+
+  /* ---------- Language switching ---------- */
+  [data-en],[data-sv]{}
+  .sv-only{display:inline;}
+  .en-only{display:none;}
+  body.lang-en .sv-only{display:none;}
+  body.lang-en .en-only{display:inline;}
+  body.lang-en .en-only.block,
+  .sv-only.block{display:block;}
+  body.lang-en .sv-only.block{display:none;}
+  body.lang-en .en-only.block{display:block;}
+
+  /* ---------- Top control bar ---------- */
+  .controlbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(7,11,20,.72);
+    backdrop-filter:blur(14px) saturate(140%);
+    border-bottom:1px solid var(--hairline);
+  }
+  .controlbar-inner{
+    max-width:var(--max-w);margin:0 auto;padding:14px 28px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .brand-mini{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;letter-spacing:.06em;color:var(--text-lo);
+    text-transform:uppercase;
+  }
+  .controls{display:flex;align-items:center;gap:10px;}
+  .lang-toggle{
+    display:flex;border:1px solid var(--hairline-strong);
+    border-radius:999px;overflow:hidden;background:var(--panel);
+  }
+  .lang-toggle button{
+    appearance:none;border:none;background:transparent;color:var(--text-lo);
+    font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.05em;
+    padding:7px 14px;cursor:pointer;transition:all .2s ease;
+  }
+  .lang-toggle button.active{
+    background:linear-gradient(135deg,var(--green),var(--teal));
+    color:#04120c;font-weight:500;
+  }
+  .print-btn{
+    display:flex;align-items:center;gap:7px;
+    border:1px solid var(--hairline-strong);border-radius:999px;
+    background:var(--panel);color:var(--text-hi);
+    font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.03em;
+    padding:8px 16px;cursor:pointer;transition:border-color .2s ease, transform .15s ease;
+  }
+  .print-btn:hover{border-color:var(--teal);transform:translateY(-1px);}
+  .print-btn svg{width:14px;height:14px;stroke:var(--teal);}
+
+  /* ---------- Hero / Aurora ---------- */
+  .hero{
+    position:relative;overflow:hidden;
+    padding:88px 0 64px;
+    border-bottom:1px solid var(--hairline);
+  }
+  .aurora-layer{
+    position:absolute;inset:-20% -10% -10% -10%;
+    z-index:0;pointer-events:none;
+    filter:blur(60px) saturate(130%);
+    opacity:.55;
+  }
+  .aurora-band{
+    position:absolute;
+    width:140%;height:60%;
+    border-radius:50%;
+    mix-blend-mode:screen;
+    animation:drift 22s ease-in-out infinite;
+  }
+  .aurora-band.b1{
+    background:radial-gradient(ellipse at 30% 40%, var(--green), transparent 60%);
+    top:-10%;left:-20%;
+    animation-duration:26s;
+  }
+  .aurora-band.b2{
+    background:radial-gradient(ellipse at 60% 50%, var(--violet), transparent 60%);
+    top:0%;left:10%;
+    animation-duration:31s;
+    animation-delay:-8s;
+  }
+  .aurora-band.b3{
+    background:radial-gradient(ellipse at 50% 50%, var(--teal), transparent 60%);
+    top:10%;left:-10%;
+    animation-duration:19s;
+    animation-delay:-4s;
+  }
+  @keyframes drift{
+    0%{transform:translate(0,0) rotate(0deg) scale(1);}
+    33%{transform:translate(4%,-6%) rotate(6deg) scale(1.08);}
+    66%{transform:translate(-3%,4%) rotate(-4deg) scale(0.96);}
+    100%{transform:translate(0,0) rotate(0deg) scale(1);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .aurora-band{animation:none;}
+  }
+
+  .hero-content{position:relative;z-index:1;}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--teal);margin-bottom:18px;display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow::before{
+    content:'';width:7px;height:7px;border-radius:50%;
+    background:var(--green);box-shadow:0 0 12px 2px var(--green);
+    display:inline-block;
+  }
+  h1.name{
+    font-size:clamp(42px,7vw,72px);
+    line-height:.98;
+    background:linear-gradient(120deg,#f4f8fc 30%,var(--green) 60%,var(--teal) 85%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .role-line{
+    margin-top:14px;
+    font-size:clamp(17px,2.4vw,21px);
+    color:var(--text-lo);
+    font-weight:500;
+  }
+  .meta-row{
+    margin-top:26px;display:flex;flex-wrap:wrap;gap:10px 22px;
+    font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-lo);
+  }
+  .meta-row a{text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s;}
+  .meta-row a:hover{border-color:var(--teal);color:var(--teal);}
+  .meta-row .dot{color:var(--text-faint);}
+
+  .kicker-summary{
+    margin-top:34px;max-width:640px;
+    color:var(--text-lo);font-size:15.5px;
+  }
+
+  /* ---------- Sections ---------- */
+  section{padding:56px 0;border-bottom:1px solid var(--hairline);}
+  section:last-of-type{border-bottom:none;}
+  .section-head{
+    display:flex;align-items:baseline;gap:14px;margin-bottom:32px;
+  }
+  .section-num{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);
+  }
+  .section-title{font-size:26px;color:var(--text-hi);}
+  .section-line{flex:1;height:1px;background:var(--hairline);}
+
+  /* Experience */
+  .job{
+    display:grid;grid-template-columns:150px 1fr;gap:24px;
+    padding:22px 0;border-top:1px solid var(--hairline);
+  }
+  .job:first-of-type{border-top:none;padding-top:0;}
+  .job-period{
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--text-faint);
+    padding-top:4px;
+  }
+  .job-org{font-size:19px;font-weight:600;color:var(--text-hi);}
+  .job-title{color:var(--teal);font-size:14.5px;margin-top:2px;font-weight:500;}
+  .job ul{margin:14px 0 0;padding-left:18px;color:var(--text-lo);font-size:14.5px;}
+  .job li{margin-bottom:7px;}
+  .job li::marker{color:var(--green);}
+
+  /* Projects */
+  .projects-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .project-card{
+    background:var(--panel);border:1px solid var(--hairline);border-radius:14px;
+    padding:22px;transition:border-color .2s ease, transform .2s ease;
+  }
+  .project-card:hover{border-color:var(--teal);transform:translateY(-2px);}
+  .project-title{font-size:17px;font-weight:600;color:var(--text-hi);margin-bottom:10px;}
+  .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .tag{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.02em;
+    padding:3px 9px;border-radius:999px;
+    border:1px solid var(--hairline-strong);color:var(--teal);
+  }
+  .project-desc{color:var(--text-lo);font-size:14px;}
+
+  /* Skills */
+  .skills-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px 40px;}
+  .skill-group-title{
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--text-faint);margin-bottom:14px;
+  }
+  .skill-tags{display:flex;flex-wrap:wrap;gap:8px;}
+  .skill-tags span{
+    font-size:13.5px;padding:6px 12px;border-radius:8px;
+    background:var(--panel-2);border:1px solid var(--hairline);
+    color:var(--text-hi);
+  }
+
+  /* Education */
+  .edu-item{padding:20px 0;border-top:1px solid var(--hairline);}
+  .edu-item:first-of-type{border-top:none;padding-top:0;}
+  .edu-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;}
+  .edu-school{font-size:18px;font-weight:600;}
+  .edu-period{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--text-faint);}
+  .edu-degree{color:var(--teal);font-size:14px;margin-top:2px;}
+  .edu-item ul{margin:10px 0 0;padding-left:18px;color:var(--text-lo);font-size:14px;}
+  .edu-item li::marker{color:var(--violet);}
+
+  /* Achievements — aurora intensity bars as a nod to KP-index */
+  .ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px 40px;}
+  .ach-list{list-style:none;margin:0;padding:0;}
+  .ach-list li{
+    display:flex;align-items:flex-start;gap:12px;
+    padding:11px 0;border-top:1px solid var(--hairline);font-size:14.5px;color:var(--text-lo);
+  }
+  .ach-list li:first-child{border-top:none;}
+  .kp{
+    flex:none;width:26px;height:14px;border-radius:4px;margin-top:3px;
+    background:linear-gradient(90deg,var(--green),var(--teal),var(--violet));
+  }
+  .ach-list b{color:var(--text-hi);font-weight:600;}
+
+  /* Footer */
+  footer{padding:40px 0 60px;text-align:center;}
+  .footer-note{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);
+  }
+  .footer-note a{color:var(--teal);text-decoration:none;}
+
+  /* Focus states */
+  button:focus-visible, a:focus-visible{
+    outline:2px solid var(--green);outline-offset:2px;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:720px){
+    .job{grid-template-columns:1fr;gap:6px;}
+    .projects-grid, .skills-grid, .ach-grid{grid-template-columns:1fr;}
+    .controlbar-inner{padding:12px 20px;}
+  }
+
+  /* ---------- Print ---------- */
+  @media print{
+    .controlbar{display:none;}
+    .aurora-layer{display:none;}
+    body{background:#fff;color:#111;font-size:11.5px;}
+    h1.name{
+      background:none;-webkit-text-fill-color:initial;color:#111;
+      font-size:34px;
+    }
+    .eyebrow, .role-line, .job-title, .edu-degree{color:#333 !important;}
+    .eyebrow::before{background:#333;box-shadow:none;}
+    section{border-bottom:1px solid #ddd;padding:22px 0;break-inside:avoid;}
+    .job, .edu-item{break-inside:avoid;border-top-color:#ddd;}
+    .project-card{border-color:#ddd;background:#fafafa;}
+    .project-card:hover{transform:none;}
+    .skill-tags span{background:#f2f2f2;border-color:#ddd;color:#111;}
+    .tag{color:#333;border-color:#ccc;}
+    .meta-row, .job-period, .edu-period{color:#444;}
+    .kicker-summary, .job ul, .edu-item ul, .project-desc, .ach-list li{color:#333;}
+    .section-line{background:#ddd;}
+    footer{display:none;}
+    a{text-decoration:none;color:#111;}
+    .hero{padding:20px 0 30px;border-bottom:1px solid #ddd;}
+    .wrap{padding:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="controlbar">
+  <div class="controlbar-inner">
+    <div class="brand-mini">AL / CV / 2026</div>
+    <div class="controls">
+      <div class="lang-toggle" role="group" aria-label="Language / Språk">
+        <button id="btn-sv" class="active" onclick="setLang('sv')">SV</button>
+        <button id="btn-en" onclick="setLang('en')">EN</button>
+      </div>
+      <button class="print-btn" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        <span class="sv-only">Skriv ut</span><span class="en-only">Print</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="aurora-layer">
+    <div class="aurora-band b1"></div>
+    <div class="aurora-band b2"></div>
+    <div class="aurora-band b3"></div>
+  </div>
+  <div class="wrap hero-content">
+    <div class="eyebrow"><span class="sv-only">Åre, Sverige</span><span class="en-only">Åre, Sweden</span></div>
+    <h1 class="name">Anton Ålin</h1>
+    <div class="role-line" style="margin-top:2px;font-size:14px;color:var(--text-faint);"><span class="sv-only">(fd Larsson)</span><span class="en-only">(formerly Larsson)</span></div>
+    <div class="role-line"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Head of Data &amp; BI</span></div>
+
+    <div class="meta-row">
+      <a href="mailto:0737249687@proton.me">0737249687@proton.me</a>
+      <span class="dot">·</span>
+      <a href="tel:+46737249687">+46 73 724 96 87</a>
+      <span class="dot">·</span>
+      <a href="https://github.com/AntonAlin/" target="_blank" rel="noopener">github.com/AntonAlin</a>
+    </div>
+
+    <p class="kicker-summary sv-only">
+      Data- och BI-ledare med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ
+      modellering och analysstrategi. Ansvarar för data- och BI-agendan på Diös Fastigheter och bygger lösningar
+      i Microsoft Fabric, men har sin grund i finansbranschen: investeringsdata och fondanalys på Morningstar,
+      trading hos IG Markets och egna prediktiva prismodeller för fastighets- och elmarknaden. Van vid att omsätta
+      marknads- och verksamhetsdata till skalbar infrastruktur och beslutsunderlag, oavsett om mottagaren sitter
+      på en tradingdesk eller i styrelserummet.
+    </p>
+    <p class="kicker-summary en-only">
+      Data and BI leader with over 10 years of experience at the intersection of financial data, quantitative
+      modelling, and analytics strategy. Responsible for the data and BI agenda at Diös Fastigheter, building
+      solutions on Microsoft Fabric, with roots in the finance industry: managed investment data and fund
+      analysis at Morningstar, trading at IG Markets, and self-built predictive pricing models for real estate
+      and power markets. Skilled at turning market and business data into scalable infrastructure and decision
+      support, whether the audience is a trading desk or a boardroom.
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- EXPERIENCE -->
+  <section id="experience">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2 class="section-title"><span class="sv-only">Erfarenhet</span><span class="en-only">Experience</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="job">
+      <div class="job-period">APR 2025 —<br><span class="sv-only">NUTID</span><span class="en-only">PRESENT</span></div>
+      <div>
+        <div class="job-org">Diös Fastigheter AB</div>
+        <div class="job-title"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Head of Data &amp; BI</span></div>
+        <ul class="sv-only">
+          <li>Äger och driver den bolagsövergripande data- och BI-strategin, sätter prioriteringar och hanterar backlogg över samtliga affärsområden</li>
+          <li>Arkitekterar och levererar lösningar i Microsoft Fabric, inklusive datapipelines, lakehouses och semantiska modeller</li>
+          <li>Bygger Power BI-dashboards och infrastruktur för självbetjänad rapportering till verksamhet och ledning</li>
+          <li>Leder AI- och ML-initiativ, identifierar möjligheter att integrera intelligens i affärsprocesser och rapportering</li>
+          <li>Etablerar ramverk för datastyrning och kvalitetsstandarder i hela organisationen</li>
+        </ul>
+        <ul class="en-only">
+          <li>Own and drive the company-wide data and BI strategy, setting priorities and managing the backlog across all business units</li>
+          <li>Architect and deliver solutions on Microsoft Fabric, including data pipelines, lakehouses, and semantic models</li>
+          <li>Build Power BI dashboards and self-service reporting infrastructure for business stakeholders and senior leadership</li>
+          <li>Lead AI and ML initiatives, identifying opportunities to embed intelligence into business processes and reporting</li>
+          <li>Establish data governance frameworks and data quality standards across the organisation</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="job">
+      <div class="job-period">OKT 2024 —<br>APR 2025</div>
+      <div>
+        <div class="job-org">Diös Fastigheter AB</div>
+        <div class="job-title"><span class="sv-only">Sustainability Controller</span><span class="en-only">Sustainability Controller</span></div>
+        <ul class="sv-only">
+          <li>Ägde hela hållbarhetsrapporteringen enligt CSRD, ESRS, GRI och EU-taxonomin</li>
+          <li>Förbättrade rapporteringsprocesser och datastyrningsstruktur i samarbete med interna team</li>
+        </ul>
+        <ul class="en-only">
+          <li>Owned end-to-end sustainability reporting in compliance with CSRD, ESRS, GRI, and EU Taxonomy</li>
+          <li>Improved reporting processes and data governance structure in collaboration with internal teams</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="job">
+      <div class="job-period">NOV 2021 —<br>SEP 2024</div>
+      <div>
+        <div class="job-org">Morningstar Inc</div>
+        <div class="job-title"><span class="sv-only">Content Researcher — Managed Investment Portfolio Data</span><span class="en-only">Content Researcher — Managed Investment Portfolio Data</span></div>
+        <ul class="sv-only">
+          <li>Produktägare för en portföljberäkningsmotor som genererar 800+ ESG-datapunkter från Sustainalytics-data</li>
+          <li>Ledde datainsamlingsprojekt från start till mål: utbildade dataavdelningar, designade mallar, koordinerade IT-infrastruktur och byggde nya metoder i Python</li>
+          <li>Utvecklade nya beräkningsmetoder och stöttade kollegor i komplexa fondexponeringsfrågor</li>
+        </ul>
+        <ul class="en-only">
+          <li>Product owner for a portfolio calculation engine generating 800+ ESG datapoints from Sustainalytics data</li>
+          <li>Led data collection projects end-to-end: training data teams, designing templates, coordinating with tech on IT infrastructure, and building new methodologies with Python</li>
+          <li>Developed new calculation methodologies and supported team members on complex fund exposure questions</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="job">
+      <div class="job-period">FEB 2020 —<br>NOV 2021</div>
+      <div>
+        <div class="job-org">Morningstar Inc</div>
+        <div class="job-title">Sales Excellence Manager, EMEA</div>
+        <ul class="sv-only">
+          <li>Ledde interna team som hanterade RFP:er och due diligence-frågeformulär för kunder i EMEA</li>
+          <li>Byggde Tableau-dashboards åt säljledningen för att följa KPI:er och driva intäktsbeslut</li>
+        </ul>
+        <ul class="en-only">
+          <li>Managed internal teams handling RFPs and due diligence questionnaires for clients across EMEA</li>
+          <li>Built Tableau dashboards for sales leadership to track KPIs and drive revenue decisions</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="job">
+      <div class="job-period">MAJ 2017 —<br>FEB 2020</div>
+      <div>
+        <div class="job-org">Morningstar Inc</div>
+        <div class="job-title"><span class="sv-only">Data Research Analyst / Associate Analyst — Managed Investment Data</span><span class="en-only">Data Research Analyst / Associate Analyst — Managed Investment Data</span></div>
+        <ul class="sv-only">
+          <li>Ansvarade för datarelationer med fondbolag, byggde anskaffningskanaler och agerade eskaleringspunkt</li>
+          <li>Sakkunnig inom investeringsdata, ETF:er, pensionsprodukter och regelverk som MiFID II och Solvens II</li>
+          <li>Utbildade nya medarbetare och samarbetade med globala Data &amp; Development Centers kring nordiska affärskrav</li>
+        </ul>
+        <ul class="en-only">
+          <li>Managed data relationships with fund companies, setting up acquisition channels and acting as point of escalation</li>
+          <li>Subject matter expert on investment data, ETFs, pension products, and regulations including MiFID II and Solvency II</li>
+          <li>Trained new team members; collaborated with global Data &amp; Development Centers to align on Nordic business requirements</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="job">
+      <div class="job-period">JAN 2015 —<br>OKT 2016</div>
+      <div>
+        <div class="job-org">IG Markets</div>
+        <div class="job-title"><span class="sv-only">Säljare</span><span class="en-only">Sales Executive</span></div>
+      </div>
+    </div>
+
+    <div class="job">
+      <div class="job-period"><span class="sv-only">TIDIGARE</span><span class="en-only">EARLIER</span></div>
+      <div>
+        <div class="job-title" style="color:var(--text-lo);">
+          <span class="sv-only">Sommarpraktik som trader, RGG ADM-Gruppen (2013) · Investeringspraktikant, Hartland Financial USA (2012)</span>
+          <span class="en-only">Summer Trader Intern, RGG ADM-Gruppen (2013) · Investment Intern, Hartland Financial USA (2012)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section id="projects">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2 class="section-title"><span class="sv-only">Utvalda projekt</span><span class="en-only">Selected Projects</span></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="projects-grid">
+      <div class="project-card">
+        <div class="project-title"><span class="sv-only">Modell för svenska börsnoterade fastighetsbolag</span><span class="en-only">Swedish Listed Real Estate Model</span></div>
+        <div class="tag-row"><span class="tag">LightGBM</span><span class="tag">Python</span><span class="tag">Automation</span></div>
+        <p class="project-desc sv-only">EPRA NRV/CEPS-rankning av 11–14 bolag: ML-lager tillsammans med sammansatt poängsättning, byggt på en verifierad fundamenta-databas som underhålls mot Q1/Q2 2026-delårsrapporter. Automatiserat veckoutskick via mejl.</p>
+        <p class="project-desc en-only">EPRA NRV/CEPS peer ranking across 11–14 companies: ML layer alongside composite scoring, on a verified fundamentals dictionary maintained against Q1/Q2 2026 interims. Weekly automated email output.</p>
+      </div>
+      <div class="project-card">
+        <div class="project-title">Alpha Satellite</div>
+        <div class="tag-row"><span class="tag">LightGBM</span><span class="tag">XGBoost</span></div>
+        <p class="project-desc sv-only"><span class="sv-only">Microcap-pipeline. </span>Ensemble med purged walk-forward-korsvalidering och invers volatilitetsriskparitet.</p>
+        <p class="project-desc en-only">Microcap equity pipeline. Ensemble with purged walk-forward cross-validation and inverse-volatility risk parity.</p>
+      </div>
+      <div class="project-card">
+        <div class="project-title"><span class="sv-only">SE2 Elprisprognosterminal</span><span class="en-only">SE2 Electricity Price Forecasting Terminal</span></div>
+        <div class="tag-row"><span class="tag">Quantile Regression</span><span class="tag">Microsoft Fabric</span></div>
+        <p class="project-desc sv-only">LightGBM/XGBoost-kvantilprognoser, byggt i Microsoft Fabric.</p>
+        <p class="project-desc en-only">LightGBM/XGBoost quantile forecasts, built on Microsoft Fabric.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section id="skills">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2 class="section-title"><span class="sv-only">Kompetens</span><span class="en-only">Skills</span></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="skills-grid">
+      <div>
+        <div class="skill-group-title"><span class="sv-only">Plattformar</span><span class="en-only">Platforms</span></div>
+        <div class="skill-tags">
+          <span>Microsoft Fabric</span><span>Power BI</span><span>Tableau</span><span>Azure</span><span>AWS Athena</span>
+        </div>
+      </div>
+      <div>
+        <div class="skill-group-title"><span class="sv-only">Praktik</span><span class="en-only">Practice</span></div>
+        <div class="skill-tags sv-only">
+          <span>Datastrategi &amp; roadmap</span><span>Datastyrning &amp; datakvalitet</span><span>AI/ML — prediktiv analys</span><span>Produktägarskap — backlogg</span><span>Agile/Scrum — tvärfunktionellt ledarskap</span>
+        </div>
+        <div class="skill-tags en-only">
+          <span>Data Strategy &amp; Roadmap Planning</span><span>Data Governance &amp; Data Quality</span><span>AI/ML — Predictive Analytics</span><span>Product Ownership — Backlog Prioritisation</span><span>Agile/Scrum — Cross-functional Leadership</span>
+        </div>
+      </div>
+      <div>
+        <div class="skill-group-title"><span class="sv-only">Domän</span><span class="en-only">Domain</span></div>
+        <div class="skill-tags sv-only">
+          <span>Hedgefonder</span><span>Alternativa investeringar</span><span>Finansiell data</span><span>Förvaltade investeringar</span><span>Fonddata</span><span>Salesforce</span><span>Excel</span><span>Morningstar Direct</span><span>Pitchbook</span><span>Intressenthantering</span>
+        </div>
+        <div class="skill-tags en-only">
+          <span>Hedge Funds</span><span>Alternative Investments</span><span>Financial Data</span><span>Managed Investments</span><span>Fund Data</span><span>Salesforce</span><span>Excel</span><span>Morningstar Direct</span><span>Pitchbook</span><span>Stakeholder Management</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EDUCATION -->
+  <section id="education">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2 class="section-title"><span class="sv-only">Utbildning</span><span class="en-only">Education</span></h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="edu-item">
+      <div class="edu-head">
+        <span class="edu-school">Rocky Mountain College</span>
+        <span class="edu-period">2010 — 2014</span>
+      </div>
+      <div class="edu-degree sv-only">Kandidatexamen, Business Administration and Management</div>
+      <div class="edu-degree en-only">B.S. Business Administration and Management</div>
+      <ul class="sv-only"><li>Business Management Departmental Award 2014 · USCSA 1st Team All-American 2010, 2011, 2012</li></ul>
+      <ul class="en-only"><li>Business Management Departmental Award 2014; USCSA 1st Team All-American 2010, 2011, 2012</li></ul>
+    </div>
+
+    <div class="edu-item">
+      <div class="edu-head">
+        <span class="edu-school">Malung Alpine Elite Academy</span>
+        <span class="edu-period">2006 — 2009</span>
+      </div>
+      <div class="edu-degree sv-only">Samhällsvetenskap och ekonomi</div>
+      <div class="edu-degree en-only">Social Science and Economics</div>
+      <ul class="sv-only"><li>Del av Ski Team Sweden (2007–2009); representerade Sverige i junior-VM, Garmisch-Partenkirchen 2009</li></ul>
+      <ul class="en-only"><li>Part of Ski Team Sweden (2007–2009); represented Sweden at the Junior World Championship, Garmisch-Partenkirchen 2009</li></ul>
+    </div>
+  </section>
+
+  <!-- ACHIEVEMENTS -->
+  <section id="achievements">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2 class="section-title"><span class="sv-only">Meriter</span><span class="en-only">Achievements</span></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="ach-grid">
+      <div>
+        <div class="skill-group-title"><span class="sv-only">Akademiska</span><span class="en-only">Academic</span></div>
+        <ul class="ach-list sv-only">
+          <li><span class="kp"></span><span><b>2014</b> — Business Management Departmental Award</span></li>
+          <li><span class="kp"></span><span><b>RMC</b> — Ordförande, Student Athlete Advisory Council</span></li>
+          <li><span class="kp"></span><span><b>RMC</b> — Ekonomiansvarig, ASRMC</span></li>
+        </ul>
+        <ul class="ach-list en-only">
+          <li><span class="kp"></span><span><b>2014</b> — Business Management Departmental Award</span></li>
+          <li><span class="kp"></span><span><b>RMC</b> — President, Student Athlete Advisory Council</span></li>
+          <li><span class="kp"></span><span><b>RMC</b> — Financial Administrator, ASRMC</span></li>
+        </ul>
+      </div>
+      <div>
+        <div class="skill-group-title"><span class="sv-only">Idrott</span><span class="en-only">Athletic</span></div>
+        <ul class="ach-list sv-only">
+          <li><span class="kp"></span><span><b>2024</b> — Tredjeplats, SM i skidalpinism (skimo)</span></li>
+          <li><span class="kp"></span><span><b>2009</b> — Team Sweden, junior-VM alpint, Garmisch-Partenkirchen</span></li>
+          <li><span class="kp"></span><span><b>2010–12</b> — 1st Team All-American</span></li>
+        </ul>
+        <ul class="ach-list en-only">
+          <li><span class="kp"></span><span><b>2024</b> — 3rd place, Swedish Championship in Ski Mountaineering</span></li>
+          <li><span class="kp"></span><span><b>2009</b> — Team Sweden, Junior Alpine World Championship, Garmisch-Partenkirchen</span></li>
+          <li><span class="kp"></span><span><b>2010–12</b> — 1st Team All-American</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- LANGUAGES & INTERESTS -->
+  <section id="misc">
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <h2 class="section-title"><span class="sv-only">Språk &amp; intressen</span><span class="en-only">Languages &amp; Interests</span></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="skills-grid">
+      <div>
+        <div class="skill-group-title"><span class="sv-only">Språkkunskaper</span><span class="en-only">Languages</span></div>
+        <div class="skill-tags">
+          <span><span class="sv-only">Svenska — Modersmål</span><span class="en-only">Swedish — Native</span></span>
+          <span><span class="sv-only">Engelska — Flytande</span><span class="en-only">English — Fluent</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="skill-group-title"><span class="sv-only">Intressen</span><span class="en-only">Interests</span></div>
+        <p class="project-desc sv-only" style="margin:0;">Tävlingsaktiv skidalpinist. Ivrig terränglöpare, bergsbestigare och klättrare.</p>
+        <p class="project-desc en-only" style="margin:0;">Competitive ski mountaineer. Avid trail runner, mountaineer, and climber.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-note">
+      <span class="sv-only">Referenser lämnas på begäran.</span><span class="en-only">References available on request.</span>
+      &nbsp;·&nbsp;<a href="mailto:0737249687@proton.me">0737249687@proton.me</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function setLang(lang){
+    var isEn = lang === 'en';
+    document.body.classList.toggle('lang-en', isEn);
+    document.documentElement.setAttribute('lang', lang);
+    document.getElementById('btn-en').classList.toggle('active', isEn);
+    document.getElementById('btn-sv').classList.toggle('active', !isEn);
+    try { localStorage.setItem('cv-lang', lang); } catch(e) {}
+  }
+  (function(){
+    var saved = null;
+    try { saved = localStorage.getItem('cv-lang'); } catch(e) {}
+    if(!saved){
+      saved = (navigator.language || '').toLowerCase().indexOf('sv') === 0 ? 'sv' : 'en';
+    }
+    setLang(saved);
+  })();
+</script>
+
+</body>
+</html>
