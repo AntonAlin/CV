@@ -197,6 +197,48 @@
   .meta-row a:hover{border-color:var(--teal);color:var(--teal);}
   .meta-row .dot{color:var(--text-faint);}
 
+  /* ---------- Contact verification gate ---------- */
+  .contact-block{position:relative;display:inline-flex;align-items:center;gap:22px;}
+  .verify-trigger{
+    display:inline-flex;align-items:center;gap:7px;
+    appearance:none;border:1px solid var(--hairline-strong);border-radius:999px;
+    background:var(--panel);color:var(--text-lo);
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;letter-spacing:.03em;
+    padding:6px 13px 6px 11px;cursor:pointer;transition:border-color .2s ease,color .2s ease;
+  }
+  .verify-trigger:hover{border-color:var(--teal);color:var(--teal);}
+  .verify-trigger[hidden]{display:none;}
+  .verify-trigger svg{width:13px;height:13px;stroke:currentColor;flex:none;}
+  .verify-popover{
+    position:absolute;top:calc(100% + 10px);left:0;z-index:20;
+    width:min(280px,80vw);
+    background:var(--panel-2);border:1px solid var(--hairline-strong);border-radius:12px;
+    padding:16px;box-shadow:0 12px 32px rgba(0,0,0,.4);
+  }
+  .verify-q{margin:0 0 10px;font-size:13px;color:var(--text-lo);font-family:'Inter',sans-serif;}
+  .verify-q b{color:var(--text-hi);font-family:'JetBrains Mono',monospace;}
+  .verify-form{display:flex;gap:8px;}
+  .verify-input{
+    width:64px;min-width:0;
+    background:var(--panel);border:1px solid var(--hairline-strong);border-radius:8px;
+    color:var(--text-hi);font-family:'JetBrains Mono',monospace;font-size:14px;
+    padding:7px 10px;
+  }
+  .verify-input:focus-visible{outline:2px solid var(--green);outline-offset:1px;}
+  .verify-submit{
+    appearance:none;border:none;border-radius:8px;cursor:pointer;
+    background:linear-gradient(135deg,var(--green),var(--teal));color:#04120c;
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:500;
+    padding:7px 14px;
+  }
+  .verify-error{margin:9px 0 0;font-size:12px;color:var(--pink);font-family:'JetBrains Mono',monospace;}
+  @media (max-width:720px){
+    .contact-block{flex-wrap:wrap;}
+  }
+  @media print{
+    .verify-trigger, .verify-popover{display:none !important;}
+  }
+
   .kicker-summary{
     margin-top:34px;max-width:640px;
     color:var(--text-lo);font-size:15.5px;
@@ -366,10 +408,28 @@
     <div class="role-line" style="margin-top:2px;font-size:14px;color:var(--text-faint);"><span class="sv-only">(fd Larsson)</span><span class="en-only">(formerly Larsson)</span></div>
     <div class="role-line"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Head of Data &amp; BI</span></div>
 
-    <div class="meta-row">
-      <a href="mailto:0737249687@proton.me">0737249687@proton.me</a>
-      <span class="dot">·</span>
-      <a href="tel:+46737249687">+46 73 724 96 87</a>
+    <div class="meta-row" id="contact-block">
+      <span class="contact-block">
+        <button type="button" class="verify-trigger" id="verify-trigger" onclick="toggleVerify()" aria-expanded="false" aria-controls="verify-popover">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span class="sv-only">Visa e-post &amp; telefon</span><span class="en-only">Show email &amp; phone</span>
+        </button>
+        <a href="#" id="contact-email" hidden></a>
+        <span class="dot" id="contact-dot" hidden>·</span>
+        <a href="#" id="contact-phone" hidden></a>
+
+        <div class="verify-popover" id="verify-popover" role="dialog" aria-label="Human verification" hidden>
+          <p class="verify-q">
+            <span class="sv-only">Mänsklig verifiering — vad blir</span><span class="en-only">Human check — what's</span>
+            <b id="verify-question"></b>?
+          </p>
+          <form class="verify-form" onsubmit="return submitVerify(event)">
+            <input type="text" inputmode="numeric" autocomplete="off" id="verify-answer" class="verify-input" aria-label="Svar / Answer">
+            <button type="submit" class="verify-submit"><span class="sv-only">Verifiera</span><span class="en-only">Verify</span></button>
+          </form>
+          <p id="verify-error" class="verify-error" hidden><span class="sv-only">Fel svar, försök igen.</span><span class="en-only">Wrong answer, try again.</span></p>
+        </div>
+      </span>
       <span class="dot">·</span>
       <a href="https://github.com/AntonAlin/" target="_blank" rel="noopener">github.com/AntonAlin</a>
     </div>
@@ -673,12 +733,81 @@
   <div class="wrap">
     <div class="footer-note">
       <span class="sv-only">Referenser lämnas på begäran.</span><span class="en-only">References available on request.</span>
-      &nbsp;·&nbsp;<a href="mailto:0737249687@proton.me">0737249687@proton.me</a>
+      &nbsp;·&nbsp;<a href="#contact-block"><span class="sv-only">Kontaktuppgifter ovan</span><span class="en-only">Contact info above</span></a>
     </div>
   </div>
 </footer>
 
 <script>
+  /* ---------- Contact verification gate ---------- */
+  var CONTACT_EMAIL_B64 = 'MDczNzI0OTY4N0Bwcm90b24ubWU=';
+  var CONTACT_PHONE_B64 = 'KzQ2NzM3MjQ5Njg3';
+  var verifyAnswer = null;
+
+  function newVerifyQuestion(){
+    var a = 2 + Math.floor(Math.random() * 8);
+    var b = 2 + Math.floor(Math.random() * 8);
+    verifyAnswer = a + b;
+    document.getElementById('verify-question').textContent = a + ' + ' + b;
+  }
+
+  function toggleVerify(){
+    var panel = document.getElementById('verify-popover');
+    var trigger = document.getElementById('verify-trigger');
+    var isHidden = panel.hasAttribute('hidden');
+    if(isHidden){
+      newVerifyQuestion();
+      panel.removeAttribute('hidden');
+      trigger.setAttribute('aria-expanded', 'true');
+      document.getElementById('verify-error').setAttribute('hidden', '');
+      var input = document.getElementById('verify-answer');
+      input.value = '';
+      input.focus();
+    } else {
+      panel.setAttribute('hidden', '');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function submitVerify(evt){
+    evt.preventDefault();
+    var input = document.getElementById('verify-answer');
+    var val = parseInt(input.value.trim(), 10);
+    if(val === verifyAnswer){
+      revealContact();
+      document.getElementById('verify-popover').setAttribute('hidden', '');
+      document.getElementById('verify-trigger').setAttribute('aria-expanded', 'false');
+    } else {
+      document.getElementById('verify-error').removeAttribute('hidden');
+      newVerifyQuestion();
+      input.value = '';
+      input.focus();
+    }
+    return false;
+  }
+
+  function revealContact(){
+    var email = atob(CONTACT_EMAIL_B64);
+    var phone = atob(CONTACT_PHONE_B64);
+    var emailEl = document.getElementById('contact-email');
+    var phoneEl = document.getElementById('contact-phone');
+    emailEl.href = 'mailto:' + email;
+    emailEl.textContent = email;
+    phoneEl.href = 'tel:' + phone;
+    phoneEl.textContent = '+46 73 724 96 87';
+    emailEl.removeAttribute('hidden');
+    phoneEl.removeAttribute('hidden');
+    document.getElementById('contact-dot').removeAttribute('hidden');
+    document.getElementById('verify-trigger').setAttribute('hidden', '');
+    try { sessionStorage.setItem('cv-verified', '1'); } catch(e) {}
+  }
+
+  (function(){
+    var v = null;
+    try { v = sessionStorage.getItem('cv-verified'); } catch(e) {}
+    if(v === '1'){ revealContact(); }
+  })();
+
   function setLang(lang){
     var isEn = lang === 'en';
     document.body.classList.toggle('lang-en', isEn);
