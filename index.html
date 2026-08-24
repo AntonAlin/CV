@@ -119,29 +119,48 @@
     border-radius:50%;
     mix-blend-mode:screen;
     animation:drift 22s ease-in-out infinite;
+    will-change:transform;
   }
   .aurora-band.b1{
     background:radial-gradient(ellipse at 30% 40%, var(--green), transparent 60%);
     top:-10%;left:-20%;
-    animation-duration:26s;
+    animation-name:drift-1;
+    animation-duration:28s;
   }
   .aurora-band.b2{
     background:radial-gradient(ellipse at 60% 50%, var(--violet), transparent 60%);
     top:0%;left:10%;
-    animation-duration:31s;
-    animation-delay:-8s;
+    animation-name:drift-2;
+    animation-duration:34s;
+    animation-delay:-11s;
   }
   .aurora-band.b3{
     background:radial-gradient(ellipse at 50% 50%, var(--teal), transparent 60%);
     top:10%;left:-10%;
-    animation-duration:19s;
-    animation-delay:-4s;
+    animation-name:drift-3;
+    animation-duration:23s;
+    animation-delay:-6s;
   }
-  @keyframes drift{
-    0%{transform:translate(0,0) rotate(0deg) scale(1);}
-    33%{transform:translate(4%,-6%) rotate(6deg) scale(1.08);}
-    66%{transform:translate(-3%,4%) rotate(-4deg) scale(0.96);}
-    100%{transform:translate(0,0) rotate(0deg) scale(1);}
+  @keyframes drift-1{
+    0%{transform:translate(-6%,-4%) rotate(-8deg) scale(1);}
+    25%{transform:translate(10%,-14%) rotate(10deg) scale(1.18);}
+    50%{transform:translate(18%,6%) rotate(4deg) scale(0.92);}
+    75%{transform:translate(-4%,16%) rotate(-10deg) scale(1.1);}
+    100%{transform:translate(-6%,-4%) rotate(-8deg) scale(1);}
+  }
+  @keyframes drift-2{
+    0%{transform:translate(8%,6%) rotate(6deg) scale(1.05);}
+    25%{transform:translate(-14%,-8%) rotate(-12deg) scale(0.9);}
+    50%{transform:translate(-6%,14%) rotate(2deg) scale(1.15);}
+    75%{transform:translate(12%,-12%) rotate(12deg) scale(0.95);}
+    100%{transform:translate(8%,6%) rotate(6deg) scale(1.05);}
+  }
+  @keyframes drift-3{
+    0%{transform:translate(4%,-10%) rotate(4deg) scale(0.95);}
+    25%{transform:translate(-12%,4%) rotate(-14deg) scale(1.12);}
+    50%{transform:translate(6%,14%) rotate(8deg) scale(1);}
+    75%{transform:translate(14%,-6%) rotate(-6deg) scale(0.9);}
+    100%{transform:translate(4%,-10%) rotate(4deg) scale(0.95);}
   }
   @media (prefers-reduced-motion: reduce){
     .aurora-band{animation:none;}
@@ -221,6 +240,7 @@
   .project-title{font-size:17px;font-weight:600;color:var(--text-hi);margin-bottom:10px;}
   .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
   .tag{
+    flex:0 0 auto;white-space:nowrap;
     font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.02em;
     padding:3px 9px;border-radius:999px;
     border:1px solid var(--hairline-strong);color:var(--teal);
@@ -235,10 +255,16 @@
   }
   .skill-tags{display:flex;flex-wrap:wrap;gap:8px;}
   .skill-tags span{
+    flex:0 0 auto;white-space:nowrap;
     font-size:13.5px;padding:6px 12px;border-radius:8px;
     background:var(--panel-2);border:1px solid var(--hairline);
     color:var(--text-hi);
   }
+  /* Language-toggled skill-tags need flex, not the generic inline/none from .sv-only/.en-only */
+  .skill-tags.sv-only{display:flex;}
+  .skill-tags.en-only{display:none;}
+  body.lang-en .skill-tags.sv-only{display:none;}
+  body.lang-en .skill-tags.en-only{display:flex;}
 
   /* Education */
   .edu-item{padding:20px 0;border-top:1px solid var(--hairline);}
