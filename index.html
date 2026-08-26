@@ -415,6 +415,8 @@
     color:var(--text-lo);
     font-weight:500;
   }
+  /* Was an inline style, which the print sheet could not reach to resize */
+  .role-former{margin-top:2px;font-size:14px;color:var(--text-faint);}
   .meta-row{
     margin-top:26px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;
     font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text-lo);
@@ -526,6 +528,9 @@
   .job:hover .job-period{color:var(--text-lo);}
   .job-org{font-size:19px;font-weight:600;color:var(--text-hi);}
   .job-title{color:var(--teal);font-size:14.5px;margin-top:2px;font-weight:500;}
+  /* The pre-2015 line is prose, not a role title — it must not take the
+     role colour on screen or the ink accent on paper. */
+  .job-earlier{color:var(--text-lo);}
 
   /* ---------- Organisation marks ----------
      Monograms rather than brand logos: a single asset cannot serve both the dark
@@ -738,10 +743,29 @@
     .controlbar-inner{padding:12px 20px;}
   }
 
-  /* ---------- Print ---------- */
+  /* ---------- Print ----------
+     The PDF is the version most readers actually receive, so it is treated as a
+     designed document in its own right rather than a de-styled web page.
+     Ink accent throughout is #0d6b78 — a deep teal that stays legible as a mid
+     grey on a black-and-white printer. */
   @page{
     size:A4;
-    margin:14mm 15mm 12mm;
+    margin:14mm 15mm 15mm;
+    /* Chromium does support @page margin boxes, contrary to the usual assumption,
+       so continuation pages can identify themselves and carry a page number. */
+    @bottom-left{
+      content:"Anton Ålin · CV";
+      font-family:'JetBrains Mono',monospace;font-size:7pt;color:#98a1ad;
+    }
+    @bottom-right{
+      content:counter(page) " / " counter(pages);
+      font-family:'JetBrains Mono',monospace;font-size:7pt;color:#98a1ad;
+    }
+  }
+  /* The first page carries the full header, so it needs no running identity. */
+  @page :first{
+    @bottom-left{content:"";}
+    @bottom-right{content:"";}
   }
   @media print{
     /* Chrome/Safari otherwise drop background fills we rely on for the accent rules */
@@ -756,129 +780,189 @@
     html{scroll-behavior:auto;}
     body{
       background:#fff;color:#1c2027;
-      font-size:9.9pt;line-height:1.44;
+      font-size:9.3pt;line-height:1.36;
       orphans:2;widows:2;
     }
     .wrap{padding:0;max-width:none;}
     a{text-decoration:none;color:#1c2027;}
 
     /* --- Header --- */
-    .hero{padding:0 0 12pt;border-bottom:1.2pt solid #1c2027;overflow:visible;}
+    .hero{padding:0 0 8pt;border-bottom:1.2pt solid #1c2027;overflow:visible;}
+    /* Reserve the top-right corner for the photo; the summary reclaims full
+       width beneath it, since the portrait is only as tall as the name block. */
+    .eyebrow, h1.name, .role-former, .role-line, .meta-row{margin-right:92pt;}
     h1.name{
       background:none;-webkit-text-fill-color:initial;color:#0f1319;
-      font-size:27pt;line-height:1;animation:none;
+      font-size:26pt;line-height:1;animation:none;
     }
     .eyebrow{
-      font-size:7.5pt;letter-spacing:.14em;color:#5a6270 !important;
-      margin-bottom:8pt;gap:6pt;
+      font-size:7.5pt;letter-spacing:.14em;color:#0d6b78 !important;
+      margin-bottom:7pt;gap:6pt;
     }
-    .eyebrow::before{background:#5a6270;box-shadow:none;width:5pt;height:5pt;}
-    .role-line{margin-top:5pt;font-size:12pt;color:#39414d !important;}
+    .eyebrow::before{background:#0d6b78;box-shadow:none;width:5pt;height:5pt;}
+    .role-former{margin-top:2pt;font-size:8.4pt;color:#79828f;}
+    .role-line{margin-top:4pt;font-size:12pt;color:#0d6b78 !important;font-weight:600;}
     .meta-row{
-      margin-top:9pt;font-size:8.6pt;color:#39414d;gap:4pt 14pt;
+      margin-top:7pt;font-size:8.4pt;color:#39414d;gap:3pt 13pt;
     }
-    .contact-block{gap:14pt;}
+    .contact-block{gap:13pt;}
     .kicker-summary{
-      margin-top:11pt;max-width:none;font-size:9.2pt;color:#39414d;
+      margin-top:7pt;max-width:none;font-size:8.6pt;color:#39414d;
     }
+
+    /* --- Portrait ---
+       The carousel rotates on screen, so the printed sheet pins the plain
+       headshot rather than whichever frame happened to be showing. */
+    .portrait-frame{
+      display:block !important;position:absolute;top:1pt;right:0;
+      margin:0;gap:0;z-index:2;
+    }
+    .portrait-ring{
+      width:80pt;height:80pt;border-radius:50%;
+      background:none;box-shadow:none;border:.75pt solid #c9ced6;
+    }
+    .portrait-img{display:none;}
+    .portrait-img[data-idx="0"]{
+      display:block;inset:0;width:100%;height:100%;
+      opacity:1;border-radius:50%;
+    }
+    .portrait-dots{display:none;}
+    /* Swedish practice commonly includes a CV photo; US and UK guidance
+       discourages it, so the English sheet prints without one. */
+    body.lang-en .portrait-frame{display:none !important;}
+    body.lang-en .eyebrow,
+    body.lang-en h1.name,
+    body.lang-en .role-former,
+    body.lang-en .role-line,
+    body.lang-en .meta-row{margin-right:0;}
 
     /* --- Sections --- */
     section{
-      border-bottom:none;padding:11pt 0 3pt;
+      border-bottom:none;padding:6pt 0 1pt;
       break-inside:auto;
     }
     .section-head{
-      margin-bottom:9pt;gap:8pt;
+      margin-bottom:5.5pt;gap:8pt;
       break-after:avoid;break-inside:avoid;
     }
-    .section-num{font-size:7.5pt;color:#8b93a0;}
-    .section-title{font-size:14pt;color:#0f1319;}
-    .section-line{background:#c9ced6;}
+    .section-num{font-size:7.5pt;color:#0d6b78;}
+    .section-title{font-size:13.5pt;color:#0f1319;}
+    .section-line{background:#d7dce2;}
 
     /* --- Experience --- */
     .timeline::before, .job::after{display:none;}
     .job{
-      grid-template-columns:104px 1fr;gap:12pt;
-      padding:6.5pt 0;border-top:.5pt solid #dfe3e9;
+      grid-template-columns:88pt 1fr;gap:10pt;
+      padding:4pt 0;border-top:.5pt solid #e4e8ed;
       break-inside:avoid;
     }
     .job:first-child{padding-top:0;border-top:none;}
-    .job-period{font-size:7.8pt;color:#5a6270;padding-top:2pt;}
-    .job-org{font-size:11pt;color:#0f1319;}
-    .job-title{font-size:9pt;color:#39414d !important;margin-top:1pt;}
+    .job-period{font-size:7.6pt;color:#79828f;padding-top:2.5pt;}
+    .job-org{font-size:10.5pt;color:#0f1319;}
+    .job-title{font-size:8.8pt;color:#0d6b78 !important;margin-top:.5pt;}
+    .job-earlier{color:#39414d !important;font-size:8.6pt;font-weight:400;}
 
     /* Marks survive onto paper as hairline boxes; the URLs deliberately do not,
        since spelling one out beside every employer would clutter the timeline. */
     .org-row{gap:5pt;}
     .org-mark{
       height:11.5pt;min-width:11.5pt;padding:0 2.5pt;border-radius:2pt;
-      border:.5pt solid #c9ced6;background:#fff;color:#5a6270;
+      border:.5pt solid #b7ccd0;background:#fff;color:#0d6b78;
       font-size:6pt;letter-spacing:.05em;
     }
     .org-name{border-bottom:none;}
-    .job ul{margin:4pt 0 0;padding-left:12pt;font-size:9pt;color:#39414d;}
-    .job li{margin-bottom:1.5pt;}
-    .job li::marker{color:#8b93a0;}
+    .job ul{margin:3pt 0 0;padding-left:11pt;font-size:8.7pt;color:#39414d;}
+    .job li{margin-bottom:.8pt;}
+    .job li::marker{color:#0d6b78;}
 
-    /* --- Projects --- */
-    .projects-grid{grid-template-columns:repeat(3,1fr);gap:8pt;}
+    /* --- Projects ---
+       Two columns rather than three: four cards fill a 2x2 block evenly, where
+       three columns left one card alone on a second row beside two empty cells. */
+    .projects-grid{grid-template-columns:1fr 1fr;gap:6pt;}
     .project-card{
-      border:.5pt solid #dfe3e9;background:#fbfcfd;border-radius:5pt;padding:8pt;
+      border:.5pt solid #e0e5ea;background:#fbfcfd;border-radius:4pt;padding:6pt 7pt;
       break-inside:avoid;transform:none !important;
     }
-    .project-title{font-size:9.4pt;color:#0f1319;margin-bottom:4pt;}
-    .tag-row{gap:3pt;margin-bottom:4pt;}
-    .tag{font-size:6.4pt;padding:1.5pt 4.5pt;color:#39414d;border-color:#c9ced6;}
+    .project-title{font-size:9.2pt;color:#0f1319;margin-bottom:3.5pt;}
+    .tag-row{gap:3pt;margin-bottom:3.5pt;}
+    .tag{font-size:6.4pt;padding:1.5pt 4.5pt;color:#0d6b78;border-color:#cfe0e3;}
     .project-desc{font-size:8pt;color:#39414d;}
     .project-chart{display:none;}
-    .project-live-badge{color:#39414d !important;margin-bottom:4pt;}
-    .pulse-dot{animation:none;box-shadow:none;background:#8b93a0;}
+    .project-live-badge{color:#0d6b78 !important;margin-bottom:3.5pt;}
+    .pulse-dot{animation:none;box-shadow:none;background:#0d6b78;}
+    /* Prints a readable short form; the full href wrapped mid-word on paper. */
     .project-open-link{
-      display:block;margin-top:5pt;color:#5a6270;font-size:7pt;word-break:break-all;
+      display:block;margin-top:4pt;color:#79828f;font-size:7pt;
+      overflow-wrap:anywhere;
     }
-    .project-open-link::after{content:" — " attr(data-href);}
+    .project-open-link::after{content:" · " attr(data-print);}
 
-    /* --- Skills --- */
-    #skills .skills-grid{grid-template-columns:repeat(3,1fr);gap:8pt 14pt;}
-    /* Avoid breaks per group, not on the whole grid — the grid is tall enough that
-       an avoid there bumps the entire section to a fresh page and strands half of one. */
-    .skills-grid > div{break-inside:avoid;}
-    .skill-group-title{font-size:6.8pt;color:#5a6270;margin-bottom:5pt;}
-    .skill-tags{gap:3pt;}
-    .skill-tags span{
-      font-size:7.4pt;padding:2pt 5pt;border-radius:3pt;
-      background:#f4f6f8;border:.5pt solid #dfe3e9;color:#1c2027;
+    /* --- Skills ---
+       Pills become label-and-list rows on paper. Three narrow columns of pills
+       stacked one per line and left two columns half empty; as inline lists the
+       same content takes roughly a third of the height and reads editorially. */
+    #skills .skills-grid, #misc .skills-grid{display:block;}
+    #skills .skills-grid > div, #misc .skills-grid > div{
+      display:grid;grid-template-columns:70pt 1fr;gap:9pt;
+      padding:3pt 0;border-top:.5pt solid #eceff3;
+      break-inside:avoid;
     }
+    #skills .skills-grid > div:first-child,
+    #misc .skills-grid > div:first-child{border-top:none;padding-top:0;}
+    .skill-group-title{
+      font-size:6.8pt;color:#0d6b78;margin:0;padding-top:1.5pt;letter-spacing:.09em;
+    }
+    .skill-icon{display:none;}
+    .skill-tags{display:block;gap:0;}
+    .skill-tags.sv-only{display:block;}
+    body.lang-en .skill-tags.en-only{display:block;}
+    /* Appearance and display need different reaches here.
+       The screen rule `.skill-tags span` styles every descendant, including the
+       .sv-only/.en-only spans nested inside the language tags — so the pill
+       reset has to reach them too, or they print as dark pills on white.
+       But `display` must stay on direct children only: setting it on all
+       descendants out-specifies .en-only{display:none} and prints both
+       language variants side by side. */
+    .skill-tags span{
+      white-space:normal;
+      background:none;border:none;padding:0;border-radius:0;
+      font-size:8.4pt;color:#1c2027;
+    }
+    .skill-tags > span{display:inline;}
+    .skill-tags > span + span::before{content:"  ·  ";color:#aeb6c1;}
+    #misc .project-desc{font-size:8.4pt;color:#1c2027;}
 
     /* --- Education --- */
-    .edu-item{padding:8pt 0;border-top:.5pt solid #dfe3e9;break-inside:avoid;}
+    .edu-item{padding:4.5pt 0;border-top:.5pt solid #e4e8ed;break-inside:avoid;}
     .edu-item:first-of-type{padding-top:0;border-top:none;}
-    .edu-school{font-size:11pt;color:#0f1319;}
-    .edu-period{font-size:7.8pt;color:#5a6270;}
-    .edu-degree{font-size:9pt;color:#39414d !important;}
-    .edu-item ul{margin-top:4pt;padding-left:12pt;font-size:8.4pt;color:#39414d;}
-    .edu-item li::marker{color:#8b93a0;}
+    .edu-school{font-size:10.5pt;color:#0f1319;}
+    .edu-period{font-size:7.6pt;color:#79828f;}
+    .edu-degree{font-size:8.8pt;color:#0d6b78 !important;}
+    .edu-item ul{margin-top:3pt;padding-left:11pt;font-size:8.4pt;color:#39414d;}
+    .edu-item li::marker{color:#0d6b78;}
 
     /* --- Achievements --- */
-    .ach-grid{gap:10pt 26pt;}
+    .ach-grid{gap:8pt 26pt;}
     .ach-grid > div{break-inside:avoid;}
     .ach-list li{
-      padding:4pt 0;border-top:.5pt solid #dfe3e9;font-size:8.6pt;color:#39414d;
-      gap:7pt;break-inside:avoid;
+      padding:2.3pt 0;border-top:.5pt solid #eceff3;font-size:8.4pt;color:#39414d;
+      gap:0;break-inside:avoid;
     }
-    .ach-list b{color:#0f1319;}
-    .kp{
-      width:14pt;height:5pt;border-radius:2pt;margin-top:2.5pt;
-      background:#8b93a0;
-    }
+    .ach-list b{color:#0d6b78;}
+    /* On screen these read as aurora-intensity bars; on paper they flatten to
+       identical grey blobs that carry no information, so they come off. */
+    .kp{display:none;}
 
-    /* --- Footer becomes the print contact line --- */
+    /* --- Footer ---
+       Contact already sits in the header, so the closing line stays a closing
+       line rather than repeating it. */
     footer{
-      display:block;padding:10pt 0 0;text-align:left;
-      border-top:.5pt solid #c9ced6;break-inside:avoid;
+      display:block;padding:8pt 0 0;text-align:left;
+      border-top:.5pt solid #d7dce2;break-inside:avoid;
     }
-    .footer-note{font-size:7.6pt;color:#5a6270;}
-    .footer-note a{color:#5a6270;}
+    .footer-note{font-size:7.4pt;color:#79828f;}
+    .footer-note a{color:#79828f;}
+    #footer-contact, .footer-sep, #footer-contact-link{display:none;}
   }
 </style>
 </head>
@@ -938,7 +1022,7 @@
     </div>
     <div class="eyebrow"><span class="sv-only">Åre, Sverige</span><span class="en-only">Åre, Sweden</span></div>
     <h1 class="name">Anton Ålin</h1>
-    <div class="role-line" style="margin-top:2px;font-size:14px;color:var(--text-faint);"><span class="sv-only">(fd Larsson)</span><span class="en-only">(formerly Larsson)</span></div>
+    <div class="role-former"><span class="sv-only">(fd Larsson)</span><span class="en-only">(formerly Larsson)</span></div>
     <div class="role-line"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Head of Data &amp; BI</span></div>
 
     <div class="meta-row" id="contact-block">
@@ -1126,7 +1210,7 @@
     <div class="job">
       <div class="job-period"><span class="sv-only">TIDIGARE</span><span class="en-only">EARLIER</span></div>
       <div>
-        <div class="job-title" style="color:var(--text-lo);">
+        <div class="job-title job-earlier">
           <span class="sv-only">Sommarpraktik som trader, RGG ADM-Gruppen (2013) · Investeringspraktikant, Hartland Financial USA (2012)</span>
           <span class="en-only">Summer Trader Intern, RGG ADM-Gruppen (2013) · Investment Intern, Hartland Financial USA (2012)</span>
         </div>
@@ -1154,7 +1238,7 @@
           <path d="M0 27 L88 27 L200 3" stroke="var(--green)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
           <line x1="88" y1="1" x2="88" y2="33" stroke="var(--hairline-strong)" stroke-width="1" stroke-dasharray="2 3"/>
         </svg>
-        <span class="project-open-link" data-href="https://antonalin.github.io/options-lab/"><span class="sv-only">Öppna verktyget</span><span class="en-only">Open the tool</span> →</span>
+        <span class="project-open-link" data-print="antonalin.github.io/options-lab"><span class="sv-only">Öppna verktyget</span><span class="en-only">Open the tool</span> →</span>
       </a>
       <div class="project-card">
         <div class="project-title"><span class="sv-only">Modell för svenska börsnoterade fastighetsbolag</span><span class="en-only">Swedish Listed Real Estate Model</span></div>
@@ -1346,7 +1430,7 @@
   <div class="wrap">
     <div class="footer-note">
       <span class="sv-only">Referenser lämnas på begäran.</span><span class="en-only">References available on request.</span>
-      &nbsp;·&nbsp;<a href="#contact-block" id="footer-contact-link"><span class="sv-only">Kontaktuppgifter ovan</span><span class="en-only">Contact info above</span></a><span id="footer-contact"></span>
+      <span class="footer-sep">&nbsp;·&nbsp;</span><a href="#contact-block" id="footer-contact-link"><span class="sv-only">Kontaktuppgifter ovan</span><span class="en-only">Contact info above</span></a><span id="footer-contact"></span>
     </div>
   </div>
 </footer>
