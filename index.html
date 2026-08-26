@@ -52,7 +52,8 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Fraunces only ever renders at 500 (h1/h2/h3); the other four weights were dead payload. -->
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --void:#070b14;
@@ -72,6 +73,10 @@
 
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
+  /* Smooth scrolling is motion too — hash links and scrollIntoView included */
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+  }
   body{
     margin:0;
     background:var(--void);
@@ -85,6 +90,17 @@
   ::selection{background:var(--green);color:#04120c;}
 
   a{color:inherit;}
+
+  /* ---------- Film grain ----------
+     Heavily blurred gradients on a near-black ground band into visible steps on
+     8-bit displays. A fixed noise tile dithers those steps away. Decorative and
+     inert, so it sits above everything and takes no pointer events. */
+  .grain{
+    position:fixed;inset:0;z-index:100;pointer-events:none;
+    opacity:.032;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  @media print{ .grain{display:none !important;} }
 
   h1,h2,h3{
     font-family:'Fraunces',serif;
@@ -119,8 +135,41 @@
     font-family:'JetBrains Mono',monospace;
     font-size:12px;letter-spacing:.06em;color:var(--text-lo);
     text-transform:uppercase;
+    display:flex;align-items:baseline;gap:8px;min-width:0;
   }
+  .brand-mark{color:var(--text-hi);flex:none;}
+  .brand-sep{color:var(--text-faint);flex:none;}
+  /* Reads out whichever section is in view. Fixed-width tabular digits keep the
+     label from shifting sideways every time the number changes. */
+  .brand-readout{
+    color:var(--text-lo);font-variant-numeric:tabular-nums;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    transition:opacity .18s ease;
+  }
+  .brand-readout.is-swapping{opacity:0;}
+  @media (max-width:600px){
+    .brand-sep, .brand-readout{display:none;}
+  }
+
   .controls{display:flex;align-items:center;gap:10px;}
+
+  /* ---------- Command palette trigger ---------- */
+  .cmdk-hint{
+    display:inline-flex;align-items:center;gap:6px;
+    appearance:none;border:1px solid var(--hairline-strong);border-radius:999px;
+    background:var(--panel);color:var(--text-lo);
+    font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.03em;
+    padding:7px 12px;cursor:pointer;transition:border-color .2s ease,color .2s ease;
+  }
+  .cmdk-hint:hover{border-color:var(--violet);color:var(--text-hi);}
+  .cmdk-hint kbd{
+    font:inherit;color:var(--text-hi);
+    border:1px solid var(--hairline-strong);border-radius:4px;
+    padding:0 4px;line-height:1.5;background:rgba(255,255,255,.04);
+  }
+  /* A keyboard shortcut is noise on a device without a keyboard. */
+  @media (max-width:760px), (pointer:coarse){ .cmdk-hint{display:none;} }
+  @media print{ .cmdk-hint{display:none !important;} }
   .lang-toggle{
     display:flex;border:1px solid var(--hairline-strong);
     border-radius:999px;overflow:hidden;background:var(--panel);
@@ -226,6 +275,9 @@
   @media (prefers-reduced-motion: reduce){
     .aurora-band{animation:none;}
   }
+  /* Three blurred, animated layers are a standing GPU cost. Once the hero has
+     scrolled away there is nothing to look at, so stop paying it. */
+  body.aurora-idle .aurora-band{animation-play-state:paused;}
 
   .hero-content{position:relative;z-index:1;}
 
@@ -358,7 +410,8 @@
   }
 
   /* ---------- Sections ---------- */
-  section{padding:56px 0;border-bottom:1px solid var(--hairline);}
+  /* scroll-margin keeps a jumped-to heading clear of the sticky control bar */
+  section{padding:56px 0;border-bottom:1px solid var(--hairline);scroll-margin-top:72px;}
   section:last-of-type{border-bottom:none;}
   .section-head{
     display:flex;align-items:baseline;gap:14px;margin-bottom:32px;
@@ -513,6 +566,69 @@
   }
   .footer-note a{color:var(--teal);text-decoration:none;}
 
+  /* ---------- Command palette ----------
+     Carries every action on the page — navigation, language, print, contact —
+     but renders nothing until it is asked for. */
+  .cmdk-scrim{
+    position:fixed;inset:0;z-index:200;
+    background:rgba(4,7,13,.62);backdrop-filter:blur(3px);
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:14vh 20px 20px;
+    animation:cmdk-fade .14s ease-out;
+  }
+  .cmdk-scrim[hidden]{display:none;}
+  @keyframes cmdk-fade{from{opacity:0;}to{opacity:1;}}
+  .cmdk-panel{
+    width:min(540px,100%);max-height:min(60vh,460px);
+    display:flex;flex-direction:column;overflow:hidden;
+    background:var(--panel-2);
+    border:1px solid var(--hairline-strong);border-radius:14px;
+    box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(139,124,246,.12);
+    animation:cmdk-rise .16s cubic-bezier(.2,.7,.3,1);
+  }
+  @keyframes cmdk-rise{from{opacity:0;transform:translateY(-8px) scale(.985);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion: reduce){
+    .cmdk-scrim,.cmdk-panel{animation:none;}
+  }
+  .cmdk-search{
+    display:flex;align-items:center;gap:11px;flex:none;
+    padding:15px 17px;border-bottom:1px solid var(--hairline);
+  }
+  .cmdk-search svg{width:15px;height:15px;stroke:var(--text-faint);flex:none;}
+  .cmdk-input{
+    flex:1;min-width:0;appearance:none;border:none;background:transparent;
+    color:var(--text-hi);font-family:'Inter',sans-serif;font-size:15px;
+  }
+  .cmdk-input::placeholder{color:var(--text-faint);}
+  .cmdk-input:focus{outline:none;}
+  .cmdk-esc{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);
+    border:1px solid var(--hairline);border-radius:4px;padding:2px 6px;flex:none;
+  }
+  .cmdk-list{
+    list-style:none;margin:0;padding:7px;overflow-y:auto;overscroll-behavior:contain;
+  }
+  .cmdk-group{
+    font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--text-faint);
+    padding:11px 10px 5px;
+  }
+  .cmdk-item{
+    display:flex;align-items:center;gap:11px;
+    padding:9px 10px;border-radius:8px;cursor:pointer;
+    font-size:14px;color:var(--text-lo);
+    scroll-margin:8px;
+  }
+  .cmdk-item[aria-selected="true"]{background:rgba(139,124,246,.15);color:var(--text-hi);}
+  .cmdk-item[aria-selected="true"] .cmdk-icon{color:var(--violet);}
+  .cmdk-icon{width:14px;height:14px;flex:none;color:var(--text-faint);stroke:currentColor;}
+  .cmdk-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cmdk-meta{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);flex:none;
+  }
+  .cmdk-empty{padding:26px 10px;text-align:center;font-size:13.5px;color:var(--text-faint);}
+  @media print{ .cmdk-scrim{display:none !important;} }
+
   /* Focus states */
   button:focus-visible, a:focus-visible{
     outline:2px solid var(--green);outline-offset:2px;
@@ -664,8 +780,16 @@
 
 <div class="controlbar">
   <div class="controlbar-inner">
-    <div class="brand-mini">AL / CV / 2026</div>
+    <div class="brand-mini">
+      <span class="brand-mark">AL</span>
+      <span class="brand-sep">/</span>
+      <span class="brand-readout" id="brand-readout" aria-live="polite">CV / 2026</span>
+    </div>
     <div class="controls">
+      <button class="cmdk-hint" id="cmdk-hint" aria-haspopup="dialog" aria-controls="cmdk">
+        <span class="sv-only">Sök</span><span class="en-only">Search</span>
+        <kbd id="cmdk-key">⌘K</kbd>
+      </button>
       <div class="lang-toggle" role="group" aria-label="Language / Språk">
         <button id="btn-sv" class="active" onclick="setLang('sv')">SV</button>
         <button id="btn-en" onclick="setLang('en')">EN</button>
@@ -693,8 +817,8 @@
         <img class="portrait-img" data-idx="2" src="img/portrait-3.jpg" alt="Anton Ålin på skidtur">
         <img class="portrait-img" data-idx="3" src="img/portrait-4.jpg" alt="Anton Ålin på skidtur i brant terräng">
       </div>
-      <div class="portrait-dots" role="tablist" aria-label="Bilder / Photos">
-        <button type="button" class="portrait-dot is-active" data-idx="0" aria-label="Bild 1"></button>
+      <div class="portrait-dots" role="group" aria-label="Bilder / Photos">
+        <button type="button" class="portrait-dot is-active" data-idx="0" aria-current="true" aria-label="Bild 1"></button>
         <button type="button" class="portrait-dot" data-idx="1" aria-label="Bild 2"></button>
         <button type="button" class="portrait-dot" data-idx="2" aria-label="Bild 3"></button>
         <button type="button" class="portrait-dot" data-idx="3" aria-label="Bild 4"></button>
@@ -1085,6 +1209,20 @@
   </div>
 </footer>
 
+<div class="grain" aria-hidden="true"></div>
+
+<div class="cmdk-scrim" id="cmdk" role="dialog" aria-modal="true" aria-label="Kommandopalett / Command palette" hidden>
+  <div class="cmdk-panel">
+    <div class="cmdk-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input class="cmdk-input" id="cmdk-input" type="text" autocomplete="off" spellcheck="false"
+             role="combobox" aria-expanded="true" aria-controls="cmdk-list" aria-autocomplete="list">
+      <span class="cmdk-esc">ESC</span>
+    </div>
+    <ul class="cmdk-list" id="cmdk-list" role="listbox" aria-label="Resultat / Results"></ul>
+  </div>
+</div>
+
 <script>
   /* ---------- Portrait carousel ---------- */
   (function(){
@@ -1101,6 +1239,9 @@
       for(var i = 0; i < imgs.length; i++){
         imgs[i].classList.toggle('is-active', i === idx);
         dots[i].classList.toggle('is-active', i === idx);
+        /* aria-current is what a screen reader announces; the class is only paint. */
+        if(i === idx){ dots[i].setAttribute('aria-current', 'true'); }
+        else { dots[i].removeAttribute('aria-current'); }
       }
     }
     function start(){
@@ -1117,9 +1258,22 @@
         dots[n].addEventListener('click', function(){ show(n); start(); });
       })(i);
     }
+    /* Arrow keys step the carousel once a dot has focus */
+    frame.addEventListener('keydown', function(e){
+      var delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if(!delta){ return; }
+      e.preventDefault();
+      show(idx + delta);
+      dots[idx].focus();
+      start();
+    });
+
     /* Hovering to look at a photo shouldn't yank it away mid-look */
     frame.addEventListener('mouseenter', stop);
     frame.addEventListener('mouseleave', start);
+    /* Same courtesy for keyboard users parked on a dot */
+    frame.addEventListener('focusin', stop);
+    frame.addEventListener('focusout', start);
     /* A hidden tab shouldn't burn through the rotation unseen */
     document.addEventListener('visibilitychange', function(){
       if(document.hidden){ stop(); } else { start(); }
@@ -1252,6 +1406,9 @@
     document.getElementById('btn-en').classList.toggle('active', isEn);
     document.getElementById('btn-sv').classList.toggle('active', !isEn);
     try { localStorage.setItem('cv-lang', lang); } catch(e) {}
+    /* The section readout and the palette both render language-dependent text
+       they don't own, so let them re-read rather than reaching in from here. */
+    document.dispatchEvent(new CustomEvent('cv:lang'));
   }
   (function(){
     var saved = null;
@@ -1262,7 +1419,7 @@
     setLang(saved);
   })();
 
-  /* ---------- Motion: progress rail, scroll reveal, stat count-up ---------- */
+  /* ---------- Motion: progress rail, section readout, scroll reveal ---------- */
   (function(){
     var reduced = window.matchMedia
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1275,13 +1432,59 @@
       var scrollable = doc.scrollHeight - window.innerHeight;
       var pct = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
       bar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+      updateReadout();
       ticking = false;
     }
+
+    /* Section readout — the control bar's wordmark doubles as a position
+       indicator, so telling the reader where they are costs no extra chrome. */
+    var sections = Array.prototype.slice.call(document.querySelectorAll('main section'));
+    var readout = document.getElementById('brand-readout');
+    var lastText = readout ? readout.textContent : '';
+    var swapTimer = null;
+
+    function labelFor(sec){
+      if(!sec){ return 'CV / 2026'; }
+      var isEn = document.body.classList.contains('lang-en');
+      var num = sec.querySelector('.section-num');
+      var title = sec.querySelector('.section-title');
+      var part = title && (title.querySelector(isEn ? '.en-only' : '.sv-only') || title);
+      return (num ? num.textContent.trim() + ' / ' : '') + (part ? part.textContent.trim() : '');
+    }
+    function updateReadout(){
+      if(!readout){ return; }
+      var line = window.scrollY + 96; /* just below the control bar */
+      var current = null;
+      for(var i = 0; i < sections.length; i++){
+        if(sections[i].getBoundingClientRect().top + window.scrollY <= line){ current = sections[i]; }
+      }
+      var text = labelFor(current);
+      if(text === lastText){ return; }
+      lastText = text;
+      if(reduced){ readout.textContent = text; return; }
+      readout.classList.add('is-swapping');
+      clearTimeout(swapTimer);
+      swapTimer = setTimeout(function(){
+        readout.textContent = text;
+        readout.classList.remove('is-swapping');
+      }, 140);
+    }
+    /* Switching language rewrites the label under the same scroll position */
+    document.addEventListener('cv:lang', function(){ lastText = ''; updateReadout(); });
+
     window.addEventListener('scroll', function(){
       if(!ticking){ ticking = true; window.requestAnimationFrame(updateBar); }
     }, {passive:true});
     window.addEventListener('resize', updateBar, {passive:true});
     updateBar();
+
+    /* Idle the aurora once the hero is off screen */
+    var hero = document.querySelector('.hero');
+    if(hero && 'IntersectionObserver' in window){
+      new IntersectionObserver(function(entries){
+        document.body.classList.toggle('aurora-idle', !entries[0].isIntersecting);
+      }, {threshold:0}).observe(hero);
+    }
 
     /* Scroll reveal — targets are collected and classed here so that with JS
        disabled nothing is ever hidden. */
@@ -1317,6 +1520,286 @@
     }, {rootMargin:'0px 0px -8% 0px', threshold:0.12});
 
     groups.forEach(function(_, el){ io.observe(el); });
+  })();
+
+  /* ---------- Command palette ----------
+     Every action on the page reachable from one keystroke, and invisible until
+     then. Items are rebuilt on each open so they track the current language and
+     whether the contact gate has been solved. */
+  (function(){
+    var scrim = document.getElementById('cmdk');
+    var input = document.getElementById('cmdk-input');
+    var list  = document.getElementById('cmdk-list');
+    var hint  = document.getElementById('cmdk-hint');
+    if(!scrim || !input || !list){ return; }
+
+    var ICON = {
+      go:    '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+      lang:  '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18"/>',
+      print: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+      lock:  '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+      mail:  '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/>',
+      down:  '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+      out:   '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>'
+    };
+    var GROUPS = {
+      nav:  {sv:'Navigera', en:'Navigate'},
+      act:  {sv:'Åtgärder', en:'Actions'},
+      link: {sv:'Länkar',   en:'Links'}
+    };
+
+    var isEn = function(){ return document.body.classList.contains('lang-en'); };
+    var reduced = window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /* 'auto' would defer to the CSS scroll-behavior, which is smooth — only
+       'instant' actually guarantees no animation. */
+    var ease = function(){ return reduced ? 'instant' : 'smooth'; };
+    var items = [], results = [], cursor = 0, lastFocus = null;
+
+    function jump(sec){
+      return function(){
+        sec.scrollIntoView({behavior: ease(), block: 'start'});
+      };
+    }
+
+    function build(){
+      var en = isEn(), out = [];
+
+      /* Nav items are read out of the document, so they can never drift from it */
+      document.querySelectorAll('main section').forEach(function(sec){
+        var title = sec.querySelector('.section-title');
+        var num = sec.querySelector('.section-num');
+        if(!title){ return; }
+        var part = title.querySelector(en ? '.en-only' : '.sv-only') || title;
+        out.push({
+          group: 'nav', icon: 'go',
+          label: part.textContent.trim(),
+          meta: num ? num.textContent.trim() : '',
+          keys: sec.id,
+          run: jump(sec)
+        });
+      });
+
+      out.push({
+        group:'act', icon:'lang', keys:'language sprak svenska english',
+        label: en ? 'Switch to Swedish' : 'Byt till engelska',
+        meta: en ? 'SV' : 'EN',
+        run: function(){ setLang(en ? 'sv' : 'en'); }
+      });
+      out.push({
+        group:'act', icon:'print', keys:'pdf skriv ut spara save',
+        label: en ? 'Print / Save as PDF' : 'Skriv ut / spara som PDF',
+        run: function(){ window.print(); }
+      });
+
+      if(revealedEmail){
+        out.push({
+          group:'act', icon:'mail', keys:'email epost mail kopiera copy',
+          label: en ? 'Copy email address' : 'Kopiera e-postadress',
+          meta: '⧉',
+          run: function(){
+            if(navigator.clipboard){ navigator.clipboard.writeText(revealedEmail); }
+          }
+        });
+        out.push({
+          group:'act', icon:'down', keys:'vcard kontakt contact vcf',
+          label: en ? 'Download contact card' : 'Ladda ner kontaktkort',
+          meta: '.vcf',
+          run: function(){ downloadVCard(); }
+        });
+      } else {
+        out.push({
+          group:'act', icon:'lock', keys:'kontakt contact email telefon phone',
+          label: en ? 'Show email & phone' : 'Visa e-post & telefon',
+          run: function(){
+            window.scrollTo({top: 0, behavior: ease()});
+            /* Let the scroll settle before the popover steals focus */
+            setTimeout(function(){
+              var trigger = document.getElementById('verify-trigger');
+              if(trigger && !trigger.hasAttribute('hidden')){ toggleVerify(); }
+            }, reduced ? 0 : 420);
+          }
+        });
+      }
+
+      out.push({
+        group:'link', icon:'out', keys:'github kod code repo',
+        label: 'github.com/AntonAlin',
+        run: function(){ window.open('https://github.com/AntonAlin/', '_blank', 'noopener'); }
+      });
+      out.push({
+        group:'link', icon:'out', keys:'options optioner black scholes verktyg tool',
+        label: 'Nexus Options Lab',
+        meta: en ? 'live' : 'live',
+        run: function(){ window.open('https://antonalin.github.io/options-lab/', '_blank', 'noopener'); }
+      });
+
+      items = out;
+    }
+
+    /* Fold diacritics so "sprak" finds "Språk" and "meriter" survives any casing */
+    function norm(s){
+      return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    function score(item, q){
+      var hay = norm(item.label + ' ' + (item.keys || ''));
+      if(!q){ return 0; }
+      var at = hay.indexOf(q);
+      if(at === 0){ return 0; }
+      if(at > 0){ return hay.charAt(at - 1) === ' ' ? 1 : 2; }
+      /* Subsequence fallback: "nol" still reaches "Nexus Options Lab" */
+      var i = 0;
+      for(var c = 0; c < hay.length && i < q.length; c++){
+        if(hay.charAt(c) === q.charAt(i)){ i++; }
+      }
+      return i === q.length ? 3 : -1;
+    }
+
+    function render(){
+      var q = norm(input.value.trim());
+      results = items
+        .map(function(it, i){ return {it: it, s: score(it, q), i: i}; })
+        .filter(function(r){ return r.s >= 0; })
+        .sort(function(a, b){ return a.s - b.s || a.i - b.i; })
+        .map(function(r){ return r.it; });
+
+      list.textContent = '';
+      cursor = 0;
+
+      if(!results.length){
+        var empty = document.createElement('li');
+        empty.className = 'cmdk-empty';
+        empty.textContent = isEn() ? 'No matches' : 'Inga träffar';
+        list.appendChild(empty);
+        input.removeAttribute('aria-activedescendant');
+        return;
+      }
+
+      var seen = null;
+      results.forEach(function(it, i){
+        if(it.group !== seen){
+          seen = it.group;
+          var head = document.createElement('li');
+          head.className = 'cmdk-group';
+          head.setAttribute('role', 'presentation');
+          head.textContent = GROUPS[it.group][isEn() ? 'en' : 'sv'];
+          list.appendChild(head);
+        }
+        var li = document.createElement('li');
+        li.className = 'cmdk-item';
+        li.id = 'cmdk-opt-' + i;
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'cmdk-icon');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke-width', '2');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.innerHTML = ICON[it.icon] || ICON.go;
+        li.appendChild(svg);
+
+        var label = document.createElement('span');
+        label.className = 'cmdk-label';
+        label.textContent = it.label;
+        li.appendChild(label);
+
+        if(it.meta){
+          var meta = document.createElement('span');
+          meta.className = 'cmdk-meta';
+          meta.textContent = it.meta;
+          li.appendChild(meta);
+        }
+
+        li.addEventListener('mousemove', function(){ move(i - cursor); });
+        li.addEventListener('click', function(){ cursor = i; execute(); });
+        list.appendChild(li);
+      });
+      syncCursor();
+    }
+
+    function options(){ return list.querySelectorAll('.cmdk-item'); }
+    function syncCursor(){
+      var opts = options();
+      for(var i = 0; i < opts.length; i++){
+        opts[i].setAttribute('aria-selected', i === cursor ? 'true' : 'false');
+      }
+      if(opts[cursor]){
+        input.setAttribute('aria-activedescendant', opts[cursor].id);
+        opts[cursor].scrollIntoView({block: 'nearest'});
+      }
+    }
+    function move(delta){
+      if(!results.length){ return; }
+      cursor = (cursor + delta + results.length) % results.length;
+      syncCursor();
+    }
+    function execute(){
+      var it = results[cursor];
+      if(!it){ return; }
+      close();
+      it.run();
+    }
+
+    function isOpen(){ return !scrim.hasAttribute('hidden'); }
+
+    function open(){
+      if(isOpen()){ return; }
+      lastFocus = document.activeElement;
+      build();
+      input.value = '';
+      input.placeholder = isEn() ? 'Jump to a section, or run an action…'
+                                 : 'Hoppa till en sektion, eller kör en åtgärd…';
+      /* Compensate for the scrollbar so locking the body doesn't shift the page */
+      var sw = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      if(sw > 0){ document.body.style.paddingRight = sw + 'px'; }
+      scrim.removeAttribute('hidden');
+      render();
+      input.focus();
+    }
+    function close(){
+      if(!isOpen()){ return; }
+      scrim.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+      if(lastFocus && lastFocus.focus){ lastFocus.focus(); }
+    }
+
+    input.addEventListener('input', render);
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'ArrowDown'){ e.preventDefault(); move(1); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); move(-1); }
+      else if(e.key === 'Enter'){ e.preventDefault(); execute(); }
+      else if(e.key === 'Escape'){ e.preventDefault(); close(); }
+    });
+    /* Clicking the backdrop dismisses; clicking the panel must not */
+    scrim.addEventListener('mousedown', function(e){ if(e.target === scrim){ close(); } });
+    if(hint){ hint.addEventListener('click', open); }
+
+    function isTyping(el){
+      return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    }
+    document.addEventListener('keydown', function(e){
+      if((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')){
+        e.preventDefault();
+        isOpen() ? close() : open();
+        return;
+      }
+      if(e.key === '/' && !isOpen() && !isTyping(e.target)){
+        e.preventDefault();
+        open();
+      }
+    });
+
+    /* Show the modifier the reader's keyboard actually has */
+    var key = document.getElementById('cmdk-key');
+    if(key && !/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)){
+      key.textContent = 'Ctrl K';
+    }
   })();
 </script>
 
