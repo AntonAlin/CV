@@ -31,7 +31,8 @@
   "image": "https://antonalin.github.io/CV/img/portrait-1.jpg",
   "worksFor": {
     "@type": "Organization",
-    "name": "Diös Fastigheter AB"
+    "name": "Diös Fastigheter AB",
+    "url": "https://www.dios.se"
   },
   "address": {
     "@type": "PostalAddress",
@@ -39,7 +40,7 @@
     "addressCountry": "SE"
   },
   "alumniOf": [
-    { "@type": "CollegeOrUniversity", "name": "Rocky Mountain College" }
+    { "@type": "CollegeOrUniversity", "name": "Rocky Mountain College", "url": "https://rocky.edu" }
   ],
   "knowsAbout": [
     "Data Strategy", "Business Intelligence", "Microsoft Fabric", "Power BI",
@@ -455,6 +456,31 @@
   .job:hover .job-period{color:var(--text-lo);}
   .job-org{font-size:19px;font-weight:600;color:var(--text-hi);}
   .job-title{color:var(--teal);font-size:14.5px;margin-top:2px;font-weight:500;}
+
+  /* ---------- Organisation marks ----------
+     Monograms rather than brand logos: a single asset cannot serve both the dark
+     screen theme and the light print sheet, whereas these inherit currentColor
+     and invert on their own. The mark repeats the name beside it, so it is
+     decorative and hidden from assistive tech. */
+  .org-row{
+    display:inline-flex;align-items:center;gap:10px;
+    text-decoration:none;color:inherit;
+  }
+  .org-mark{
+    flex:none;display:inline-flex;align-items:center;justify-content:center;
+    height:26px;min-width:26px;padding:0 6px;border-radius:7px;
+    border:1px solid var(--hairline-strong);background:var(--panel);
+    font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;
+    letter-spacing:.06em;color:var(--text-faint);
+    transition:border-color .2s ease,color .2s ease;
+  }
+  /* Matches the underline-on-hover used by the contact links in the hero */
+  .org-name{
+    border-bottom:1px solid transparent;
+    transition:border-color .2s ease,color .2s ease;
+  }
+  a.org-row:hover .org-mark{border-color:var(--teal);color:var(--teal);}
+  a.org-row:hover .org-name{border-color:var(--teal);color:var(--teal);}
   .job ul{margin:14px 0 0;padding-left:18px;color:var(--text-lo);font-size:14.5px;}
   .job li{margin-bottom:7px;}
   .job li::marker{color:var(--green);}
@@ -710,6 +736,16 @@
     .job-period{font-size:7.8pt;color:#5a6270;padding-top:2pt;}
     .job-org{font-size:11pt;color:#0f1319;}
     .job-title{font-size:9pt;color:#39414d !important;margin-top:1pt;}
+
+    /* Marks survive onto paper as hairline boxes; the URLs deliberately do not,
+       since spelling one out beside every employer would clutter the timeline. */
+    .org-row{gap:5pt;}
+    .org-mark{
+      height:11.5pt;min-width:11.5pt;padding:0 2.5pt;border-radius:2pt;
+      border:.5pt solid #c9ced6;background:#fff;color:#5a6270;
+      font-size:6pt;letter-spacing:.05em;
+    }
+    .org-name{border-bottom:none;}
     .job ul{margin:4pt 0 0;padding-left:12pt;font-size:9pt;color:#39414d;}
     .job li{margin-bottom:1.5pt;}
     .job li::marker{color:#8b93a0;}
@@ -892,7 +928,11 @@
     <div class="job is-current">
       <div class="job-period">APR 2025 —<br><span class="sv-only">NUTID</span><span class="en-only">PRESENT</span></div>
       <div>
-        <div class="job-org">Diös Fastigheter AB</div>
+        <div class="job-org">
+          <a class="org-row" href="https://www.dios.se" target="_blank" rel="noopener">
+            <span class="org-mark" aria-hidden="true">DI</span><span class="org-name">Diös Fastigheter AB</span>
+          </a>
+        </div>
         <div class="job-title"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Head of Data &amp; BI</span></div>
         <ul class="sv-only">
           <li>Äger och driver den bolagsövergripande data- och BI-strategin, sätter prioriteringar och hanterar backlogg över samtliga affärsområden</li>
@@ -914,7 +954,11 @@
     <div class="job">
       <div class="job-period">OKT 2024 —<br>APR 2025</div>
       <div>
-        <div class="job-org">Diös Fastigheter AB</div>
+        <div class="job-org">
+          <a class="org-row" href="https://www.dios.se" target="_blank" rel="noopener">
+            <span class="org-mark" aria-hidden="true">DI</span><span class="org-name">Diös Fastigheter AB</span>
+          </a>
+        </div>
         <div class="job-title"><span class="sv-only">Sustainability Controller</span><span class="en-only">Sustainability Controller</span></div>
         <ul class="sv-only">
           <li>Ägde hela hållbarhetsrapporteringen enligt CSRD, ESRS, GRI och EU-taxonomin</li>
@@ -930,7 +974,11 @@
     <div class="job">
       <div class="job-period">NOV 2021 —<br>SEP 2024</div>
       <div>
-        <div class="job-org">Morningstar Inc</div>
+        <div class="job-org">
+          <a class="org-row" href="https://www.morningstar.com" target="_blank" rel="noopener">
+            <span class="org-mark" aria-hidden="true">MO</span><span class="org-name">Morningstar Inc</span>
+          </a>
+        </div>
         <div class="job-title"><span class="sv-only">Content Researcher — Managed Investment Portfolio Data</span><span class="en-only">Content Researcher — Managed Investment Portfolio Data</span></div>
         <ul class="sv-only">
           <li>Produktägare för en portföljberäkningsmotor som genererar 800+ ESG-datapunkter från Sustainalytics-data</li>
@@ -948,7 +996,11 @@
     <div class="job">
       <div class="job-period">FEB 2020 —<br>NOV 2021</div>
       <div>
-        <div class="job-org">Morningstar Inc</div>
+        <div class="job-org">
+          <a class="org-row" href="https://www.morningstar.com" target="_blank" rel="noopener">
+            <span class="org-mark" aria-hidden="true">MO</span><span class="org-name">Morningstar Inc</span>
+          </a>
+        </div>
         <div class="job-title">Sales Excellence Manager, EMEA</div>
         <ul class="sv-only">
           <li>Ledde interna team som hanterade RFP:er och due diligence-frågeformulär för kunder i EMEA</li>
@@ -964,7 +1016,11 @@
     <div class="job">
       <div class="job-period">MAJ 2017 —<br>FEB 2020</div>
       <div>
-        <div class="job-org">Morningstar Inc</div>
+        <div class="job-org">
+          <a class="org-row" href="https://www.morningstar.com" target="_blank" rel="noopener">
+            <span class="org-mark" aria-hidden="true">MO</span><span class="org-name">Morningstar Inc</span>
+          </a>
+        </div>
         <div class="job-title"><span class="sv-only">Data Research Analyst / Associate Analyst — Managed Investment Data</span><span class="en-only">Data Research Analyst / Associate Analyst — Managed Investment Data</span></div>
         <ul class="sv-only">
           <li>Ansvarade för datarelationer med fondbolag, byggde anskaffningskanaler och agerade eskaleringspunkt</li>
@@ -982,7 +1038,11 @@
     <div class="job">
       <div class="job-period">JAN 2015 —<br>OKT 2016</div>
       <div>
-        <div class="job-org">IG Markets</div>
+        <div class="job-org">
+          <a class="org-row" href="https://www.ig.com" target="_blank" rel="noopener">
+            <span class="org-mark" aria-hidden="true">IG</span><span class="org-name">IG Markets</span>
+          </a>
+        </div>
         <div class="job-title"><span class="sv-only">Säljare</span><span class="en-only">Sales Executive</span></div>
       </div>
     </div>
@@ -1117,7 +1177,9 @@
 
     <div class="edu-item">
       <div class="edu-head">
-        <span class="edu-school">Rocky Mountain College</span>
+        <a class="org-row" href="https://rocky.edu" target="_blank" rel="noopener">
+          <span class="org-mark" aria-hidden="true">RMC</span><span class="edu-school org-name">Rocky Mountain College</span>
+        </a>
         <span class="edu-period">2010 — 2014</span>
       </div>
       <div class="edu-degree sv-only">Kandidatexamen, Business Administration and Management</div>
@@ -1128,7 +1190,11 @@
 
     <div class="edu-item">
       <div class="edu-head">
-        <span class="edu-school">Malung Alpine Elite Academy</span>
+        <!-- Mark but no link: the school now trades as Malung-Sälens gymnasieskola,
+             so no current URL names the entity as it appears here. -->
+        <span class="org-row">
+          <span class="org-mark" aria-hidden="true">MA</span><span class="edu-school org-name">Malung Alpine Elite Academy</span>
+        </span>
         <span class="edu-period">2006 — 2009</span>
       </div>
       <div class="edu-degree sv-only">Samhällsvetenskap och ekonomi</div>
