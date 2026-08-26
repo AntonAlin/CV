@@ -103,6 +103,76 @@
   }
   @media print{ .grain{display:none !important;} }
 
+  /* ---------- Starfield ----------
+     A page-wide night sky behind everything. Only `transform` animates, so each
+     layer is painted into a GPU texture once and thereafter merely moved by the
+     compositor — the star count costs nothing per frame. Each layer is one tile
+     taller than the viewport and travels exactly one tile height, so the loop
+     closes seamlessly. Three tile sizes at three speeds give parallax depth. */
+  .starfield{
+    position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;
+  }
+  .stars{
+    position:absolute;top:0;left:0;right:0;
+    background-repeat:repeat;
+    will-change:transform;
+  }
+  .stars-far{
+    height:calc(100% + 400px);
+    background-image:
+      radial-gradient(circle 1.32px at 343.3px 39.0px,rgba(255,255,255,0.43) 0%,rgba(255,255,255,0.43) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.22px at 256.4px 161.2px,rgba(186,215,255,0.48) 0%,rgba(186,215,255,0.48) 42%,rgba(186,215,255,0) 100%),
+      radial-gradient(circle 1.3px at 225.6px 302.9px,rgba(255,255,255,0.48) 0%,rgba(255,255,255,0.48) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.42px at 54.3px 198.9px,rgba(255,255,255,0.6) 0%,rgba(255,255,255,0.6) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.17px at 371.4px 367.0px,rgba(200,240,248,0.55) 0%,rgba(200,240,248,0.55) 42%,rgba(200,240,248,0) 100%),
+      radial-gradient(circle 1.44px at 281.7px 69.7px,rgba(200,240,248,0.48) 0%,rgba(200,240,248,0.48) 42%,rgba(200,240,248,0) 100%),
+      radial-gradient(circle 1.14px at 147.3px 216.0px,rgba(214,204,255,0.49) 0%,rgba(214,204,255,0.49) 42%,rgba(214,204,255,0) 100%),
+      radial-gradient(circle 1.41px at 157.1px 47.2px,rgba(255,255,255,0.62) 0%,rgba(255,255,255,0.62) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.24px at 52.5px 78.2px,rgba(255,255,255,0.6) 0%,rgba(255,255,255,0.6) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.39px at 133.5px 351.2px,rgba(186,215,255,0.57) 0%,rgba(186,215,255,0.57) 42%,rgba(186,215,255,0) 100%),
+      radial-gradient(circle 1.11px at 51.9px 346.0px,rgba(200,240,248,0.59) 0%,rgba(200,240,248,0.59) 42%,rgba(200,240,248,0) 100%),
+      radial-gradient(circle 1.5px at 324.5px 238.6px,rgba(255,255,255,0.53) 0%,rgba(255,255,255,0.53) 42%,rgba(255,255,255,0) 100%);
+    background-size:400px 400px;
+    animation:star-drift-far 300s linear infinite;
+  }
+  @keyframes star-drift-far{from{transform:translate3d(0,0,0);}to{transform:translate3d(0,-400px,0);}}
+  .stars-mid{
+    height:calc(100% + 600px);
+    background-image:
+      radial-gradient(circle 1.58px at 387.5px 337.4px,rgba(214,204,255,0.75) 0%,rgba(214,204,255,0.75) 42%,rgba(214,204,255,0) 100%),
+      radial-gradient(circle 1.66px at 234.9px 346.5px,rgba(255,255,255,0.64) 0%,rgba(255,255,255,0.64) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.45px at 417.7px 450.2px,rgba(255,255,255,0.73) 0%,rgba(255,255,255,0.73) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.6px at 493.6px 517.0px,rgba(255,255,255,0.68) 0%,rgba(255,255,255,0.68) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.74px at 107.7px 320.0px,rgba(255,255,255,0.77) 0%,rgba(255,255,255,0.77) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.87px at 182.5px 65.9px,rgba(186,215,255,0.61) 0%,rgba(186,215,255,0.61) 42%,rgba(186,215,255,0) 100%),
+      radial-gradient(circle 1.45px at 220.2px 520.4px,rgba(255,255,255,0.68) 0%,rgba(255,255,255,0.68) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.74px at 566.7px 334.8px,rgba(255,255,255,0.6) 0%,rgba(255,255,255,0.6) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.45px at 490.5px 117.8px,rgba(255,255,255,0.66) 0%,rgba(255,255,255,0.66) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 1.86px at 94.6px 530.4px,rgba(255,255,255,0.58) 0%,rgba(255,255,255,0.58) 42%,rgba(255,255,255,0) 100%);
+    background-size:600px 600px;
+    animation:star-drift-mid 260s linear infinite;
+  }
+  @keyframes star-drift-mid{from{transform:translate3d(0,0,0);}to{transform:translate3d(0,-600px,0);}}
+  .stars-near{
+    height:calc(100% + 900px);
+    background-image:
+      radial-gradient(circle 2.46px at 749.4px 225.7px,rgba(255,255,255,0.87) 0%,rgba(255,255,255,0.87) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 2.46px at 392.6px 447.6px,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0.9) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 2.54px at 469.6px 152.5px,rgba(255,255,255,0.96) 0%,rgba(255,255,255,0.96) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 2.09px at 456.5px 795.7px,rgba(255,255,255,0.83) 0%,rgba(255,255,255,0.83) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 2.44px at 60.1px 90.4px,rgba(255,255,255,0.79) 0%,rgba(255,255,255,0.79) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 2.01px at 103.8px 840.3px,rgba(255,255,255,0.84) 0%,rgba(255,255,255,0.84) 42%,rgba(255,255,255,0) 100%),
+      radial-gradient(circle 2.5px at 816.4px 381.4px,rgba(255,255,255,0.95) 0%,rgba(255,255,255,0.95) 42%,rgba(255,255,255,0) 100%);
+    background-size:900px 900px;
+    animation:star-drift-near 200s linear infinite;
+  }
+  @keyframes star-drift-near{from{transform:translate3d(0,0,0);}to{transform:translate3d(0,-900px,0);}}
+  /* A drifting sky is motion; hold it still but keep the stars. */
+  @media (prefers-reduced-motion: reduce){
+    .stars{animation:none;}
+  }
+  @media print{ .starfield{display:none !important;} }
+
   h1,h2,h3{
     font-family:'Fraunces',serif;
     font-weight:500;
@@ -813,6 +883,12 @@
 </style>
 </head>
 <body>
+
+<div class="starfield" aria-hidden="true">
+  <div class="stars stars-far"></div>
+  <div class="stars stars-mid"></div>
+  <div class="stars stars-near"></div>
+</div>
 
 <div class="controlbar">
   <div class="controlbar-inner">
