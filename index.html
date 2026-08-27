@@ -233,13 +233,23 @@
     padding:7px 12px;cursor:pointer;transition:border-color .2s ease,color .2s ease;
   }
   .cmdk-hint:hover{border-color:var(--violet);color:var(--text-hi);}
+  .cmdk-hint svg{width:14px;height:14px;stroke:currentColor;flex:none;}
   .cmdk-hint kbd{
     font:inherit;color:var(--text-hi);
     border:1px solid var(--hairline-strong);border-radius:4px;
     padding:0 4px;line-height:1.5;background:rgba(255,255,255,.04);
   }
-  /* A keyboard shortcut is noise on a device without a keyboard. */
-  @media (max-width:760px), (pointer:coarse){ .cmdk-hint{display:none;} }
+  /* Without a keyboard the shortcut is noise — but the menu behind it is not.
+     The keycap goes; the button stays and collapses to its icon. The label is
+     only visually hidden, so it still names the button for a screen reader. */
+  @media (max-width:760px), (pointer:coarse){
+    .cmdk-hint kbd{display:none;}
+    .cmdk-hint{padding:7px 11px;}
+    .cmdk-hint .cmdk-hint-label{
+      position:absolute;width:1px;height:1px;
+      overflow:hidden;clip-path:inset(50%);white-space:nowrap;
+    }
+  }
   @media print{ .cmdk-hint{display:none !important;} }
   .lang-toggle{
     display:flex;border:1px solid var(--hairline-strong);
@@ -1043,7 +1053,8 @@
     </div>
     <div class="controls">
       <button class="cmdk-hint" id="cmdk-hint" aria-haspopup="dialog" aria-controls="cmdk">
-        <span class="sv-only">Sök</span><span class="en-only">Search</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="13" y2="17"></line></svg>
+        <span class="cmdk-hint-label"><span class="sv-only">Meny</span><span class="en-only">Menu</span></span>
         <kbd id="cmdk-key">⌘K</kbd>
       </button>
       <div class="lang-toggle" role="group" aria-label="Language / Språk">
