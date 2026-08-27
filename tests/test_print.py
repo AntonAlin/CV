@@ -31,7 +31,7 @@ def build(lang, path):
     with sync_playwright() as p:
         b = launch(p)
         pg = b.new_page(viewport={"width": 900, "height": 1200})
-        pg.goto("file:///home/user/CV/index.html"); pg.wait_for_timeout(1100)
+        pg.goto(URL); pg.wait_for_timeout(1100)
         pg.evaluate(f"setLang('{lang}')"); pg.evaluate("revealContact()")
         pg.wait_for_timeout(400)
         pg.pdf(path=path, format="A4", print_background=True)
@@ -98,7 +98,7 @@ for lang in ("sv", "en"):
     with sync_playwright() as p:
         b = launch(p)
         pg = b.new_page(viewport={"width": 900, "height": 1200})
-        pg.goto("file:///home/user/CV/index.html"); pg.wait_for_timeout(1100)
+        pg.goto(URL); pg.wait_for_timeout(1100)
         pg.evaluate(f"setLang('{lang}')"); pg.evaluate("revealContact()")
         pg.evaluate("document.body.classList.add('print-short')"); pg.wait_for_timeout(400)
         pg.pdf(path=str(WORK / f"t_{lang}_1p.pdf"), format="A4", print_background=True)
