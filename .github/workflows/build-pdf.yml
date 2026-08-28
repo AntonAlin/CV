@@ -11,6 +11,7 @@ on:
       - index.html
       - img/**
       - tools/build-pdf.py
+      - tools/fontmirror.py
       - .github/workflows/build-pdf.yml
   workflow_dispatch:
 

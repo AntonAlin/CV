@@ -8,6 +8,7 @@ on:
       - index.html
       - img/**
       - tests/**
+      - tools/**
       - .github/workflows/tests.yml
   pull_request:
   workflow_dispatch:

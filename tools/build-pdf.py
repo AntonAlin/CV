@@ -13,6 +13,7 @@ import os
 import pathlib
 import sys
 
+import fontmirror
 import pymupdf
 from playwright.sync_api import sync_playwright
 
@@ -34,10 +35,13 @@ KEYWORDS = ("Data, Business Intelligence, Microsoft Fabric, Power BI, "
 
 def render(page, lang, short, path):
     page.goto(SITE)
-    # Webfonts change line breaking, which changes pagination. Wait for them
-    # rather than racing them, or CI produces a different document than a desk.
-    # `fonts.ready` settles either way, so a blocked font host stalls nothing.
+    # Webfonts change line breaking, which changes pagination. Waiting for
+    # them is not enough on its own: `fonts.ready` settles just as happily
+    # when the font host was unreachable and everything fell back to the
+    # default serif, which paginates differently and would ship a PDF set in
+    # the wrong typeface. So wait, then insist they actually arrived.
     page.evaluate("document.fonts.ready")
+    fontmirror.assert_real_fonts(page)
     page.evaluate(f"setLang('{lang}')")
     # A printed CV without contact details is useless; the page reveals them on
     # beforeprint anyway, but page.pdf() does not fire that event.
@@ -72,6 +76,7 @@ def main():
         exe = os.environ.get("CHROMIUM_PATH")
         browser = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
         page = browser.new_page(viewport={"width": 900, "height": 1200})
+        fontmirror.arm(page)
         for lang, short, name, title, expected in VARIANTS:
             path = OUT / name
             render(page, lang, short, path)

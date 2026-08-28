@@ -1,0 +1,5 @@
+# Mirrored webfonts used by the test suites and the PDF builder. Fetched on
+# demand, identical to what the font host serves, so there is nothing to track.
+tools/.fonts/
+
+__pycache__/

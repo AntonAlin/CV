@@ -935,7 +935,7 @@
 
     /* --- Sections --- */
     section{
-      border-bottom:none;padding:4.2pt 0 1pt;
+      border-bottom:none;padding:5pt 0 1pt;
       break-inside:auto;
     }
     .section-head{
@@ -950,7 +950,7 @@
     .timeline::before, .job::after{display:none;}
     .job{
       grid-template-columns:88pt 1fr;gap:10pt;
-      padding:3.2pt 0;border-top:.5pt solid #e4e8ed;
+      padding:3.6pt 0;border-top:.5pt solid #e4e8ed;
       break-inside:avoid;
     }
     .job:first-child{padding-top:0;border-top:none;}
@@ -969,7 +969,7 @@
       font-size:6pt;letter-spacing:.05em;
     }
     .org-name{border-bottom:none;}
-    .job ul{margin:2.6pt 0 0;padding-left:11pt;font-size:8.7pt;color:#39414d;}
+    .job ul{margin:3pt 0 0;padding-left:11pt;font-size:8.7pt;color:#39414d;}
     .job li{margin-bottom:.4pt;}
     .job li::marker{color:#0d6b78;}
 
@@ -1002,7 +1002,7 @@
     #skills .skills-grid, #misc .skills-grid{display:block;}
     #skills .skills-grid > div, #misc .skills-grid > div{
       display:grid;grid-template-columns:70pt 1fr;gap:9pt;
-      padding:2.1pt 0;border-top:.5pt solid #eceff3;
+      padding:2.5pt 0;border-top:.5pt solid #eceff3;
       break-inside:avoid;
     }
     #skills .skills-grid > div:first-child,
@@ -1031,7 +1031,7 @@
     #misc .project-desc{font-size:8.4pt;color:#1c2027;}
 
     /* --- Education --- */
-    .edu-item{padding:3.5pt 0;border-top:.5pt solid #e4e8ed;break-inside:avoid;}
+    .edu-item{padding:4pt 0;border-top:.5pt solid #e4e8ed;break-inside:avoid;}
     .edu-item:first-of-type{padding-top:0;border-top:none;}
     .edu-school{font-size:10.5pt;color:#0f1319;}
     .edu-period{font-size:7.6pt;color:#79828f;}
@@ -1043,7 +1043,7 @@
     .ach-grid{gap:8pt 26pt;}
     .ach-grid > div{break-inside:avoid;}
     .ach-list li{
-      padding:1.6pt 0;border-top:.5pt solid #eceff3;font-size:8.4pt;color:#39414d;
+      padding:1.8pt 0;border-top:.5pt solid #eceff3;font-size:8.4pt;color:#39414d;
       gap:0;break-inside:avoid;
     }
     .ach-list b{color:#0d6b78;}
@@ -1055,7 +1055,7 @@
        Contact already sits in the header, so the closing line stays a closing
        line rather than repeating it. */
     footer{
-      display:block;padding:3pt 0 0;text-align:left;
+      display:block;padding:4pt 0 0;text-align:left;
       border-top:.5pt solid #d7dce2;break-inside:avoid;
     }
     .footer-inner{
@@ -1083,17 +1083,17 @@
     body.print-short .edu-item ul{display:none;}
     /* School, dates and degree collapse onto one line each */
     body.print-short .edu-item{
-      display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8pt;padding:1.6pt 0;
+      display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8pt;padding:2pt 0;
     }
     body.print-short .edu-head{flex:0 1 auto;justify-content:flex-start;gap:8pt;}
     body.print-short .edu-degree{margin-top:0;font-size:8pt;}
     body.print-short h1.name{font-size:22pt;}
-    body.print-short .job:nth-child(n+4){padding:1.4pt 0;}
+    body.print-short .job:nth-child(n+4){padding:1.8pt 0;}
     body.print-short .kicker-summary{font-size:7.8pt;margin-top:4pt;}
-    body.print-short section{padding:1.5pt 0 1pt;}
-    body.print-short #skills .skills-grid > div{padding:1.8pt 0;}
-    body.print-short .section-head{margin-bottom:2pt;}
-    body.print-short .job{padding:2.2pt 0;}
+    body.print-short section{padding:2pt 0 1pt;}
+    body.print-short #skills .skills-grid > div{padding:2.2pt 0;}
+    body.print-short .section-head{margin-bottom:2.5pt;}
+    body.print-short .job{padding:2.6pt 0;}
     body.print-short .job li{margin-bottom:.4pt;}
     body.print-short .edu-item{padding:3pt 0;}
     /* Hiding sections would otherwise leave the printed numbers reading
@@ -1107,7 +1107,7 @@
     }
     /* One sheet means no continuation, so the running footer has nothing to say. */
     body.print-short .print-qr svg{width:26pt;height:26pt;}
-    body.print-short footer{padding-top:2pt;}
+    body.print-short footer{padding-top:3pt;}
 
     /* --- Paper-to-web bridge --- */
     .print-qr{
