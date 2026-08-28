@@ -32,14 +32,12 @@ def check(name, cond, extra=""):
 with sync_playwright() as p:
     b = launch(p)
     pg = b.new_page(viewport={"width":1280,"height":900})
-    fontmirror.arm(pg)
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.on("console", lambda m: errors.append("console."+m.type+": "+m.text)
        if m.type=="error" and "fonts.googleapis" not in m.text and "ERR_CONNECTION" not in m.text else None)
-    pg.goto(URL)
+    fontmirror.prepare(pg, URL)
     pg.wait_for_timeout(900)
-    fontmirror.assert_real_fonts(pg)
     pg.evaluate("setLang('sv')")   # headless locale is en-US; pin it so labels are deterministic
     pg.wait_for_timeout(300)
 
@@ -235,7 +233,7 @@ with sync_playwright() as p:
     # Hiding it there once made the whole menu — sections, both PDF downloads,
     # the contact reveal — unreachable on a phone.
     tctx = b.new_context(viewport={"width":390,"height":844}, has_touch=True, is_mobile=True)
-    tpg = tctx.new_page(); fontmirror.arm(tpg); tpg.goto(URL); tpg.wait_for_timeout(1000)
+    tpg = tctx.new_page(); fontmirror.prepare(tpg, URL); tpg.wait_for_timeout(1000)
     tpg.evaluate("setLang('sv')"); tpg.wait_for_timeout(300)
     check("touch: menu trigger is reachable",
           tpg.eval_on_selector("#cmdk-hint","e=>getComputedStyle(e).display!=='none'"))
@@ -312,7 +310,7 @@ with sync_playwright() as p:
     # They need a wide viewport to exist at all, so the lighting behaviour and
     # the clearance from the text column are both checked there.
     wctx = b.new_context(viewport={"width":1600,"height":900})
-    wpg = wctx.new_page(); fontmirror.arm(wpg); wpg.goto(URL); wpg.wait_for_timeout(1000)
+    wpg = wctx.new_page(); fontmirror.prepare(wpg, URL); wpg.wait_for_timeout(1000)
     wpg.evaluate("setLang('sv')"); wpg.wait_for_timeout(300)
     check("wide: a lower constellation waits to be scrolled to",
           not wpg.eval_on_selector(".const-cygnus","e=>e.classList.contains('is-lit')"))

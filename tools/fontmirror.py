@@ -32,8 +32,9 @@ _reported = False
 
 
 def _fetch(url, dest):
-    r = subprocess.run(["curl", "-sSf", "-A", UA, "-o", str(dest), url],
-                       capture_output=True, text=True)
+    r = subprocess.run(["curl", "-sSf", "-A", UA, "--connect-timeout", "10",
+                        "--max-time", "30", "-o", str(dest), url],
+                       capture_output=True, text=True, timeout=45)
     return r.returncode == 0 and dest.exists() and dest.stat().st_size > 400
 
 
@@ -56,12 +57,12 @@ def _build():
     return out
 
 
-def arm(page):
-    """Serve the font requests on this page from the mirror, if there is one.
+def _arm(page):
+    """Serve this page's font requests from the local mirror.
 
-    A miss is not fatal here — the browser may well reach Google directly, as
-    it does in CI. `assert_real_fonts` is what decides whether the render can
-    be trusted.
+    Returns False when no mirror could be built, which is not by itself a
+    failure — `prepare` only gets here after the browser has already tried and
+    failed to fetch the fonts on its own.
     """
     global _mirror
     if _mirror is None:
@@ -81,14 +82,13 @@ def arm(page):
     return True
 
 
-def assert_real_fonts(page):
-    """Stop the run unless the three families are genuinely rendering.
+def _missing(page):
+    """Which of the three families are not actually rendering.
 
     document.fonts.check is no use on its own: with no @font-face declared at
     all it happily returns true. Compare rendered widths against the generic
     fallbacks instead — that is the thing measurement actually depends on.
     """
-    global _reported
     page.evaluate("document.fonts.ready")
     widths = page.evaluate("""(families) => {
       const measure = stack => {
@@ -106,7 +106,24 @@ def assert_real_fonts(page):
       out.__serif = measure('serif');
       return out;
     }""", list(FAMILIES))
-    missing = [f for f in FAMILIES if abs(widths[f] - widths["__serif"]) < 0.5]
+    return [f for f in FAMILIES if abs(widths[f] - widths["__serif"]) < 0.5]
+
+
+def prepare(page, url):
+    """Load `url` with the real webfonts in place, or stop the run saying why.
+
+    The browser is given the first go: where it can reach the font host — CI,
+    most desks — this is an ordinary goto and nothing else happens, so no
+    network call of ours sits in the way of every run. Only when that comes
+    back set in fallback serif is the mirror built and the page reloaded
+    through it.
+    """
+    global _reported
+    page.goto(url)
+    missing = _missing(page)
+    if missing and _arm(page):
+        page.goto(url)
+        missing = _missing(page)
     if missing:
         raise SystemExit(
             "\nFATAL: rendering with fallback fonts, so every layout "
