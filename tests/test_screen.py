@@ -252,6 +252,22 @@ with sync_playwright() as p:
           tpg.evaluate("window.scrollX")==0)
     tctx.close()
 
+
+    # --- polish pass: meteor, spinning ring, fading rules, text-wrap ---
+    check("meteor element lives inside the starfield",
+          pg.locator(".starfield .meteor").count()==1)
+    check("meteor takes no clicks",
+          pg.eval_on_selector(".meteor","e=>getComputedStyle(e).pointerEvents")=="none")
+    check("portrait ring spins",
+          "ring-spin" in pg.eval_on_selector(".portrait-ring","e=>getComputedStyle(e).animationName"))
+    check("section rules fade out instead of stopping dead",
+          "gradient" in pg.eval_on_selector(".section-line","e=>getComputedStyle(e).backgroundImage"))
+    check("headings balance their line breaks",
+          pg.eval_on_selector(".section-title",
+            "e=>{const s=getComputedStyle(e);return s.textWrapStyle||s.textWrap;}")=="balance",
+          pg.eval_on_selector(".section-title",
+            "e=>{const s=getComputedStyle(e);return s.textWrapStyle||s.textWrap;}"))
+
     check("no JS errors overall", not errors, errors)
 
     # --- print rendering still sane ---
@@ -277,6 +293,8 @@ with sync_playwright() as p:
           pg.eval_on_selector(".stars","e=>getComputedStyle(e).animationName")=="none"
           and pg.eval_on_selector(".starfield","e=>getComputedStyle(e).display")!="none",
           pg.eval_on_selector(".stars","e=>getComputedStyle(e).animationName"))
+    check("reduced motion also stills the portrait ring",
+          pg.eval_on_selector(".portrait-ring","e=>getComputedStyle(e).animationName")=="none")
 
     b.close()
 
