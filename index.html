@@ -377,32 +377,40 @@
      Sits between the aurora and the content, faint enough to be found rather
      than announced. The line draws itself in once; the stars fade in first. */
   .constellation{
-    position:absolute;left:47%;top:26px;width:175px;z-index:0;
-    pointer-events:none;overflow:visible;
+    position:absolute;z-index:0;pointer-events:none;overflow:visible;
   }
+  /* Each is lit by an observer as it comes into view, so they are discovered
+     one at a time on the way down rather than all having happened already. */
   .constellation circle{
-    fill:#eef3f8;opacity:0;
-    animation:const-star .9s ease forwards;
+    fill:#eef3f8;opacity:0;transition:opacity .9s ease;
   }
-  .constellation circle:nth-of-type(1){animation-delay:.3s;}
-  .constellation circle:nth-of-type(2){animation-delay:.5s;}
-  .constellation circle:nth-of-type(3){animation-delay:.7s;}
-  .constellation circle:nth-of-type(4){animation-delay:.9s;}
-  .constellation circle:nth-of-type(5){animation-delay:1.1s;}
-  .constellation circle:nth-of-type(6){animation-delay:1.3s;}
-  .constellation circle:nth-of-type(7){animation-delay:1.5s;}
-  @keyframes const-star{to{opacity:.8;}}
+  .constellation.is-lit circle{opacity:.8;}
+  .constellation circle:nth-of-type(1){transition-delay:.15s;}
+  .constellation circle:nth-of-type(2){transition-delay:.35s;}
+  .constellation circle:nth-of-type(3){transition-delay:.55s;}
+  .constellation circle:nth-of-type(4){transition-delay:.75s;}
+  .constellation circle:nth-of-type(5){transition-delay:.95s;}
+  .constellation circle:nth-of-type(6){transition-delay:1.15s;}
+  .constellation circle:nth-of-type(7){transition-delay:1.35s;}
   .const-line{
-    stroke:rgba(238,243,248,.26);stroke-width:.8;
+    stroke:rgba(238,243,248,.26);stroke-width:.8;fill:none;
     stroke-dasharray:1;stroke-dashoffset:1;
-    animation:const-draw 2.6s cubic-bezier(.4,0,.2,1) 1.6s forwards;
+    transition:stroke-dashoffset 2.6s cubic-bezier(.4,0,.2,1) 1.4s;
   }
-  @keyframes const-draw{to{stroke-dashoffset:0;}}
+  .constellation.is-lit .const-line{stroke-dashoffset:0;}
   @media (prefers-reduced-motion: reduce){
-    .const-line{animation:none;stroke-dashoffset:0;}
-    .constellation circle{animation:none;opacity:.8;}
+    .constellation circle,.const-line{transition:none;}
   }
-  /* Below this the sky is crowded by the stacked mobile layout */
+  /* Placements. The hero one shares the sky with the aurora; the rest sit in
+     the gutter beside their section, where the text column leaves room. */
+  .const-plough{left:47%;top:26px;width:175px;}
+  /* Negative offsets put these wholly outside the text column, in the gutter.
+     At the 1280px cutoff the gutter is ~180px, which is what bounds them. */
+  .const-cas{right:-19%;top:90px;width:120px;}
+  .const-orion{left:-19%;top:120px;width:120px;}
+  .const-cygnus{right:-19%;top:60px;width:120px;}
+  /* Narrower than this there is no gutter for them to sit in */
+  @media (max-width:1280px){ .const-cas,.const-orion,.const-cygnus{display:none;} }
   @media (max-width:1000px){ .constellation{display:none;} }
   @media print{ .constellation{display:none !important;} }
 
@@ -558,7 +566,7 @@
 
   /* ---------- Sections ---------- */
   /* scroll-margin keeps a jumped-to heading clear of the sticky control bar */
-  section{padding:56px 0;border-bottom:1px solid var(--hairline);scroll-margin-top:72px;}
+  section{position:relative;padding:56px 0;border-bottom:1px solid var(--hairline);scroll-margin-top:72px;}
   section:last-of-type{border-bottom:none;}
   .section-head{
     display:flex;align-items:baseline;gap:14px;margin-bottom:32px;
@@ -700,7 +708,9 @@
     text-transform:uppercase;color:var(--text-faint);margin-bottom:14px;
   }
   .skill-tags{display:flex;flex-wrap:wrap;gap:8px;}
-  .skill-tags span{
+  /* Direct children only: a tag may contain nested language spans, and a
+     descendant selector here draws a second pill inside the first. */
+  .skill-tags > span{
     flex:0 0 auto;white-space:nowrap;
     font-size:13.5px;padding:6px 12px;border-radius:8px;
     background:var(--panel-2);border:1px solid var(--hairline);
@@ -712,8 +722,12 @@
   body.lang-en .skill-tags.sv-only{display:none;}
   body.lang-en .skill-tags.en-only{display:flex;}
 
-  .skill-tags-icons span{display:inline-flex;align-items:center;gap:7px;transition:border-color .2s ease,color .2s ease;}
-  .skill-tags-icons span:hover{border-color:var(--teal);color:var(--teal);}
+  /* Direct children only. A bare `.skill-tags-icons span` also matched the
+     nested .sv-only/.en-only qualifier spans inside a tag and out-specified
+     their display:none, rendering both languages at once — the same trap the
+     print sheet hit, so the fix is the same shape. */
+  .skill-tags-icons > span{display:inline-flex;align-items:center;gap:7px;transition:border-color .2s ease,color .2s ease;}
+  .skill-tags-icons > span:hover{border-color:var(--teal);color:var(--teal);}
   .skill-icon{width:13px;height:13px;flex:none;color:var(--teal);}
 
   /* Education */
@@ -921,7 +935,7 @@
 
     /* --- Sections --- */
     section{
-      border-bottom:none;padding:5pt 0 1pt;
+      border-bottom:none;padding:4.2pt 0 1pt;
       break-inside:auto;
     }
     .section-head{
@@ -936,7 +950,7 @@
     .timeline::before, .job::after{display:none;}
     .job{
       grid-template-columns:88pt 1fr;gap:10pt;
-      padding:3.6pt 0;border-top:.5pt solid #e4e8ed;
+      padding:3.2pt 0;border-top:.5pt solid #e4e8ed;
       break-inside:avoid;
     }
     .job:first-child{padding-top:0;border-top:none;}
@@ -955,7 +969,7 @@
       font-size:6pt;letter-spacing:.05em;
     }
     .org-name{border-bottom:none;}
-    .job ul{margin:3pt 0 0;padding-left:11pt;font-size:8.7pt;color:#39414d;}
+    .job ul{margin:2.6pt 0 0;padding-left:11pt;font-size:8.7pt;color:#39414d;}
     .job li{margin-bottom:.4pt;}
     .job li::marker{color:#0d6b78;}
 
@@ -988,7 +1002,7 @@
     #skills .skills-grid, #misc .skills-grid{display:block;}
     #skills .skills-grid > div, #misc .skills-grid > div{
       display:grid;grid-template-columns:70pt 1fr;gap:9pt;
-      padding:2.5pt 0;border-top:.5pt solid #eceff3;
+      padding:2.1pt 0;border-top:.5pt solid #eceff3;
       break-inside:avoid;
     }
     #skills .skills-grid > div:first-child,
@@ -1017,7 +1031,7 @@
     #misc .project-desc{font-size:8.4pt;color:#1c2027;}
 
     /* --- Education --- */
-    .edu-item{padding:4pt 0;border-top:.5pt solid #e4e8ed;break-inside:avoid;}
+    .edu-item{padding:3.5pt 0;border-top:.5pt solid #e4e8ed;break-inside:avoid;}
     .edu-item:first-of-type{padding-top:0;border-top:none;}
     .edu-school{font-size:10.5pt;color:#0f1319;}
     .edu-period{font-size:7.6pt;color:#79828f;}
@@ -1029,7 +1043,7 @@
     .ach-grid{gap:8pt 26pt;}
     .ach-grid > div{break-inside:avoid;}
     .ach-list li{
-      padding:1.8pt 0;border-top:.5pt solid #eceff3;font-size:8.4pt;color:#39414d;
+      padding:1.6pt 0;border-top:.5pt solid #eceff3;font-size:8.4pt;color:#39414d;
       gap:0;break-inside:avoid;
     }
     .ach-list b{color:#0d6b78;}
@@ -1041,7 +1055,7 @@
        Contact already sits in the header, so the closing line stays a closing
        line rather than repeating it. */
     footer{
-      display:block;padding:4pt 0 0;text-align:left;
+      display:block;padding:3pt 0 0;text-align:left;
       border-top:.5pt solid #d7dce2;break-inside:avoid;
     }
     .footer-inner{
@@ -1069,17 +1083,17 @@
     body.print-short .edu-item ul{display:none;}
     /* School, dates and degree collapse onto one line each */
     body.print-short .edu-item{
-      display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8pt;padding:2pt 0;
+      display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8pt;padding:1.6pt 0;
     }
     body.print-short .edu-head{flex:0 1 auto;justify-content:flex-start;gap:8pt;}
     body.print-short .edu-degree{margin-top:0;font-size:8pt;}
     body.print-short h1.name{font-size:22pt;}
-    body.print-short .job:nth-child(n+4){padding:1.8pt 0;}
+    body.print-short .job:nth-child(n+4){padding:1.4pt 0;}
     body.print-short .kicker-summary{font-size:7.8pt;margin-top:4pt;}
-    body.print-short section{padding:2pt 0 1pt;}
-    body.print-short #skills .skills-grid > div{padding:2.2pt 0;}
-    body.print-short .section-head{margin-bottom:2.5pt;}
-    body.print-short .job{padding:2.6pt 0;}
+    body.print-short section{padding:1.5pt 0 1pt;}
+    body.print-short #skills .skills-grid > div{padding:1.8pt 0;}
+    body.print-short .section-head{margin-bottom:2pt;}
+    body.print-short .job{padding:2.2pt 0;}
     body.print-short .job li{margin-bottom:.4pt;}
     body.print-short .edu-item{padding:3pt 0;}
     /* Hiding sections would otherwise leave the printed numbers reading
@@ -1093,7 +1107,7 @@
     }
     /* One sheet means no continuation, so the running footer has nothing to say. */
     body.print-short .print-qr svg{width:26pt;height:26pt;}
-    body.print-short footer{padding-top:3pt;}
+    body.print-short footer{padding-top:2pt;}
 
     /* --- Paper-to-web bridge --- */
     .print-qr{
@@ -1150,7 +1164,7 @@
     <div class="aurora-band b3"></div>
   </div>
   <!-- Karlavagnen. No label: those who recognise it, recognise it. -->
-  <svg class="constellation" viewBox="0 0 200 120" aria-hidden="true" focusable="false">
+  <svg class="constellation const-plough" viewBox="0 0 200 120" aria-hidden="true" focusable="false">
     <path class="const-line" pathLength="1" fill="none"
           d="M10 20 L55 38 L95 48 L130 52 L185 38 L178 92 L128 98 L130 52"/>
     <circle cx="10"  cy="20" r="1.5"/>
@@ -1377,6 +1391,13 @@
 
   <!-- PROJECTS -->
   <section id="projects">
+      <!-- Cassiopeja: the W, circumpolar from Sweden and never setting. -->
+      <svg class="constellation const-cas" viewBox="0 0 120 60" aria-hidden="true" focusable="false">
+        <path class="const-line" pathLength="1" d="M5 14 L32 44 L58 16 L86 46 L112 20"/>
+        <circle cx="5" cy="14" r="1.4"/><circle cx="32" cy="44" r="1.5"/>
+        <circle cx="58" cy="16" r="1.3"/><circle cx="86" cy="46" r="1.4"/>
+        <circle cx="112" cy="20" r="1.2"/>
+      </svg>
     <div class="section-head">
       <span class="section-num">02</span>
       <h2 class="section-title"><span class="sv-only">Utvalda projekt</span><span class="en-only">Selected Projects</span></h2>
@@ -1453,8 +1474,13 @@
     </div>
     <div class="skills-grid">
       <div>
-        <div class="skill-group-title"><span class="sv-only">Plattformar</span><span class="en-only">Platforms</span></div>
+        <div class="skill-group-title"><span class="sv-only">Teknik &amp; plattformar</span><span class="en-only">Technical &amp; platforms</span></div>
         <div class="skill-tags skill-tags-icons">
+          <!-- Languages lead the group: they are what a technical reader and an
+               ATS scan for first. The proficiency qualifier is a nested
+               language span, so the list is written once rather than twice. -->
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>SQL — <span class="sv-only">god vana</span><span class="en-only">proficient</span></span>
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>Python — <span class="sv-only">grundläggande</span><span class="en-only">foundational</span></span>
           <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>Microsoft Fabric</span>
           <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>Power BI</span>
           <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>Tableau</span>
@@ -1485,6 +1511,16 @@
 
   <!-- EDUCATION -->
   <section id="education">
+      <!-- Orion: shoulders, belt and feet. -->
+      <svg class="constellation const-orion" viewBox="0 0 90 95" aria-hidden="true" focusable="false">
+        <path class="const-line" pathLength="1" d="M10 6 L30 42 L44 46 L58 50 L72 2"/>
+        <path class="const-line" pathLength="1" d="M30 42 L18 88"/>
+        <path class="const-line" pathLength="1" d="M58 50 L76 84"/>
+        <circle cx="10" cy="6" r="1.4"/><circle cx="72" cy="2" r="1.7"/>
+        <circle cx="30" cy="42" r="1.3"/><circle cx="44" cy="46" r="1.4"/>
+        <circle cx="58" cy="50" r="1.3"/>
+        <circle cx="18" cy="88" r="1.7"/><circle cx="76" cy="84" r="1.3"/>
+      </svg>
     <div class="section-head">
       <span class="section-num">04</span>
       <h2 class="section-title"><span class="sv-only">Utbildning</span><span class="en-only">Education</span></h2>
@@ -1522,6 +1558,14 @@
 
   <!-- ACHIEVEMENTS -->
   <section id="achievements">
+      <!-- Svanen, the Northern Cross. -->
+      <svg class="constellation const-cygnus" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+        <path class="const-line" pathLength="1" d="M50 4 L50 96"/>
+        <path class="const-line" pathLength="1" d="M10 54 L50 48 L90 40"/>
+        <circle cx="50" cy="4" r="1.7"/><circle cx="50" cy="48" r="1.4"/>
+        <circle cx="50" cy="96" r="1.3"/>
+        <circle cx="10" cy="54" r="1.3"/><circle cx="90" cy="40" r="1.3"/>
+      </svg>
     <div class="section-head">
       <span class="section-num">05</span>
       <h2 class="section-title"><span class="sv-only">Meriter</span><span class="en-only">Achievements</span></h2>
@@ -2311,12 +2355,32 @@
     render();
   })();
 
+  /* ---------- Constellations light as they come into view ---------- */
+  (function(){
+    var all = document.querySelectorAll('.constellation');
+    if(!all.length){ return; }
+    if(!('IntersectionObserver' in window)){
+      all.forEach(function(c){ c.classList.add('is-lit'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(!e.isIntersecting){ return; }
+        e.target.classList.add('is-lit');
+        io.unobserve(e.target);   /* lighting is one-way; it never un-draws */
+      });
+    }, {threshold:0.35});
+    all.forEach(function(c){ io.observe(c); });
+  })();
+
   /* ---------- Pointer parallax ---------- */
   (function(){
     if(!(window.matchMedia && window.matchMedia('(pointer:fine)').matches)){ return; }
     var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     var aur = document.querySelector('.aurora-layer');
-    var con = document.querySelector('.constellation');
+    /* Only the hero one: the others scroll with their section, so leaning them
+       toward the pointer as well would read as drift rather than depth. */
+    var con = document.querySelector('.const-plough');
     if(!aur){ return; }
     var raf = null;
     window.addEventListener('mousemove', function(e){

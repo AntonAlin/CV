@@ -287,16 +287,76 @@ with sync_playwright() as p:
           any("yr" in d for d in dure) and not any("år" in d for d in dure), dure)
     pg.click("#btn-sv"); pg.wait_for_timeout(300)
 
+    check("four constellations on the page",
+          pg.locator(".constellation").count()==4, pg.locator(".constellation").count())
     check("Karlavagnen has its seven stars",
-          pg.locator(".constellation circle").count()==7)
-    check("constellation is decorative and non-interactive",
-          pg.eval_on_selector(".constellation","e=>e.getAttribute('aria-hidden')==='true' "
-              +"&& getComputedStyle(e).pointerEvents==='none'"))
+          pg.locator(".const-plough circle").count()==7)
+    check("Cassiopeja is the five-star W",
+          pg.locator(".const-cas circle").count()==5)
+    check("Orion has shoulders, belt and feet",
+          pg.locator(".const-orion circle").count()==7)
+    check("Svanen forms the northern cross",
+          pg.locator(".const-cygnus circle").count()==5)
+    check("all constellations are decorative and non-interactive",
+          pg.eval_on_selector_all(".constellation",
+            "els=>els.every(e=>e.getAttribute('aria-hidden')==='true' "
+            +"&& getComputedStyle(e).pointerEvents==='none')"))
+    check("the hero one lights on load",
+          pg.eval_on_selector(".const-plough","e=>e.classList.contains('is-lit')"))
+    check("section constellations hide where there is no gutter (1280px)",
+          pg.eval_on_selector(".const-cygnus","e=>getComputedStyle(e).display")=="none")
+    # They need a wide viewport to exist at all, so the lighting behaviour and
+    # the clearance from the text column are both checked there.
+    wctx = b.new_context(viewport={"width":1600,"height":900})
+    wpg = wctx.new_page(); wpg.goto(URL); wpg.wait_for_timeout(1000)
+    wpg.evaluate("setLang('sv')"); wpg.wait_for_timeout(300)
+    check("wide: a lower constellation waits to be scrolled to",
+          not wpg.eval_on_selector(".const-cygnus","e=>e.classList.contains('is-lit')"))
+    wpg.evaluate("document.querySelector('#achievements').scrollIntoView({behavior:'instant'})")
+    wpg.wait_for_timeout(900)
+    check("wide: it lights once in view",
+          wpg.eval_on_selector(".const-cygnus","e=>e.classList.contains('is-lit')"))
+    wpg.evaluate("document.querySelector('#education').scrollIntoView({behavior:'instant'})")
+    wpg.wait_for_timeout(400)
+    clear = wpg.evaluate("""(()=>{const c=document.querySelector('.const-orion').getBoundingClientRect();
+        const m=document.querySelector('main').getBoundingClientRect();
+        return Math.round(m.left-c.right);})()""")
+    check("wide: constellations sit clear of the text column", clear > 0, f"{clear}px")
+    check("wide: they cause no horizontal scroll",
+          wpg.evaluate("document.documentElement.scrollWidth-document.documentElement.clientWidth")==0)
+    wctx.close()
+    pg.evaluate("window.scrollTo({top:0,behavior:'instant'})"); pg.wait_for_timeout(400)
     pg.mouse.move(200,200); pg.wait_for_timeout(250)
     pg.mouse.move(1000,600); pg.wait_for_timeout(250)
     check("pointer parallax moves the aurora",
           "matrix" in pg.eval_on_selector(".aurora-layer","e=>getComputedStyle(e).transform"),
           pg.eval_on_selector(".aurora-layer","e=>getComputedStyle(e).transform"))
+
+
+    # --- SQL and Python are in the scannable skills list ---
+    # innerText breaks between flex items, so read the tags and normalise.
+    def tags():
+        return [" ".join(t.split()) for t in
+                pg.eval_on_selector_all("#skills .skill-tags-icons > span",
+                                        "els=>els.map(e=>e.innerText)")]
+    tg = tags()
+    check("SQL is listed with its level", "SQL — god vana" in tg, tg)
+    check("Python is listed with its level", "Python — grundläggande" in tg, tg)
+    check("languages lead the tools group", tg[0].startswith("SQL")
+          and tg[1].startswith("Python"), tg)
+    # A nested qualifier must not render both languages, nor a pill inside a pill.
+    check("only one language variant renders",
+          not any("proficient" in t for t in tg), tg)
+    check("the qualifier is plain text, not a nested pill",
+          pg.eval_on_selector("#skills .skill-tags-icons > span .sv-only",
+              "e=>getComputedStyle(e).backgroundColor==='rgba(0, 0, 0, 0)' "
+              +"&& getComputedStyle(e).borderTopWidth==='0px'"))
+    pg.click("#btn-en"); pg.wait_for_timeout(300)
+    tge = tags()
+    check("levels follow the language",
+          "SQL — proficient" in tge and "Python — foundational" in tge
+          and not any("god vana" in t for t in tge), tge)
+    pg.click("#btn-sv"); pg.wait_for_timeout(300)
 
     check("no JS errors overall", not errors, errors)
 
