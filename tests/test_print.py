@@ -125,11 +125,15 @@ det = cv2.QRCodeDetector()
 TARGET = "https://antonalin.github.io/CV/"
 for name in ("t_sv.pdf", "t_en.pdf", "t_sv_1p.pdf", "t_en_1p.pdf"):
     d = pymupdf.open(str(WORK / name)); pg_ = d[-1]
-    box = next((dr["rect"] for dr in pg_.get_drawings()
-                if 20 < dr["rect"].width < 40
-                and abs(dr["rect"].width - dr["rect"].height) < 3), None)
-    check(f"[{name}] QR is on the last page", box is not None)
-    if box:
+    # The QR renders as two nested squares (white ground + code path). Try every
+    # candidate and accept the first that decodes: the assertion is about the
+    # artwork, not about which bounding box OpenCV happens to like.
+    boxes = [dr["rect"] for dr in pg_.get_drawings()
+             if 20 < dr["rect"].width < 40
+             and abs(dr["rect"].width - dr["rect"].height) < 3]
+    check(f"[{name}] QR is on the last page", bool(boxes))
+    if boxes:
+        box = boxes[0]
         mm = box.width / 72 * 25.4
         check(f"[{name}] QR is at least 9mm across", mm >= 9, f"{mm:.1f}mm")
         # Model a phone pointed at the code. 300dpi over an 11mm code is ~125px,
@@ -137,9 +141,12 @@ for name in ("t_sv.pdf", "t_en.pdf", "t_sv_1p.pdf", "t_en_1p.pdf"):
         # so this stays a conservative bar. 150dpi (62px) was below OpenCV's own
         # detection floor and failed on the densest page while the code itself
         # was fine — that measured the detector, not the artwork.
-        clip = pymupdf.Rect(box.x0-8, box.y0-8, box.x1+8, box.y1+8)
-        pg_.get_pixmap(dpi=300, clip=clip).save(str(WORK / "_qr.png"))
-        val, _, _ = det.detectAndDecode(cv2.imread(str(WORK / "_qr.png")))
+        val = ""
+        for cand in boxes:
+            clip = pymupdf.Rect(cand.x0-8, cand.y0-8, cand.x1+8, cand.y1+8)
+            pg_.get_pixmap(dpi=300, clip=clip).save(str(WORK / "_qr.png"))
+            v, _, _ = det.detectAndDecode(cv2.imread(str(WORK / "_qr.png")))
+            if v: val = v; break
         check(f"[{name}] QR decodes to the live URL", val == TARGET, repr(val))
     d.close()
 

@@ -268,6 +268,36 @@ with sync_playwright() as p:
           pg.eval_on_selector(".section-title",
             "e=>{const s=getComputedStyle(e);return s.textWrapStyle||s.textWrap;}"))
 
+
+    # --- job durations, constellation, parallax ---
+    check("all six dated roles carry a computed duration",
+          pg.locator(".job-dur").count()==6, pg.locator(".job-dur").count())
+    durs = pg.eval_on_selector_all(".job-dur","els=>els.map(e=>e.textContent)")
+    # Fixed historical ranges are deterministic: inclusive LinkedIn-style count.
+    check("NOV 2021 - SEP 2024 reads 2 år 11 mån", "2 år 11 mån" in durs, durs)
+    check("JAN 2015 - OKT 2016 reads 1 år 10 mån", "1 år 10 mån" in durs, durs)
+    # The open-ended role must match the same formula evaluated now.
+    import datetime as _dt
+    _n=_dt.date.today(); _m=(_n.year-2025)*12+(_n.month-4)+1
+    _y,_r=divmod(_m,12); _want=(f"{_y} år {_r} mån" if _y and _r else f"{_y} år" if _y else f"{_r} mån")
+    check("current role duration tracks today's date", _want in durs, (durs,_want))
+    pg.click("#btn-en"); pg.wait_for_timeout(300)
+    dure = pg.eval_on_selector_all(".job-dur","els=>els.map(e=>e.textContent)")
+    check("durations follow the language (yrs/mos)",
+          any("yr" in d for d in dure) and not any("år" in d for d in dure), dure)
+    pg.click("#btn-sv"); pg.wait_for_timeout(300)
+
+    check("Karlavagnen has its seven stars",
+          pg.locator(".constellation circle").count()==7)
+    check("constellation is decorative and non-interactive",
+          pg.eval_on_selector(".constellation","e=>e.getAttribute('aria-hidden')==='true' "
+              +"&& getComputedStyle(e).pointerEvents==='none'"))
+    pg.mouse.move(200,200); pg.wait_for_timeout(250)
+    pg.mouse.move(1000,600); pg.wait_for_timeout(250)
+    check("pointer parallax moves the aurora",
+          "matrix" in pg.eval_on_selector(".aurora-layer","e=>getComputedStyle(e).transform"),
+          pg.eval_on_selector(".aurora-layer","e=>getComputedStyle(e).transform"))
+
     check("no JS errors overall", not errors, errors)
 
     # --- print rendering still sane ---
@@ -281,6 +311,8 @@ with sync_playwright() as p:
           pg.eval_on_selector(".grain","e=>getComputedStyle(e).display")=="none")
     check("cmdk hint hidden in print",
           pg.eval_on_selector("#cmdk-hint","e=>getComputedStyle(e).display")=="none")
+    check("constellation hidden in print",
+          pg.eval_on_selector(".constellation","e=>getComputedStyle(e).display")=="none")
     check("org marks still visible in print",
           pg.eval_on_selector(".org-mark","e=>getComputedStyle(e).display")!="none")
     check("org marks go light-on-white in print",
