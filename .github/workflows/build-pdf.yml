@@ -34,7 +34,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --quiet playwright pymupdf
+          # Pinned to match tests.yml: a different Chromium build breaks
+          # lines differently, and these PDFs are measured to the page.
+          pip install --quiet playwright==1.62.0 pymupdf
           playwright install --with-deps chromium
 
       - name: Render PDFs

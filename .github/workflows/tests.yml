@@ -25,7 +25,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --quiet playwright pymupdf pillow opencv-python-headless
+          # Pinned: line breaking and text-wrap are tuned between Chromium
+          # releases, so an unpinned browser paginates differently from a
+          # developer's. The print sheet is measured to the point.
+          pip install --quiet playwright==1.62.0 pymupdf pillow opencv-python-headless
           playwright install --with-deps chromium
 
       - name: Screen assertions
