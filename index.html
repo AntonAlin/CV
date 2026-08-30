@@ -116,6 +116,7 @@
     position:absolute;top:0;left:0;right:0;
     background-repeat:repeat;
     will-change:transform;
+    opacity:var(--tod-star-op,1);
   }
   .stars-far{
     height:calc(100% + 400px);
@@ -334,13 +335,19 @@
   @property --tod-2{syntax:'<color>';inherits:true;initial-value:#8b7cf6;}
   @property --tod-3{syntax:'<color>';inherits:true;initial-value:#22b8cf;}
   @property --tod-glow{syntax:'<color>';inherits:true;initial-value:transparent;}
-  body{transition:--tod-1 2.6s ease,--tod-2 2.6s ease,--tod-3 2.6s ease,--tod-glow 2.6s ease;}
+  /* How much the stars themselves dim per phase — never to zero, so the sky
+     never fully loses its signature, but day gives the sun and clouds below
+     room to read as the main event rather than competing with a full field
+     of bright stars in broad daylight. */
+  @property --tod-star-op{syntax:'<number>';inherits:true;initial-value:1;}
+  body{transition:--tod-1 2.6s ease,--tod-2 2.6s ease,--tod-3 2.6s ease,
+                  --tod-glow 2.6s ease,--tod-star-op 2.6s ease;}
   @media (prefers-reduced-motion: reduce){ body{transition:none;} }
 
-  body.tod-day  {--tod-1:#3ddc97;--tod-2:#ffb84d;--tod-3:#22b8cf;--tod-glow:rgba(255,196,120,.07);}
-  body.tod-dusk {--tod-1:#ff6fae;--tod-2:#8b5cf6;--tod-3:#ff9a5a;--tod-glow:rgba(255,110,140,.11);}
-  body.tod-night{--tod-1:#3ddc97;--tod-2:#8b7cf6;--tod-3:#22b8cf;--tod-glow:rgba(91,108,255,.08);}
-  body.tod-dawn {--tod-1:#ff8f6b;--tod-2:#ff6fae;--tod-3:#ffcf6b;--tod-glow:rgba(255,150,110,.12);}
+  body.tod-day  {--tod-1:#3ddc97;--tod-2:#ffb84d;--tod-3:#22b8cf;--tod-glow:rgba(255,196,120,.1);--tod-star-op:.4;}
+  body.tod-dusk {--tod-1:#ff6fae;--tod-2:#8b5cf6;--tod-3:#ff9a5a;--tod-glow:rgba(255,110,140,.11);--tod-star-op:.75;}
+  body.tod-night{--tod-1:#3ddc97;--tod-2:#8b7cf6;--tod-3:#22b8cf;--tod-glow:rgba(91,108,255,.08);--tod-star-op:1;}
+  body.tod-dawn {--tod-1:#ff8f6b;--tod-2:#ff6fae;--tod-3:#ffcf6b;--tod-glow:rgba(255,150,110,.12);--tod-star-op:.55;}
 
   .aurora-layer{
     position:absolute;inset:-20% -10% -10% -10%;
@@ -403,6 +410,64 @@
   /* Three blurred, animated layers are a standing GPU cost. Once the hero has
      scrolled away there is nothing to look at, so stop paying it. */
   body.aurora-idle .aurora-band{animation-play-state:paused;}
+
+  /* ---------- Daylight: sun & clouds ----------
+     Day-only decoration living in the same z-index:0 plane as the aurora and
+     constellation, so the hero text and portrait stay on top of it. Faded in
+     rather than swapped, so it reads as a mood shift rather than a hard cut,
+     and entirely absent at night/dawn/dusk — this is additive to those, not
+     a replacement for them. */
+  .hero-sun{
+    position:absolute;top:6%;right:16%;
+    width:170px;height:170px;border-radius:50%;
+    background:radial-gradient(circle,
+      #fff6df 0%,#ffd76b 30%,rgba(255,183,77,.5) 58%,rgba(255,183,77,0) 78%);
+    filter:blur(3px);
+    opacity:0;transform:scale(.85);
+    transition:opacity 2.6s ease,transform 2.6s ease;
+    pointer-events:none;
+  }
+  body.tod-day .hero-sun{opacity:.9;transform:scale(1);}
+  @media (max-width:760px){ .hero-sun{top:2%;right:10%;width:120px;height:120px;} }
+  /* Cloud positions are tuned as a percentage of a short, wide desktop hero.
+     Stacked mobile layout makes the hero much taller, so those same
+     percentages land the clouds down over the name and eyebrow instead of
+     staying clear above them — a contrast risk decoration should never
+     create. The sun alone still carries "daylight" at this width. */
+  @media (max-width:760px){ .hero-cloud{display:none;} }
+
+  /* A puffy three-lobe silhouette built from one div plus two pseudo-elements,
+     rather than an image — consistent with the rest of the sky, which is all
+     gradients and shapes. Only `transform` (via the standalone `scale`
+     property, composing independently of the drift keyframes below) and
+     `opacity` change, so each cloud is as cheap as the star layers. */
+  .hero-cloud{
+    position:absolute;
+    width:120px;height:38px;border-radius:40px;
+    background:rgba(255,255,255,.6);
+    filter:blur(1.5px);
+    opacity:0;
+    animation:cloud-drift linear infinite;
+    animation-play-state:paused;
+    pointer-events:none;
+  }
+  .hero-cloud::before,.hero-cloud::after{
+    content:'';position:absolute;background:inherit;border-radius:50%;
+  }
+  .hero-cloud::before{width:60px;height:60px;top:-28px;left:10px;}
+  .hero-cloud::after {width:42px;height:42px;top:-20px;left:64px;}
+  .hero-cloud.c1{top:12%;animation-duration:75s;}
+  .hero-cloud.c2{top:28%;animation-duration:100s;animation-delay:-30s;scale:.75;}
+  .hero-cloud.c3{top:20%;animation-duration:130s;animation-delay:-70s;scale:.55;}
+  body.tod-day .hero-cloud{opacity:.5;animation-play-state:running;}
+  @keyframes cloud-drift{
+    from{transform:translateX(-25%);}
+    to{transform:translateX(125%);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .hero-sun{transition:none;}
+    .hero-cloud{animation:none;}
+  }
 
   /* ---------- Karlavagnen ----------
      Sits between the aurora and the content, faint enough to be found rather
@@ -900,6 +965,7 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
+    .hero-sun, .hero-cloud{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1207,6 +1273,10 @@
     <circle cx="178" cy="92" r="1.3"/>
     <circle cx="128" cy="98" r="1.3"/>
   </svg>
+  <div class="hero-sun" aria-hidden="true"></div>
+  <div class="hero-cloud c1" aria-hidden="true"></div>
+  <div class="hero-cloud c2" aria-hidden="true"></div>
+  <div class="hero-cloud c3" aria-hidden="true"></div>
   <div class="wrap hero-content">
     <div class="portrait-frame" id="portrait-frame">
       <div class="portrait-ring">

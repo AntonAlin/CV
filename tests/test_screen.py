@@ -181,13 +181,33 @@ with sync_playwright() as p:
     check("every layer loops seamlessly (overhang == tile)", all(seam), seam)
     check("clicking through the starfield reaches real content",
           "star" not in str(pg.evaluate("document.elementFromPoint(640,450).className")))
-    # PROOF the stars actually paint rather than hiding behind the body background
+    # PROOF the stars actually paint rather than hiding behind the body background.
+    # Forced to night and to reduced motion: day/dawn/dusk dim the stars on
+    # purpose (time-of-day mood, below), which would make this measurement
+    # flake depending on the wall-clock hour the suite happens to run in, and
+    # the dimming is itself a transition that needs motion disabled to land
+    # instantly rather than being caught mid-fade.
+    orig_tod = [c for c in pg.eval_on_selector("body","e=>e.className").split()
+                if c.startswith("tod-")]
+    pg.emulate_media(media="screen", reduced_motion="reduce")
+    pg.evaluate("""(() => {
+        const b = document.body.classList;
+        b.remove('tod-day','tod-dusk','tod-night','tod-dawn');
+        b.add('tod-night');
+    })()""")
     pg.evaluate("window.scrollTo({top:2600,behavior:'instant'})"); pg.wait_for_timeout(700)
     pg.screenshot(path=str(WORK / "_startest.png"))
     im = Image.open(str(WORK / "_startest.png")).convert("RGB")
     gut = [im.getpixel((x,y)) for x in range(4,120) for y in range(120,760)]
     bright = max(sum(q) for q in gut)
     check("stars render brightly against the void", bright > 300, f"brightest sum={bright}")
+    if orig_tod:
+        pg.evaluate("""(cls) => {
+            const b = document.body.classList;
+            b.remove('tod-day','tod-dusk','tod-night','tod-dawn');
+            b.add(cls);
+        }""", orig_tod[0])
+    pg.emulate_media(media="screen", reduced_motion="no-preference")
     pg.evaluate("window.scrollTo({top:0,behavior:'instant'})"); pg.wait_for_timeout(400)
 
 
@@ -396,11 +416,17 @@ with sync_playwright() as p:
           len([c for c in cls_on_load if c.startswith("tod-")]) == 1, cls_on_load)
     check("the ambient wash sits inside the starfield",
           pg.locator(".starfield .starfield-glow").count()==1)
+    check("one sun and three clouds exist, decorative and inert",
+          pg.locator(".hero-sun").count()==1 and pg.locator(".hero-cloud").count()==3
+          and pg.eval_on_selector_all(".hero-sun,.hero-cloud",
+              "els=>els.every(e=>e.getAttribute('aria-hidden')==='true' "
+              +"&& getComputedStyle(e).pointerEvents==='none')"))
 
     # A fixed clock plus a pinned timezone makes "the visitor's local hour"
     # deterministic to test, rather than depending on when CI happens to run.
     tzctx = b.new_context(timezone_id="UTC")
     seen = {}
+    star_op = {}
     for fixed, want in [
         ("2026-01-10T02:00:00Z", "tod-night"),
         ("2026-01-10T06:30:00Z", "tod-dawn"),
@@ -414,10 +440,31 @@ with sync_playwright() as p:
         check(f"phase at {fixed} is {want}", want in cls.split(), cls)
         seen[want] = tpg.evaluate(
             "getComputedStyle(document.body).getPropertyValue('--tod-2').trim()")
+        star_op[want] = float(tpg.eval_on_selector(".stars-far",
+            "e=>getComputedStyle(e).opacity"))
+        if want == "tod-day":
+            check("the sun is visible by day",
+                  float(tpg.eval_on_selector(".hero-sun", "e=>getComputedStyle(e).opacity")) > 0)
+            check("the clouds drift by day",
+                  float(tpg.eval_on_selector(".hero-cloud", "e=>getComputedStyle(e).opacity")) > 0
+                  and tpg.eval_on_selector(".hero-cloud", "e=>getComputedStyle(e).animationPlayState")
+                      == "running")
+        else:
+            check(f"sun and clouds stay hidden at {want}",
+                  float(tpg.eval_on_selector(".hero-sun", "e=>getComputedStyle(e).opacity")) == 0
+                  and float(tpg.eval_on_selector(".hero-cloud", "e=>getComputedStyle(e).opacity")) == 0)
         tpg.close()
     tzctx.close()
     check("different phases actually carry different aurora colours",
           len(set(seen.values())) > 1, seen)
+    check("stars dim by day, without ever fully disappearing",
+          0 < star_op["tod-day"] < star_op["tod-night"], star_op)
+
+    pg.emulate_media(media="print")
+    check("the sun and clouds are hidden in print",
+          pg.eval_on_selector(".hero-sun","e=>getComputedStyle(e).display")=="none"
+          and pg.eval_on_selector(".hero-cloud","e=>getComputedStyle(e).display")=="none")
+    pg.emulate_media(media="screen")
 
     b.close()
 
