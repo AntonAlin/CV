@@ -167,6 +167,14 @@
     animation:star-drift-near 200s linear infinite;
   }
   @keyframes star-drift-near{from{transform:translate3d(0,0,0);}to{transform:translate3d(0,-900px,0);}}
+  /* A faint wash tying the time-of-day mood to the whole sky, not just the
+     hero's aurora. Screen blend only ever brightens, so it reads as ambient
+     light sitting behind the stars rather than a tint sitting on top of them. */
+  .starfield-glow{
+    position:absolute;inset:0;
+    background:radial-gradient(ellipse 70% 55% at 50% -8%, var(--tod-glow), transparent 70%);
+    mix-blend-mode:screen;
+  }
   /* The occasional shooting star. The bright end is the head; JS rotates the
      element and drives it along its own X axis. */
   .meteor{
@@ -311,6 +319,29 @@
     padding:88px 0 64px;
     border-bottom:1px solid var(--hairline);
   }
+  /* ---------- Time-of-day mood ----------
+     The aurora, and a faint ambient wash on the starfield further down, shift
+     with the visitor's local clock — the sky looks different depending on
+     when the page is opened. Day stays close to the original palette, since
+     that is when almost everyone actually sees it; night, dawn and dusk each
+     lean the hue cooler or warmer.
+     Registered as `<color>`, the same trick as the portrait ring's rotation
+     below: an unregistered custom property has no interpolable type, so a
+     class swap could only ever flip it instantly rather than ease across.
+     Initial values match the original, unscripted look, so a visitor with JS
+     disabled sees exactly what shipped before this feature. */
+  @property --tod-1{syntax:'<color>';inherits:true;initial-value:#3ddc97;}
+  @property --tod-2{syntax:'<color>';inherits:true;initial-value:#8b7cf6;}
+  @property --tod-3{syntax:'<color>';inherits:true;initial-value:#22b8cf;}
+  @property --tod-glow{syntax:'<color>';inherits:true;initial-value:transparent;}
+  body{transition:--tod-1 2.6s ease,--tod-2 2.6s ease,--tod-3 2.6s ease,--tod-glow 2.6s ease;}
+  @media (prefers-reduced-motion: reduce){ body{transition:none;} }
+
+  body.tod-day  {--tod-1:#3ddc97;--tod-2:#ffb84d;--tod-3:#22b8cf;--tod-glow:rgba(255,196,120,.07);}
+  body.tod-dusk {--tod-1:#ff6fae;--tod-2:#8b5cf6;--tod-3:#ff9a5a;--tod-glow:rgba(255,110,140,.11);}
+  body.tod-night{--tod-1:#3ddc97;--tod-2:#8b7cf6;--tod-3:#22b8cf;--tod-glow:rgba(91,108,255,.08);}
+  body.tod-dawn {--tod-1:#ff8f6b;--tod-2:#ff6fae;--tod-3:#ffcf6b;--tod-glow:rgba(255,150,110,.12);}
+
   .aurora-layer{
     position:absolute;inset:-20% -10% -10% -10%;
     z-index:0;pointer-events:none;
@@ -326,20 +357,20 @@
     will-change:transform;
   }
   .aurora-band.b1{
-    background:radial-gradient(ellipse at 30% 40%, var(--green), transparent 60%);
+    background:radial-gradient(ellipse at 30% 40%, var(--tod-1), transparent 60%);
     top:-10%;left:-20%;
     animation-name:drift-1;
     animation-duration:28s;
   }
   .aurora-band.b2{
-    background:radial-gradient(ellipse at 60% 50%, var(--violet), transparent 60%);
+    background:radial-gradient(ellipse at 60% 50%, var(--tod-2), transparent 60%);
     top:0%;left:10%;
     animation-name:drift-2;
     animation-duration:34s;
     animation-delay:-11s;
   }
   .aurora-band.b3{
-    background:radial-gradient(ellipse at 50% 50%, var(--teal), transparent 60%);
+    background:radial-gradient(ellipse at 50% 50%, var(--tod-3), transparent 60%);
     top:10%;left:-10%;
     animation-name:drift-3;
     animation-duration:23s;
@@ -1127,6 +1158,7 @@
   <div class="stars stars-far"></div>
   <div class="stars stars-mid"></div>
   <div class="stars stars-near"></div>
+  <div class="starfield-glow"></div>
 </div>
 
 <div class="controlbar">
@@ -1662,6 +1694,30 @@
 </div>
 
 <script>
+  /* ---------- Time-of-day mood ----------
+     Picks the sky's phase from the visitor's own local hour and applies it as
+     a body class; the actual colours live in CSS (see --tod-1/2/3/-glow),
+     this only decides which of the four applies. Rechecked every ten minutes
+     in case a visit spans a phase boundary — the registered custom properties
+     then ease the aurora across rather than snapping on the next repaint. */
+  (function(){
+    var PHASES = ['tod-day', 'tod-dusk', 'tod-night', 'tod-dawn'];
+    function phase(hour){
+      if(hour >= 5  && hour < 8)  return 'tod-dawn';
+      if(hour >= 8  && hour < 17) return 'tod-day';
+      if(hour >= 17 && hour < 22) return 'tod-dusk';
+      return 'tod-night';
+    }
+    function apply(){
+      var next = phase(new Date().getHours());
+      if(document.body.classList.contains(next)){ return; }
+      PHASES.forEach(function(p){ document.body.classList.remove(p); });
+      document.body.classList.add(next);
+    }
+    apply();
+    setInterval(apply, 10 * 60 * 1000);
+  })();
+
   /* ---------- Portrait carousel ---------- */
   (function(){
     var frame = document.getElementById('portrait-frame');
@@ -2285,7 +2341,11 @@
 
   /* ---------- Meteors ----------
      A shooting star roughly once a minute. Rare on purpose: frequency is what
-     separates a detail someone is delighted to catch from a screensaver. */
+     separates a detail someone is delighted to catch from a screensaver. The
+     night phase gets a livelier cadence, the way a real sky reads busiest
+     once it's fully dark — checked per fall so it follows the mood live
+     rather than fixing the pace to whatever phase happened to be active
+     when the page loaded. */
   (function(){
     var field = document.querySelector('.starfield');
     if(!field || !('animate' in Element.prototype)){ return; }
@@ -2309,7 +2369,8 @@
           {transform: 'translate('+x+'px,'+y+'px) rotate('+a+'deg) translateX('+d+'px)', opacity: 0}
         ], {duration: 1100 + Math.random() * 500, easing: 'cubic-bezier(.25,.6,.45,1)'});
       }
-      setTimeout(fall, 40000 + Math.random() * 55000);
+      var night = document.body.classList.contains('tod-night');
+      setTimeout(fall, (night ? 22000 : 40000) + Math.random() * (night ? 40000 : 55000));
     }
     /* The first one lands while a first-time reader is still in the hero */
     setTimeout(fall, 6000 + Math.random() * 6000);

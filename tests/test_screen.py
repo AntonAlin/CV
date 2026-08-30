@@ -390,6 +390,35 @@ with sync_playwright() as p:
     check("reduced motion also stills the portrait ring",
           pg.eval_on_selector(".portrait-ring","e=>getComputedStyle(e).animationName")=="none")
 
+    # --- Time-of-day mood ---
+    cls_on_load = pg.eval_on_selector("body", "e=>e.className").split()
+    check("exactly one time-of-day phase is applied on load",
+          len([c for c in cls_on_load if c.startswith("tod-")]) == 1, cls_on_load)
+    check("the ambient wash sits inside the starfield",
+          pg.locator(".starfield .starfield-glow").count()==1)
+
+    # A fixed clock plus a pinned timezone makes "the visitor's local hour"
+    # deterministic to test, rather than depending on when CI happens to run.
+    tzctx = b.new_context(timezone_id="UTC")
+    seen = {}
+    for fixed, want in [
+        ("2026-01-10T02:00:00Z", "tod-night"),
+        ("2026-01-10T06:30:00Z", "tod-dawn"),
+        ("2026-01-10T12:00:00Z", "tod-day"),
+        ("2026-01-10T19:30:00Z", "tod-dusk"),
+    ]:
+        tpg = tzctx.new_page()
+        tpg.clock.set_fixed_time(fixed)
+        fontmirror.prepare(tpg, URL)
+        cls = tpg.eval_on_selector("body", "e=>e.className")
+        check(f"phase at {fixed} is {want}", want in cls.split(), cls)
+        seen[want] = tpg.evaluate(
+            "getComputedStyle(document.body).getPropertyValue('--tod-2').trim()")
+        tpg.close()
+    tzctx.close()
+    check("different phases actually carry different aurora colours",
+          len(set(seen.values())) > 1, seen)
+
     b.close()
 
 print("\n%d failed" % len(fails))
