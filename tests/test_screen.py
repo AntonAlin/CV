@@ -382,6 +382,99 @@ with sync_playwright() as p:
 
     check("no JS errors overall", not errors, errors)
 
+    # --- Career map ---
+    n_roles = pg.locator("#experience .job-period[data-from]").count()
+    check("career map draws one bar per dated role",
+          pg.locator(".career-bar").count() == n_roles, pg.locator(".career-bar").count())
+    check("exactly one bar is the current role", pg.locator(".career-bar.is-current").count() == 1)
+    check("the map's employer marks are not counted as org-link marks",
+          pg.locator(".career-map .org-mark").count() == 0
+          and pg.locator(".career-map .career-mark").count() == 3)
+    bars = pg.eval_on_selector_all(".career-bar",
+        "els=>els.map(e=>({w:parseFloat(e.style.width), label:e.getAttribute('aria-label')}))")
+    widest = max(bars, key=lambda b: b["w"])
+    check("the longest role draws the widest bar", "Content Researcher" in widest["label"], widest)
+    cur = [b for b in bars if "NUTID" in b["label"]][0]["label"]
+    check("a bar label carries the period once and the duration once",
+          cur.count("NUTID") == 1 and cur.count("mån") == 1 and "Diös" in cur, cur)
+    cap = pg.locator("#career-map figcaption").inner_text()
+    check("map caption counts roles and employers", "6 roller" in cap and "3 arbetsgivare" in cap, cap)
+    pg.locator("#career-map").scroll_into_view_if_needed(); pg.wait_for_timeout(1300)
+    check("bars draw in once the map is in view",
+          pg.eval_on_selector("#career-map", "e=>e.classList.contains('is-lit')")
+          and pg.eval_on_selector(".career-bar", "e=>e.getBoundingClientRect().width") > 4)
+    pg.click(".career-bar.is-current"); pg.wait_for_timeout(1000)
+    check("clicking a bar jumps to that role, clear of the sticky bar, and lights it",
+          pg.eval_on_selector("#experience .job.is-current",
+              "e=>{const r=e.getBoundingClientRect();"
+              +"return r.top>=60&&r.top<220&&e.classList.contains('is-hit');}"),
+          pg.eval_on_selector("#experience .job.is-current","e=>e.getBoundingClientRect().top"))
+    pg.click("#btn-en"); pg.wait_for_timeout(400)
+    cap_en = pg.locator("#career-map figcaption").inner_text()
+    check("map caption and bar labels follow the language",
+          "6 roles" in cap_en and "present" in cap_en
+          and "PRESENT" in pg.eval_on_selector(".career-bar.is-current","e=>e.getAttribute('aria-label')"),
+          cap_en)
+    pg.click("#btn-sv"); pg.wait_for_timeout(400)
+
+    # --- Palette: search inside the text ---
+    pg.evaluate("window.scrollTo({top:0,behavior:'instant'})"); pg.wait_for_timeout(300)
+    pg.keyboard.press("Control+k"); pg.wait_for_timeout(400)
+    # Group headers are uppercase via CSS, and innerText honours that.
+    def groups():
+        return [g.upper() for g in pg.locator(".cmdk-group").all_inner_texts()]
+    check("text hits stay hidden until there is a query", "I TEXTEN" not in groups(), groups())
+    pg.fill("#cmdk-input", "mifid"); pg.wait_for_timeout(300)
+    labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
+    check("a term finds the exact bullet it sits in ('mifid' -> MiFID II)",
+          any("MiFID" in l for l in labels), labels)
+    check("text hits are grouped under 'I texten' and say where they are",
+          "I TEXTEN" in groups()
+          and any("Morningstar" in m for m in pg.locator(".cmdk-item .cmdk-meta").all_inner_texts()),
+          groups())
+    pg.keyboard.press("Enter")
+    # A long smooth scroll; wait for the landing rather than guessing its duration.
+    landed = True
+    try:
+        pg.wait_for_function(
+            "(()=>{const li=[...document.querySelectorAll('#experience li')]"
+            +".find(l=>l.textContent.includes('MiFID'));const r=li.getBoundingClientRect();"
+            +"return li.classList.contains('is-hit')&&r.top>0&&r.bottom<innerHeight;})()",
+            timeout=3000)
+    except Exception:
+        landed = False
+    check("Enter lands on that line, in view, and lights it",
+          landed and not pg.locator("#cmdk").is_visible())
+    pg.keyboard.press("Control+k"); pg.wait_for_timeout(300)
+    pg.fill("#cmdk-input", "mfd"); pg.wait_for_timeout(300)
+    check("body text never matches by subsequence, only by substring",
+          not any("MiFID" in l for l in pg.locator(".cmdk-item .cmdk-label").all_inner_texts()))
+    pg.fill("#cmdk-input", "fabric"); pg.wait_for_timeout(300)
+    check("skill pills are searchable too",
+          "Microsoft Fabric" in pg.locator(".cmdk-item .cmdk-label").all_inner_texts())
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+
+    # --- Skip link ---
+    # Chromium resumes Tab from wherever focus last was, even after a blur, so
+    # "press Tab from the top" is not a thing a test can do. Check the two
+    # properties directly: first focusable in the document, and in view once
+    # focused.
+    pg.evaluate("window.scrollTo({top:0,behavior:'instant'})")
+    first = pg.evaluate("document.querySelector('a[href],button,input,[tabindex]:not([tabindex=\"-1\"])')"
+                        +".classList.contains('skip-link')")
+    pg.evaluate("document.querySelector('.skip-link').focus()")
+    # It slides in over 150ms; wait for it to arrive rather than measuring at 0ms.
+    arrived = True
+    try:
+        pg.wait_for_function("document.querySelector('.skip-link').getBoundingClientRect().top >= 0",
+                             timeout=2000)
+    except Exception:
+        arrived = False
+    check("the skip link is the first focusable element and comes into view when focused",
+          first and arrived, (first, arrived))
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(400)
+    check("it hands focus to the main content", pg.evaluate("document.activeElement.id==='main'"))
+
     # --- print rendering still sane ---
     pg.emulate_media(media="print")
     pg.wait_for_timeout(300)
@@ -400,7 +493,17 @@ with sync_playwright() as p:
     check("org marks go light-on-white in print",
           pg.eval_on_selector(".org-mark","e=>getComputedStyle(e).backgroundColor")=="rgb(255, 255, 255)",
           pg.eval_on_selector(".org-mark","e=>getComputedStyle(e).backgroundColor"))
+    check("career map and skip link are screen-only",
+          pg.eval_on_selector("#career-map","e=>getComputedStyle(e).display")=="none"
+          and pg.eval_on_selector(".skip-link","e=>getComputedStyle(e).display")=="none")
     pg.emulate_media(media="screen")
+
+    # A request for more contrast gets real hairlines and no grain
+    pg.emulate_media(media="screen", contrast="more"); pg.wait_for_timeout(300)
+    check("prefers-contrast: more strengthens the hairlines and drops the grain",
+          ".24" in pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--hairline')")
+          and pg.eval_on_selector(".grain","e=>getComputedStyle(e).display")=="none")
+    pg.emulate_media(media="screen", contrast="no-preference")
 
     pg.emulate_media(media="screen", reduced_motion="reduce"); pg.wait_for_timeout(400)
     check("reduced motion stops the drift but keeps the stars",

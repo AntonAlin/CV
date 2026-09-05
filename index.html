@@ -688,6 +688,7 @@
     display:grid;grid-template-columns:150px 1fr;gap:24px;
     padding:22px 0;border-top:1px solid var(--hairline);
     transition:border-color .25s ease;
+    scroll-margin-top:84px;   /* a career-map jump lands clear of the sticky bar */
   }
   .job:first-child{border-top:none;padding-top:0;}
   .job::after{
@@ -716,6 +717,76 @@
      role colour on screen or the ink accent on paper. */
   .job-earlier{color:var(--text-lo);}
 
+  /* ---------- Career map ----------
+     The timeline below is read top to bottom, one role at a time; this is
+     the same data read left to right, all at once — tenure, gaps and the
+     three employers' relative share of the decade, at a glance. Rendered by
+     script from the same data-from/data-to attributes the durations use, so
+     it cannot drift from the list it summarises. Empty (and so invisible)
+     without JS. Screen only: on paper the list itself already carries this. */
+  .career-map{
+    margin:0 0 36px;padding:18px 20px 14px;
+    border:1px solid var(--hairline);border-radius:14px;background:var(--panel);
+  }
+  .career-map:empty{display:none;}
+  .career-rows{display:grid;grid-template-columns:176px 1fr;gap:11px 24px;align-items:center;}
+  .career-org{
+    display:flex;align-items:center;gap:8px;min-width:0;
+    font-size:12.5px;color:var(--text-lo);
+  }
+  .career-org .org-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .career-track{position:relative;height:14px;}
+  .career-bar{
+    position:absolute;top:0;height:14px;border-radius:4px;
+    appearance:none;padding:0;cursor:pointer;
+    background:rgba(34,184,207,.42);border:1px solid rgba(34,184,207,.75);
+    transform:scaleX(0);transform-origin:left center;
+    transition:transform .9s cubic-bezier(.2,.7,.3,1),background .2s ease,box-shadow .2s ease;
+  }
+  .career-map.is-lit .career-bar{transform:scaleX(1);}
+  .career-bar:hover{background:rgba(34,184,207,.7);}
+  .career-bar.is-current{
+    background:rgba(61,220,151,.42);border-color:var(--green);
+    box-shadow:0 0 10px 1px rgba(61,220,151,.3);
+  }
+  .career-bar.is-current:hover{background:rgba(61,220,151,.7);}
+  /* Bars draw in one after another; the stagger is what makes it read as a
+     timeline filling rather than a chart appearing. */
+  .career-bar:nth-of-type(2){transition-delay:.12s;}
+  .career-bar:nth-of-type(3){transition-delay:.24s;}
+  .career-axis{
+    grid-column:2;position:relative;height:14px;margin-top:2px;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);
+  }
+  .career-tick{position:absolute;top:2px;transform:translateX(-50%);}
+  .career-tick::before{
+    content:'';position:absolute;left:50%;top:-9px;height:6px;width:1px;
+    background:var(--hairline-strong);
+  }
+  .career-map figcaption{
+    margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:11px;
+    letter-spacing:.03em;color:var(--text-faint);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .career-bar{transform:none;transition:none;}
+  }
+  @media (max-width:720px){
+    .career-rows{grid-template-columns:auto 1fr;gap:11px 12px;}
+    .career-org .org-name{display:none;}
+  }
+
+  /* A jumped-to line lights briefly so the eye lands on it. One class for
+     both motion settings: the fade is the only part that needs motion, so
+     that is the only part reduced-motion removes. */
+  .is-hit{background:rgba(61,220,151,.16);box-shadow:0 0 0 6px rgba(61,220,151,.16);border-radius:6px;}
+  @media (prefers-reduced-motion: no-preference){
+    .is-hit{animation:hit-fade 1.7s ease-out forwards;}
+  }
+  @keyframes hit-fade{
+    0%{background:rgba(61,220,151,.28);box-shadow:0 0 0 6px rgba(61,220,151,.28);}
+    100%{background:transparent;box-shadow:0 0 0 6px transparent;}
+  }
+
   /* ---------- Organisation marks ----------
      Monograms rather than brand logos: a single asset cannot serve both the dark
      screen theme and the light print sheet, whereas these inherit currentColor
@@ -725,7 +796,9 @@
     display:inline-flex;align-items:center;gap:10px;
     text-decoration:none;color:inherit;
   }
-  .org-mark{
+  /* .career-mark is the same monogram on the career map's employer rows —
+     shared look, separate class, so counts of the linked marks stay honest. */
+  .org-mark, .career-mark{
     flex:none;display:inline-flex;align-items:center;justify-content:center;
     height:26px;min-width:26px;padding:0 6px;border-radius:7px;
     border:1px solid var(--hairline-strong);background:var(--panel);
@@ -933,6 +1006,30 @@
     outline:2px solid var(--green);outline-offset:2px;
   }
 
+  /* First tab stop on the page. Parked above the viewport until focused, so
+     a keyboard user gets it and a pointer user never sees it. */
+  .skip-link{
+    position:absolute;left:12px;top:-64px;z-index:300;
+    padding:10px 14px;border-radius:8px;
+    background:var(--panel-2);color:var(--text-hi);border:1px solid var(--hairline-strong);
+    font-family:'JetBrains Mono',monospace;font-size:12px;text-decoration:none;
+    transition:top .15s ease;
+  }
+  .skip-link:focus{top:12px;}
+
+  /* The hairlines that carry this layout are deliberately faint. Someone who
+     has asked the OS for more contrast should get real lines and lighter
+     secondary text, and no grain over the top of either. */
+  @media (prefers-contrast: more){
+    :root{
+      --hairline:rgba(255,255,255,.24);
+      --hairline-strong:rgba(255,255,255,.4);
+      --text-lo:#b9c4d3;
+      --text-faint:#95a0b2;
+    }
+    .grain{display:none;}
+  }
+
   /* ---------- Responsive ---------- */
   @media (max-width:720px){
     .job{grid-template-columns:1fr;gap:6px;}
@@ -970,7 +1067,7 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
-    .hero-sun, .hero-cloud{display:none !important;}
+    .hero-sun, .hero-cloud, .career-map, .skip-link{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1233,6 +1330,8 @@
 </head>
 <body>
 
+<a class="skip-link" href="#main"><span class="sv-only">Hoppa till innehållet</span><span class="en-only">Skip to content</span></a>
+
 <div class="starfield" aria-hidden="true">
   <div class="stars stars-far"></div>
   <div class="stars stars-mid"></div>
@@ -1359,7 +1458,7 @@
   </div>
 </header>
 
-<main class="wrap">
+<main class="wrap" id="main" tabindex="-1">
 
   <!-- EXPERIENCE -->
   <section id="experience">
@@ -1368,6 +1467,9 @@
       <h2 class="section-title"><span class="sv-only">Erfarenhet</span><span class="en-only">Experience</span></h2>
       <div class="section-line"></div>
     </div>
+
+    <!-- Filled by script from the roles below; see "Career map" in the styles. -->
+    <figure class="career-map" id="career-map"></figure>
 
     <div class="timeline">
     <div class="job is-current">
@@ -2139,6 +2241,17 @@
     groups.forEach(function(_, el){ io.observe(el); });
   })();
 
+  /* Light a jumped-to element briefly. Shared by the palette's text search and
+     the career map, so a landing looks the same wherever it came from. */
+  function flashHit(el){
+    if(!el){ return; }
+    el.classList.remove('is-hit');
+    void el.offsetWidth;   /* restart the animation if it is already running */
+    el.classList.add('is-hit');
+    clearTimeout(el._hitTimer);
+    el._hitTimer = setTimeout(function(){ el.classList.remove('is-hit'); }, 1800);
+  }
+
   /* ---------- Command palette ----------
      Every action on the page reachable from one keystroke, and invisible until
      then. Items are rebuilt on each open so they track the current language and
@@ -2157,12 +2270,14 @@
       lock:  '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
       mail:  '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/>',
       down:  '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
-      out:   '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>'
+      out:   '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
+      find:  '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'
     };
     var GROUPS = {
       nav:  {sv:'Navigera', en:'Navigate'},
       act:  {sv:'Åtgärder', en:'Actions'},
-      link: {sv:'Länkar',   en:'Links'}
+      link: {sv:'Länkar',   en:'Links'},
+      find: {sv:'I texten', en:'In the text'}
     };
 
     var isEn = function(){ return document.body.classList.contains('lang-en'); };
@@ -2178,9 +2293,19 @@
         sec.scrollIntoView({behavior: ease(), block: 'start'});
       };
     }
+    /* A line of text, not a section: centre it and light it, since a heading
+       at the top of the viewport is easy to find and a bullet is not. */
+    function goTo(el){
+      return function(){
+        el.scrollIntoView({behavior: ease(), block: 'center'});
+        flashHit(el);
+      };
+    }
+    function text(el){ return (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim(); }
 
     function build(){
       var en = isEn(), out = [];
+      var only = en ? '.en-only' : '.sv-only';
 
       /* Nav items are read out of the document, so they can never drift from it */
       document.querySelectorAll('main section').forEach(function(sec){
@@ -2274,6 +2399,37 @@
         run: function(){ window.open('https://antonalin.github.io/AreWeather/', '_blank', 'noopener'); }
       });
 
+      /* The text itself — every bullet, project description and skill — so
+         "MiFID" or "Fabric" lands on the exact line rather than the section it
+         sits in. These are `deep`: they stay out of the way until there is a
+         query, and they only match on a real substring, never the subsequence
+         fallback, since a fuzzy hit on a 30-word bullet is noise. */
+      document.querySelectorAll('#experience .job').forEach(function(job){
+        var org = job.querySelector('.org-name');
+        var where = org ? text(org) : '';
+        job.querySelectorAll('ul' + only + ' > li').forEach(function(li){
+          out.push({group:'find', icon:'find', deep:true, label:text(li), meta:where, run:goTo(li)});
+        });
+      });
+      document.querySelectorAll('#projects .project-card').forEach(function(card){
+        var title = card.querySelector('.project-title');
+        var desc = card.querySelector('.project-desc' + only);
+        if(!title || !desc){ return; }
+        var tpart = title.querySelector(only) || title;
+        out.push({group:'find', icon:'find', deep:true, label:text(desc), meta:text(tpart), run:goTo(card)});
+      });
+      document.querySelectorAll('#skills .skills-grid > div').forEach(function(group){
+        var head = group.querySelector('.skill-group-title');
+        var hpart = head ? (head.querySelector(only) || head) : null;
+        var where = hpart ? text(hpart) : '';
+        group.querySelectorAll('.skill-tags > span').forEach(function(tag){
+          var tags = tag.parentNode;
+          /* A pill in the other language's list is display:none; skip it */
+          if(tags.classList.contains(en ? 'sv-only' : 'en-only')){ return; }
+          out.push({group:'find', icon:'find', deep:true, label:text(tag), meta:where, run:goTo(tag)});
+        });
+      });
+
       items = out;
     }
 
@@ -2283,10 +2439,11 @@
     }
     function score(item, q){
       var hay = norm(item.label + ' ' + (item.keys || ''));
-      if(!q){ return 0; }
+      if(!q){ return item.deep ? -1 : 0; }
       var at = hay.indexOf(q);
       if(at === 0){ return 0; }
       if(at > 0){ return hay.charAt(at - 1) === ' ' ? 1 : 2; }
+      if(item.deep){ return -1; }
       /* Subsequence fallback: "nol" still reaches "Nexus Options Lab" */
       var i = 0;
       for(var c = 0; c < hay.length && i < q.length; c++){
@@ -2391,8 +2548,8 @@
       lastFocus = document.activeElement;
       build();
       input.value = '';
-      input.placeholder = isEn() ? 'Jump to a section, or run an action…'
-                                 : 'Hoppa till en sektion, eller kör en åtgärd…';
+      input.placeholder = isEn() ? 'Jump to a section, search the text, or run an action…'
+                                 : 'Hoppa till en sektion, sök i texten, eller kör en åtgärd…';
       /* Compensate for the scrollbar so locking the body doesn't shift the page */
       var sw = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = 'hidden';
@@ -2517,6 +2674,133 @@
     }
     document.addEventListener('cv:lang', render);
     render();
+  })();
+
+  /* ---------- Career map ----------
+     One bar per role on a shared year axis, grouped by employer. Built from
+     the same data-from/data-to attributes as the durations above — and from
+     the rendered .job-dur text, which is why this runs after that block. */
+  (function(){
+    var fig = document.getElementById('career-map');
+    var periods = document.querySelectorAll('#experience .job-period[data-from]');
+    if(!fig || !periods.length){ return; }
+    var reduced = window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function ym(s){ var p = s.split('-').map(Number); return p[0] * 12 + (p[1] - 1); }
+    /* The period cell's own text, in one language, without the duration span
+       that the block above appended into it. */
+    function periodText(p, en){
+      var out = '';
+      p.childNodes.forEach(function(n){
+        if(n.nodeType === 3){ out += n.textContent; return; }
+        if(n.nodeType !== 1){ return; }
+        if(n.tagName === 'BR' || n.classList.contains('job-dur')){ out += ' '; return; }
+        if(n.classList.contains(en ? 'sv-only' : 'en-only')){ return; }
+        out += n.textContent;
+      });
+      return out.replace(/\s+/g, ' ').trim();
+    }
+    var now = new Date();
+    var nowM = now.getFullYear() * 12 + now.getMonth();
+
+    /* Roles in document order (newest first); employers in order of first
+       appearance, so the newest employer sits on the top row. */
+    var roles = [], employers = [], byOrg = {};
+    periods.forEach(function(p){
+      var job = p.closest('.job');
+      var mark = job.querySelector('.org-mark');
+      var name = job.querySelector('.org-name');
+      var org = name ? name.textContent.trim() : '';
+      if(!(org in byOrg)){ byOrg[org] = employers.length; employers.push({org:org, mark:mark ? mark.textContent.trim() : ''}); }
+      var to = p.getAttribute('data-to');
+      roles.push({
+        job: job, org: org, period: p,
+        from: ym(p.getAttribute('data-from')),
+        to: to ? ym(to) : nowM,          /* an open role runs to this month */
+        current: !to
+      });
+    });
+    var start = Math.min.apply(null, roles.map(function(r){ return r.from; }));
+    var span = nowM - start + 1;
+    var pct = function(m){ return ((m - start) / span * 100); };
+
+    function render(){
+      var en = document.body.classList.contains('lang-en');
+      var locale = en ? 'en-GB' : 'sv-SE';
+      fig.textContent = '';
+
+      var rows = document.createElement('div');
+      rows.className = 'career-rows';
+      employers.forEach(function(e){
+        var label = document.createElement('div');
+        label.className = 'career-org';
+        var m = document.createElement('span');
+        m.className = 'career-mark'; m.setAttribute('aria-hidden', 'true'); m.textContent = e.mark;
+        var n = document.createElement('span');
+        n.className = 'org-name'; n.textContent = e.org;
+        label.appendChild(m); label.appendChild(n);
+        rows.appendChild(label);
+
+        var track = document.createElement('div');
+        track.className = 'career-track';
+        roles.filter(function(r){ return r.org === e.org; }).forEach(function(r){
+          var bar = document.createElement('button');
+          bar.type = 'button';
+          bar.className = 'career-bar' + (r.current ? ' is-current' : '');
+          bar.style.left = pct(r.from) + '%';
+          /* A hair short of touching, so back-to-back roles read as two */
+          bar.style.width = Math.max(pct(r.to) - pct(r.from) - 0.35, 0.6) + '%';
+          var title = r.job.querySelector('.job-title');
+          var tpart = title ? (title.querySelector(en ? '.en-only' : '.sv-only') || title) : null;
+          var dur = r.job.querySelector('.job-dur');
+          var name = [r.org, tpart ? tpart.textContent.trim() : ''].filter(Boolean).join(' — ')
+                   + ' · ' + periodText(r.period, en) + (dur ? ' · ' + dur.textContent : '');
+          bar.setAttribute('aria-label', name);
+          bar.title = name;
+          bar.addEventListener('click', function(){
+            r.job.scrollIntoView({behavior: reduced ? 'instant' : 'smooth', block: 'start'});
+            flashHit(r.job);
+          });
+          track.appendChild(bar);
+        });
+        rows.appendChild(track);
+      });
+
+      /* Every other January, so the labels never crowd at phone width */
+      var axis = document.createElement('div');
+      axis.className = 'career-axis';
+      var y0 = Math.ceil(start / 12);
+      for(var y = y0 + ((y0 % 2) ? 0 : 1); y * 12 <= nowM; y += 2){
+        var t = document.createElement('span');
+        t.className = 'career-tick';
+        t.style.left = pct(y * 12) + '%';
+        t.textContent = y;
+        axis.appendChild(t);
+      }
+      rows.appendChild(axis);
+      fig.appendChild(rows);
+
+      var cap = document.createElement('figcaption');
+      var first = new Date(Math.floor(start / 12), start % 12, 1)
+        .toLocaleString(locale, {month:'short', year:'numeric'});
+      cap.textContent = roles.length + (en ? ' roles' : ' roller') + ' · '
+        + employers.length + (en ? ' employers' : ' arbetsgivare') + ' · '
+        + first + ' – ' + (en ? 'present' : 'idag');
+      fig.appendChild(cap);
+    }
+
+    document.addEventListener('cv:lang', render);
+    render();
+
+    /* Bars draw in when the map scrolls into view, once */
+    if(reduced || !('IntersectionObserver' in window)){ fig.classList.add('is-lit'); return; }
+    var io = new IntersectionObserver(function(entries){
+      if(entries.some(function(e){ return e.isIntersecting; })){
+        fig.classList.add('is-lit'); io.disconnect();
+      }
+    }, {threshold:0.3});
+    io.observe(fig);
   })();
 
   /* ---------- Constellations light as they come into view ---------- */
