@@ -144,7 +144,7 @@ with sync_playwright() as p:
 
     # --- organisation marks & links ---
     pg.evaluate("window.scrollTo({top:0,behavior:'instant'})"); pg.wait_for_timeout(300)
-    check("8 org marks rendered (2 Dios + 3 MO + IG + RMC + MA)", pg.locator(".org-mark").count()==8,
+    check("9 org marks rendered (2 Dios + 3 MO + own account + IG + RMC + MA)", pg.locator(".org-mark").count()==9,
           pg.locator(".org-mark").count())
     check("marks hidden from assistive tech",
           pg.locator(".org-mark[aria-hidden='true']").count()==pg.locator(".org-mark").count())
@@ -157,8 +157,9 @@ with sync_playwright() as p:
           collections.Counter(hrefs)==collections.Counter(want), hrefs)
     check("every org link opens safely (rel=noopener)",
           pg.eval_on_selector_all("a.org-row","els=>els.every(e=>(e.rel||'').includes('noopener'))"))
-    check("every org row is now a link (no unlinked spans left)",
-          pg.eval_on_selector_all(".org-row","els=>els.filter(e=>e.tagName==='SPAN').length")==0)
+    check("every org row is a link, except the own-account row which has no employer",
+          pg.eval_on_selector_all(".org-row","els=>els.filter(e=>e.tagName!=='A').map(e=>!!e.closest('.job-self'))")
+          == [True])
     check("Malung links to the RIG Alpint programme",
           pg.locator("a.org-row[href='https://www.skidgymnasiet.se/']").count()==1)
     check("link text is the org name (accessible name)",
@@ -292,8 +293,8 @@ with sync_playwright() as p:
 
 
     # --- job durations, constellation, parallax ---
-    check("all six dated roles carry a computed duration",
-          pg.locator(".job-dur").count()==6, pg.locator(".job-dur").count())
+    check("all seven dated roles carry a computed duration",
+          pg.locator(".job-dur").count()==7, pg.locator(".job-dur").count())
     durs = pg.eval_on_selector_all(".job-dur","els=>els.map(e=>e.textContent)")
     # Fixed historical ranges are deterministic: inclusive LinkedIn-style count.
     check("NOV 2021 - SEP 2024 reads 2 år 11 mån", "2 år 11 mån" in durs, durs)
@@ -433,7 +434,12 @@ with sync_playwright() as p:
     check("exactly one bar is the current role", pg.locator(".career-bar.is-current").count() == 1)
     check("the map's employer marks are not counted as org-link marks",
           pg.locator(".career-map .org-mark").count() == 0
-          and pg.locator(".career-map .career-mark").count() == 3)
+          and pg.locator(".career-map .career-mark").count() == 4)
+    check("the own-account row is drawn but not counted as an employer",
+          "3 arbetsgivare" in pg.locator(".career-map figcaption").inner_text()
+          and "Egen räkning" in pg.locator(".career-map").inner_text()
+          and "Own account" not in pg.locator(".career-map").inner_text(),
+          pg.locator(".career-map figcaption").inner_text())
     bars = pg.eval_on_selector_all(".career-bar",
         "els=>els.map(e=>({w:parseFloat(e.style.width), label:e.getAttribute('aria-label')}))")
     widest = max(bars, key=lambda b: b["w"])
@@ -442,7 +448,7 @@ with sync_playwright() as p:
     check("a bar label carries the period once and the duration once",
           cur.count("NUTID") == 1 and cur.count("mån") == 1 and "Diös" in cur, cur)
     cap = pg.locator("#career-map figcaption").inner_text()
-    check("map caption counts roles and employers", "6 roller" in cap and "3 arbetsgivare" in cap, cap)
+    check("map caption counts roles and employers", "7 roller" in cap and "3 arbetsgivare" in cap, cap)
     pg.locator("#career-map").scroll_into_view_if_needed(); pg.wait_for_timeout(1300)
     check("bars draw in once the map is in view",
           pg.eval_on_selector("#career-map", "e=>e.classList.contains('is-lit')")
@@ -456,7 +462,7 @@ with sync_playwright() as p:
     pg.click("#btn-en"); pg.wait_for_timeout(400)
     cap_en = pg.locator("#career-map figcaption").inner_text()
     check("map caption and bar labels follow the language",
-          "6 roles" in cap_en and "present" in cap_en
+          "7 roles" in cap_en and "present" in cap_en
           and "PRESENT" in pg.eval_on_selector(".career-bar.is-current","e=>e.getAttribute('aria-label')"),
           cap_en)
     pg.click("#btn-sv"); pg.wait_for_timeout(400)

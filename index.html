@@ -1325,6 +1325,9 @@
     body.print-short .edu-degree{margin-top:0;font-size:8pt;}
     body.print-short h1.name{font-size:22pt;}
     body.print-short .job:nth-child(n+4){padding:1.4pt 0;}
+    /* Rows without bullets are as tall as their period column; the duration
+       line is the one thing there the full sheet can afford and this cannot. */
+    body.print-short .job-dur{display:none;}
     body.print-short .kicker-summary{font-size:7.8pt;margin-top:4pt;}
     body.print-short section{padding:1.5pt 0 1pt;}
     body.print-short #skills .skills-grid > div{padding:1.8pt 0;}
@@ -1542,7 +1545,7 @@
         <div class="job-title"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Data &amp; BI Lead</span></div>
         <ul class="sv-only">
           <li>Äger data- och BI-strategin i ett börsnoterat fastighetsbolag: roadmap, prioritering och backlogg</li>
-          <li>Etablerade Microsoft Fabric som gemensam dataplattform: pipelines, lakehouse, semantiska modeller</li>
+          <li>Etablerade Microsoft Fabric som dataplattform: pipelines, lakehouse och semantiska modeller</li>
           <li>Byggde självbetjänad Power BI-rapportering för verksamhet, ledning och styrelse, utan manuella underlag</li>
           <li>Driver AI/ML-initiativen, från prediktiva modeller i Fabric till affärsprocesser och rapportering</li>
           <li>Införde ramverk för datastyrning med gemensamma definitioner och kvalitetsstandarder</li>
@@ -1567,8 +1570,8 @@
         </div>
         <div class="job-title"><span class="sv-only">Sustainability Controller</span><span class="en-only">Sustainability Controller</span></div>
         <ul class="sv-only">
-          <li>Ansvarade för hållbarhetsrapporteringen enligt CSRD, ESRS, GRI och EU-taxonomin i årsredovisningen</li>
-          <li>Förbättrade processer och styrning för den ESG-data som rapporteras till investerare och långivare</li>
+          <li>Ansvarade för CSRD-, ESRS-, GRI- och EU-taxonomirapporteringen i årsredovisningen</li>
+          <li>Förbättrade processer och styrning för ESG-data rapporterad till investerare och långivare</li>
         </ul>
         <ul class="en-only">
           <li>Owned sustainability reporting under CSRD, ESRS, GRI and the EU Taxonomy in the annual report</li>
@@ -1639,6 +1642,21 @@
           <li>Subject matter expert on investment data, ETFs, pension products, MiFID II and Solvency II</li>
           <li>Trained new colleagues; aligned Nordic business requirements with global Data &amp; Development Centers</li>
         </ul>
+      </div>
+    </div>
+
+    <!-- Own-account trading between IG and Morningstar. Not an employer, so
+         the org row is a plain div rather than a link, and the career map
+         keeps it out of the employer count. -->
+    <div class="job job-self">
+      <div class="job-period" data-from="2016-10" data-to="2017-05">OKT 2016 —<br>MAJ 2017</div>
+      <div>
+        <div class="job-org">
+          <div class="org-row">
+            <span class="org-mark" aria-hidden="true">AÅ</span><span class="org-name"><span class="sv-only">Egen räkning</span><span class="en-only">Own account</span></span>
+          </div>
+        </div>
+        <div class="job-title"><span class="sv-only">Aktie- och optionshandel för egen räkning</span><span class="en-only">Independent equity and options trader</span></div>
       </div>
     </div>
 
@@ -2809,12 +2827,22 @@
     /* Roles in document order (newest first); employers in order of first
        appearance, so the newest employer sits on the top row. */
     var roles = [], employers = [], byOrg = {};
+    /* An org name may carry both languages; show the one being read */
+    function orgLabel(name, en){
+      if(!name){ return ''; }
+      var part = name.querySelector(en ? '.en-only' : '.sv-only');
+      return (part || name).textContent.trim();
+    }
     periods.forEach(function(p){
       var job = p.closest('.job');
       var mark = job.querySelector('.org-mark');
       var name = job.querySelector('.org-name');
       var org = name ? name.textContent.trim() : '';
-      if(!(org in byOrg)){ byOrg[org] = employers.length; employers.push({org:org, mark:mark ? mark.textContent.trim() : ''}); }
+      if(!(org in byOrg)){
+        byOrg[org] = employers.length;
+        employers.push({org:org, name:name, mark:mark ? mark.textContent.trim() : '',
+                        self: job.classList.contains('job-self')});
+      }
       var to = p.getAttribute('data-to');
       roles.push({
         job: job, org: org, period: p,
@@ -2840,7 +2868,7 @@
         var m = document.createElement('span');
         m.className = 'career-mark'; m.setAttribute('aria-hidden', 'true'); m.textContent = e.mark;
         var n = document.createElement('span');
-        n.className = 'org-name'; n.textContent = e.org;
+        n.className = 'org-name'; n.textContent = orgLabel(e.name, en);
         label.appendChild(m); label.appendChild(n);
         rows.appendChild(label);
 
@@ -2856,7 +2884,7 @@
           var title = r.job.querySelector('.job-title');
           var tpart = title ? (title.querySelector(en ? '.en-only' : '.sv-only') || title) : null;
           var dur = r.job.querySelector('.job-dur');
-          var name = [r.org, tpart ? tpart.textContent.trim() : ''].filter(Boolean).join(' — ')
+          var name = [orgLabel(e.name, en), tpart ? tpart.textContent.trim() : ''].filter(Boolean).join(' — ')
                    + ' · ' + periodText(r.period, en) + (dur ? ' · ' + dur.textContent : '');
           bar.setAttribute('aria-label', name);
           bar.title = name;
@@ -2887,7 +2915,7 @@
       var first = new Date(Math.floor(start / 12), start % 12, 1)
         .toLocaleString(locale, {month:'short', year:'numeric'});
       cap.textContent = roles.length + (en ? ' roles' : ' roller') + ' · '
-        + employers.length + (en ? ' employers' : ' arbetsgivare') + ' · '
+        + employers.filter(function(e){ return !e.self; }).length + (en ? ' employers' : ' arbetsgivare') + ' · '
         + first + ' – ' + (en ? 'present' : 'idag');
       fig.appendChild(cap);
     }
