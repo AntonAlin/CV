@@ -4,20 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anton Ålin — CV</title>
-<meta name="description" content="Anton Ålin — Head of Data & BI. Digitalt CV.">
+<meta name="description" content="Anton Ålin — Data & BI Lead. Digitalt CV.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="canonical" href="https://antonalin.github.io/CV/">
 
 <meta property="og:type" content="profile">
-<meta property="og:title" content="Anton Ålin — Head of Data & BI">
+<meta property="og:title" content="Anton Ålin — Data & BI Lead">
 <meta property="og:description" content="Data- och BI-specialist med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ modellering och analysstrategi.">
 <meta property="og:url" content="https://antonalin.github.io/CV/">
 <meta property="og:image" content="https://antonalin.github.io/CV/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Anton Ålin — Head of Data & BI">
+<meta name="twitter:title" content="Anton Ålin — Data & BI Lead">
 <meta name="twitter:description" content="Data- och BI-specialist med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ modellering och analysstrategi.">
 <meta name="twitter:image" content="https://antonalin.github.io/CV/og-image.png">
 
@@ -26,7 +26,7 @@
   "@context": "https://schema.org",
   "@type": "Person",
   "name": "Anton Ålin",
-  "jobTitle": "Head of Data & BI",
+  "jobTitle": "Data & BI Lead",
   "url": "https://antonalin.github.io/CV/",
   "image": "https://antonalin.github.io/CV/img/portrait-1.jpg",
   "worksFor": {
@@ -656,9 +656,33 @@
   }
 
   .kicker-summary{
-    margin-top:34px;max-width:640px;
+    margin-top:22px;max-width:640px;
     color:var(--text-lo);font-size:15.5px;
   }
+  /* Two readings of one CV. The attribute selector plus !important keeps the
+     focus rule out of the language rules' specificity game: a summary shows
+     only when both its language and its focus are the active ones. */
+  body:not(.focus-am) .kicker-summary[data-focus="am"],
+  body.focus-am .kicker-summary[data-focus="bi"]{display:none !important;}
+  .focus-toggle{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:30px;
+  }
+  .focus-label{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--text-faint);
+  }
+  /* Project cards and skill groups are written once and re-ordered per focus:
+     BI leads with the platform work, asset management with the market models. */
+  .projects-grid > .project-card:nth-child(1){order:3;}
+  .projects-grid > .project-card:nth-child(2){order:2;}
+  .projects-grid > .project-card:nth-child(3){order:4;}
+  .projects-grid > .project-card:nth-child(4){order:1;}
+  .projects-grid > .project-card:nth-child(5){order:5;}
+  body.focus-am .projects-grid > .project-card:nth-child(1){order:1;}
+  body.focus-am .projects-grid > .project-card:nth-child(2){order:3;}
+  body.focus-am .projects-grid > .project-card:nth-child(3){order:2;}
+  body.focus-am .projects-grid > .project-card:nth-child(4){order:4;}
+  body.focus-am #skills .skills-grid > div:nth-child(3){order:-1;}
 
   /* ---------- Sections ---------- */
   /* scroll-margin keeps a jumped-to heading clear of the sticky control bar */
@@ -713,6 +737,10 @@
   .job:hover .job-period{color:var(--text-lo);}
   .job-org{font-size:19px;font-weight:600;color:var(--text-hi);}
   .job-title{color:var(--teal);font-size:14.5px;margin-top:2px;font-weight:500;}
+  .job-note{
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.04em;
+    color:var(--text-faint);margin-top:3px;
+  }
   /* The pre-2015 line is prose, not a role title — it must not take the
      role colour on screen or the ink accent on paper. */
   .job-earlier{color:var(--text-lo);}
@@ -1067,7 +1095,7 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
-    .hero-sun, .hero-cloud, .career-map, .skip-link{display:none !important;}
+    .hero-sun, .hero-cloud, .career-map, .skip-link, .focus-toggle{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1157,6 +1185,7 @@
     .job-dur{font-size:7pt;color:#98a1ad;margin-top:1pt;opacity:1;}
     .job-org{font-size:10.5pt;color:#0f1319;}
     .job-title{font-size:8.8pt;color:#0d6b78 !important;margin-top:.5pt;}
+    .job-note{display:none;}
     .job-earlier{color:#39414d !important;font-size:8.6pt;font-weight:400;}
 
     /* Marks survive onto paper as hairline boxes; the URLs deliberately do not,
@@ -1407,7 +1436,7 @@
     <div class="eyebrow"><span class="sv-only">Åre, Sverige</span><span class="en-only">Åre, Sweden</span></div>
     <h1 class="name">Anton Ålin</h1>
     <div class="role-former"><span class="sv-only">(fd Larsson)</span><span class="en-only">(formerly Larsson)</span></div>
-    <div class="role-line"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Head of Data &amp; BI</span></div>
+    <div class="role-line"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Data &amp; BI Lead</span></div>
 
     <div class="meta-row" id="contact-block">
       <span class="contact-block">
@@ -1439,21 +1468,51 @@
       <a href="https://github.com/AntonAlin/" target="_blank" rel="noopener">github.com/AntonAlin</a>
     </div>
 
-    <p class="kicker-summary sv-only">
+    <!-- Focus: the same CV read by a BI hiring manager and by an asset manager
+         should lead with different things. The summary and the order of the
+         projects and skill groups follow body.focus-am; everything else is
+         shared. -->
+    <div class="focus-toggle" role="group" aria-label="Profil / Profile">
+      <span class="focus-label"><span class="sv-only">Profil för</span><span class="en-only">Profile for</span></span>
+      <div class="lang-toggle">
+        <button type="button" id="btn-bi" class="active" onclick="setFocus('bi')"><span class="sv-only">BI-ledarskap</span><span class="en-only">BI leadership</span></button>
+        <button type="button" id="btn-am" onclick="setFocus('am')"><span class="sv-only">Kapitalförvaltning</span><span class="en-only">Asset management</span></button>
+      </div>
+    </div>
+
+    <p class="kicker-summary sv-only" data-focus="bi">
       Data- och BI-specialist med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ
-      modellering och analysstrategi. Ansvarar för data- och BI-agendan på Diös Fastigheter och utvecklar lösningar
-      i Microsoft Fabric, med grund i finansbranschen: investeringsdata och fondanalys på Morningstar, trading hos
-      IG Markets samt egenutvecklade prediktiva prismodeller för fastighets- och elmarknaden. Van vid att omsätta
-      marknads- och verksamhetsdata till skalbar infrastruktur och robusta beslutsunderlag, oavsett om mottagaren
+      modellering och analysstrategi. Ansvarar för data- och BI-agendan på Diös Fastigheter och bygger bolagets
+      dataplattform i Microsoft Fabric, med grund i finansbranschen: investeringsdata och fondanalys på
+      Morningstar, kundnära derivatförsäljning hos IG Markets samt egenutvecklade prediktiva prismodeller för
+      fastighets- och elmarknaden. Van vid att omsätta marknads- och verksamhetsdata till skalbar infrastruktur
+      och robusta beslutsunderlag, oavsett om mottagaren sitter på en tradingdesk eller i styrelserummet.
+    </p>
+    <p class="kicker-summary en-only" data-focus="bi">
+      Data and BI lead with over 10 years of experience at the intersection of financial data, quantitative
+      modelling and analytics strategy. Responsible for the data and BI agenda at Diös Fastigheter, building
+      its data platform on Microsoft Fabric, with roots in the finance industry: managed investment data and
+      fund analysis at Morningstar, client-facing derivatives sales at IG Markets, and self-built predictive
+      pricing models for real estate and power markets. Skilled at turning market and business data into
+      scalable infrastructure and decision support, whether the audience is a trading desk or a boardroom.
+    </p>
+    <p class="kicker-summary sv-only" data-focus="am">
+      Kvantitativt inriktad data- och analysspecialist med över 10 års erfarenhet av investeringsdata,
+      fondanalys och prediktiv modellering. Sju år på Morningstar: produktägare för portföljberäkningsmotorn
+      bakom över 800 ESG-datapunkter, ansvarig för datarelationer med fondbolag och sakkunnig inom ETF:er,
+      pensionsprodukter, MiFID II och Solvens II. Bygger i dag dataplattformen på ett börsnoterat
+      fastighetsbolag samt egna ML-modeller för aktie-, fastighets- och elmarknaden, utvärderade
+      out-of-sample. Van vid att omsätta marknadsdata till robusta beslutsunderlag, oavsett om mottagaren
       sitter på en tradingdesk eller i styrelserummet.
     </p>
-    <p class="kicker-summary en-only">
-      Data and BI leader with over 10 years of experience at the intersection of financial data, quantitative
-      modelling, and analytics strategy. Responsible for the data and BI agenda at Diös Fastigheter, building
-      solutions on Microsoft Fabric, with roots in the finance industry: managed investment data and fund
-      analysis at Morningstar, trading at IG Markets, and self-built predictive pricing models for real estate
-      and power markets. Skilled at turning market and business data into scalable infrastructure and decision
-      support, whether the audience is a trading desk or a boardroom.
+    <p class="kicker-summary en-only" data-focus="am">
+      Quantitatively minded data and analytics specialist with over 10 years of experience in investment
+      data, fund analysis and predictive modelling. Seven years at Morningstar: product owner of the portfolio
+      calculation engine behind 800+ ESG datapoints, owner of data relationships with fund companies, and
+      subject matter expert on ETFs, pension products, MiFID II and Solvency II. Now building the data
+      platform of a listed real estate company alongside self-built ML models for equity, real estate and
+      power markets, evaluated out-of-sample. Skilled at turning market data into robust decision support,
+      whether the audience is a trading desk or a boardroom.
     </p>
   </div>
 </header>
@@ -1480,20 +1539,20 @@
             <span class="org-mark" aria-hidden="true">DI</span><span class="org-name">Diös Fastigheter AB</span>
           </a>
         </div>
-        <div class="job-title"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Head of Data &amp; BI</span></div>
+        <div class="job-title"><span class="sv-only">Data- och BI-ansvarig</span><span class="en-only">Data &amp; BI Lead</span></div>
         <ul class="sv-only">
-          <li>Ansvarar för och driver bolagets övergripande data- och BI-strategi, prioriterar initiativ och förvaltar backlogg för samtliga affärsområden</li>
-          <li>Arkitekterar och levererar lösningar i Microsoft Fabric, inklusive datapipelines, lakehouses och semantiska modeller</li>
-          <li>Utvecklar Power BI-dashboards och infrastruktur för självbetjänad rapportering till verksamhet och ledning</li>
-          <li>Driver AI- och ML-initiativ och identifierar möjligheter att integrera intelligens i affärsprocesser och rapportering</li>
-          <li>Etablerar ramverk för datastyrning och kvalitetsstandarder inom organisationen</li>
+          <li>Äger data- och BI-strategin i ett börsnoterat fastighetsbolag: roadmap, prioritering och backlogg</li>
+          <li>Etablerade Microsoft Fabric som gemensam dataplattform: pipelines, lakehouse, semantiska modeller</li>
+          <li>Byggde självbetjänad Power BI-rapportering för verksamhet, ledning och styrelse, utan manuella underlag</li>
+          <li>Driver AI/ML-initiativen, från prediktiva modeller i Fabric till affärsprocesser och rapportering</li>
+          <li>Införde ramverk för datastyrning med gemensamma definitioner och kvalitetsstandarder</li>
         </ul>
         <ul class="en-only">
-          <li>Own and drive the company-wide data and BI strategy, setting priorities and managing the backlog across all business units</li>
-          <li>Architect and deliver solutions on Microsoft Fabric, including data pipelines, lakehouses, and semantic models</li>
-          <li>Build Power BI dashboards and self-service reporting infrastructure for business stakeholders and senior leadership</li>
-          <li>Lead AI and ML initiatives, identifying opportunities to embed intelligence into business processes and reporting</li>
-          <li>Establish data governance frameworks and data quality standards across the organisation</li>
+          <li>Own the data and BI strategy of a listed real estate company: roadmap, priorities and backlog</li>
+          <li>Established Microsoft Fabric as the shared data platform: pipelines, lakehouse, semantic models</li>
+          <li>Built self-service Power BI reporting for the business, leadership and the board, with no manual compilation</li>
+          <li>Lead the AI/ML initiatives, from predictive models in Fabric to business processes and reporting</li>
+          <li>Introduced a data governance framework with shared definitions and data quality standards</li>
         </ul>
       </div>
     </div>
@@ -1508,12 +1567,12 @@
         </div>
         <div class="job-title"><span class="sv-only">Sustainability Controller</span><span class="en-only">Sustainability Controller</span></div>
         <ul class="sv-only">
-          <li>Ansvarade för hela hållbarhetsrapporteringen enligt CSRD, ESRS, GRI och EU-taxonomin</li>
-          <li>Förbättrade rapporteringsprocesser och datastyrningsstruktur i samarbete med interna intressenter</li>
+          <li>Ansvarade för hållbarhetsrapporteringen enligt CSRD, ESRS, GRI och EU-taxonomin i årsredovisningen</li>
+          <li>Förbättrade processer och styrning för den ESG-data som rapporteras till investerare och långivare</li>
         </ul>
         <ul class="en-only">
-          <li>Owned end-to-end sustainability reporting in compliance with CSRD, ESRS, GRI, and EU Taxonomy</li>
-          <li>Improved reporting processes and data governance structure in collaboration with internal teams</li>
+          <li>Owned sustainability reporting under CSRD, ESRS, GRI and the EU Taxonomy in the annual report</li>
+          <li>Improved the processes and governance of the ESG data reported to investors and lenders</li>
         </ul>
       </div>
     </div>
@@ -1527,13 +1586,14 @@
           </a>
         </div>
         <div class="job-title"><span class="sv-only">Content Researcher — Managed Investment Portfolio Data</span><span class="en-only">Content Researcher — Managed Investment Portfolio Data</span></div>
+        <div class="job-note"><span class="sv-only">Produktägare, ESG-portföljberäkning</span><span class="en-only">Product owner, ESG portfolio calculation</span></div>
         <ul class="sv-only">
-          <li>Produktägare för en portföljberäkningsmotor som genererar över 800 ESG-datapunkter baserat på Sustainalytics-data</li>
+          <li>Produktägare för portföljberäkningsmotorn bakom över 800 ESG-datapunkter, byggda på Sustainalytics-data, för Morningstars globala fonduniversum</li>
           <li>Drev datainsamlingsprojekt från start till mål: utbildade dataavdelningar, utformade mallar, koordinerade IT-infrastruktur och utvecklade nya metoder i Python</li>
           <li>Utvecklade nya beräkningsmetoder och bistod kollegor i komplexa fondexponeringsfrågor</li>
         </ul>
         <ul class="en-only">
-          <li>Product owner for a portfolio calculation engine generating 800+ ESG datapoints from Sustainalytics data</li>
+          <li>Product owner of the portfolio calculation engine behind 800+ ESG datapoints, built on Sustainalytics data, for Morningstar's global fund universe</li>
           <li>Led data collection projects end-to-end: training data teams, designing templates, coordinating with tech on IT infrastructure, and building new methodologies with Python</li>
           <li>Developed new calculation methodologies and supported team members on complex fund exposure questions</li>
         </ul>
@@ -1550,11 +1610,11 @@
         </div>
         <div class="job-title">Sales Excellence Manager, EMEA</div>
         <ul class="sv-only">
-          <li>Koordinerade interna team i arbetet med RFP:er och due diligence-frågeformulär för kunder i EMEA</li>
-          <li>Utvecklade Tableau-dashboards åt säljledningen för uppföljning av KPI:er och underlag till intäktsbeslut</li>
+          <li>Koordinerade interna team kring RFP:er och due diligence-frågeformulär för kunder i EMEA</li>
+          <li>Utvecklade Tableau-dashboards åt säljledningen för KPI-uppföljning och intäktsbeslut</li>
         </ul>
         <ul class="en-only">
-          <li>Managed internal teams handling RFPs and due diligence questionnaires for clients across EMEA</li>
+          <li>Coordinated cross-functional teams on RFPs and due diligence questionnaires for EMEA clients</li>
           <li>Built Tableau dashboards for sales leadership to track KPIs and drive revenue decisions</li>
         </ul>
       </div>
@@ -1570,14 +1630,14 @@
         </div>
         <div class="job-title"><span class="sv-only">Data Research Analyst / Associate Analyst — Managed Investment Data</span><span class="en-only">Data Research Analyst / Associate Analyst — Managed Investment Data</span></div>
         <ul class="sv-only">
-          <li>Ansvarade för datarelationer med fondbolag, etablerade anskaffningskanaler och agerade eskaleringspunkt</li>
-          <li>Sakkunnig inom investeringsdata, ETF:er, pensionsprodukter och regelverk såsom MiFID II och Solvens II</li>
-          <li>Utbildade nya medarbetare och samverkade med globala Data &amp; Development Centers kring nordiska affärskrav</li>
+          <li>Ansvarade för datarelationer med fondbolag: anskaffningskanaler och eskaleringspunkt</li>
+          <li>Sakkunnig inom investeringsdata, ETF:er, pensionsprodukter samt MiFID II och Solvens II</li>
+          <li>Utbildade nya kollegor; samordnade nordiska affärskrav med globala Data &amp; Development Centers</li>
         </ul>
         <ul class="en-only">
-          <li>Managed data relationships with fund companies, setting up acquisition channels and acting as point of escalation</li>
-          <li>Subject matter expert on investment data, ETFs, pension products, and regulations including MiFID II and Solvency II</li>
-          <li>Trained new team members; collaborated with global Data &amp; Development Centers to align on Nordic business requirements</li>
+          <li>Managed data relationships with fund companies: acquisition channels and point of escalation</li>
+          <li>Subject matter expert on investment data, ETFs, pension products, MiFID II and Solvency II</li>
+          <li>Trained new colleagues; aligned Nordic business requirements with global Data &amp; Development Centers</li>
         </ul>
       </div>
     </div>
@@ -1591,6 +1651,12 @@
           </a>
         </div>
         <div class="job-title"><span class="sv-only">Säljare</span><span class="en-only">Sales Executive</span></div>
+        <ul class="sv-only">
+          <li>Försäljning av CFD:er och andra hävstångsprodukter till aktiva privatinvesterare i Norden</li>
+        </ul>
+        <ul class="en-only">
+          <li>Client-facing sales of CFDs and other leveraged products to active retail investors in the Nordics</li>
+        </ul>
       </div>
     </div>
 
@@ -1598,8 +1664,8 @@
       <div class="job-period"><span class="sv-only">TIDIGARE</span><span class="en-only">EARLIER</span></div>
       <div>
         <div class="job-title job-earlier">
-          <span class="sv-only">Sommarpraktik som trader, RGG ADM-Gruppen (2013) · Investeringspraktikant, Hartland Financial USA (2012)</span>
-          <span class="en-only">Summer Trader Intern, RGG ADM-Gruppen (2013) · Investment Intern, Hartland Financial USA (2012)</span>
+          <span class="sv-only">Trader-praktikant, RGG ADM-Gruppen (2013) · Investeringspraktikant, Hartland Financial, USA (2012)</span>
+          <span class="en-only">Trader Intern, RGG ADM-Gruppen (2013) · Investment Intern, Hartland Financial, USA (2012)</span>
         </div>
       </div>
     </div>
@@ -1637,8 +1703,8 @@
       <div class="project-card">
         <div class="project-title"><span class="sv-only">Modell för svenska börsnoterade fastighetsbolag</span><span class="en-only">Swedish Listed Real Estate Model</span></div>
         <div class="tag-row"><span class="tag">LightGBM</span><span class="tag">Python</span><span class="tag">Automation</span></div>
-        <p class="project-desc sv-only">EPRA NRV/CEPS-rankning av 11–14 bolag: ML-lager kombinerat med sammansatt poängsättning, baserat på en verifierad fundamentaldatabas som underhålls mot Q1/Q2 2026 delårsrapporter. Automatiserat veckoutskick via e-post.</p>
-        <p class="project-desc en-only">EPRA NRV/CEPS peer ranking across 11–14 companies: ML layer alongside composite scoring, on a verified fundamentals dictionary maintained against Q1/Q2 2026 interims. Weekly automated email output.</p>
+        <p class="project-desc sv-only">EPRA NRV/CEPS-rankning av 11–14 bolag: ML-lager och sammansatt poängsättning på verifierade fundamenta (Q1/Q2 2026). Veckoutskick; följs upp mot utfall, resultat på begäran.</p>
+        <p class="project-desc en-only">EPRA NRV/CEPS peer ranking across 11–14 companies: ML layer and composite scoring on verified fundamentals (Q1/Q2 2026 interims). Weekly email; tracked against outcomes, results on request.</p>
         <svg class="project-chart" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <line x1="0" y1="32" x2="200" y2="32" stroke="var(--hairline-strong)" stroke-width="1"/>
           <rect x="2"   y="4"  width="12" height="28" fill="var(--green)"/>
@@ -1657,8 +1723,8 @@
       <div class="project-card">
         <div class="project-title">Alpha Satellite</div>
         <div class="tag-row"><span class="tag">LightGBM</span><span class="tag">XGBoost</span></div>
-        <p class="project-desc sv-only"><span class="sv-only">Microcap-pipeline. </span>Ensemblemodell med purged walk-forward-korsvalidering och invers volatilitetsriskparitet.</p>
-        <p class="project-desc en-only">Microcap equity pipeline. Ensemble with purged walk-forward cross-validation and inverse-volatility risk parity.</p>
+        <p class="project-desc sv-only"><span class="sv-only">Microcap-pipeline. </span>Ensemblemodell med purged walk-forward-korsvalidering och invers volatilitetsriskparitet. Utvärderad out-of-sample; resultat på begäran.</p>
+        <p class="project-desc en-only">Microcap equity pipeline. Ensemble with purged walk-forward cross-validation and inverse-volatility risk parity. Evaluated out-of-sample; results on request.</p>
         <svg class="project-chart" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <line x1="0" y1="32" x2="200" y2="32" stroke="var(--hairline-strong)" stroke-width="1"/>
           <path d="M0 30 L14 21 L28 27 L42 14 L56 22 L70 10 L84 18 L98 6 L112 14 L126 4 L140 11 L154 3 L168 9 L182 2 L200 5"
@@ -1711,8 +1777,10 @@
                ATS scan for first. The proficiency qualifier is a nested
                language span, so the list is written once rather than twice. -->
           <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>SQL — <span class="sv-only">god vana</span><span class="en-only">proficient</span></span>
-          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>Python — <span class="sv-only">grundläggande</span><span class="en-only">foundational</span></span>
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>Python — <span class="sv-only">tillämpad (ML &amp; prognoser)</span><span class="en-only">applied (ML &amp; forecasting)</span></span>
           <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>Microsoft Fabric</span>
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line></svg><span class="sv-only">Datamodellering — stjärnschema &amp; DAX</span><span class="en-only">Data modelling — star schema &amp; DAX</span></span>
+          <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path><circle cx="8" cy="6" r="1.2" fill="currentColor"></circle><circle cx="14" cy="12" r="1.2" fill="currentColor"></circle><circle cx="10" cy="18" r="1.2" fill="currentColor"></circle></svg><span class="sv-only">Lakehouse &amp; datapipelines</span><span class="en-only">Lakehouse &amp; data pipelines</span></span>
           <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>Power BI</span>
           <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>Tableau</span>
           <span><svg class="skill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>Azure</span>
@@ -1729,12 +1797,12 @@
         </div>
       </div>
       <div>
-        <div class="skill-group-title"><span class="sv-only">Domän</span><span class="en-only">Domain</span></div>
+        <div class="skill-group-title"><span class="sv-only">Domän &amp; verktyg</span><span class="en-only">Domain &amp; tools</span></div>
         <div class="skill-tags sv-only">
-          <span>Hedgefonder</span><span>Alternativa investeringar</span><span>Finansiell data</span><span>Förvaltade investeringar</span><span>Fonddata</span><span>Salesforce</span><span>Excel</span><span>Morningstar Direct</span><span>Pitchbook</span><span>Intressenthantering</span>
+          <span>Investeringsdata &amp; fonddata</span><span>Förvaltade investeringar</span><span>ETF:er &amp; pensionsprodukter</span><span>MiFID II &amp; Solvens II</span><span>ESG-data — CSRD/ESRS &amp; EU-taxonomin</span><span>Intressenthantering</span><span>Morningstar Direct</span><span>Pitchbook</span><span>Salesforce</span><span>Excel</span>
         </div>
         <div class="skill-tags en-only">
-          <span>Hedge Funds</span><span>Alternative Investments</span><span>Financial Data</span><span>Managed Investments</span><span>Fund Data</span><span>Salesforce</span><span>Excel</span><span>Morningstar Direct</span><span>Pitchbook</span><span>Stakeholder Management</span>
+          <span>Investment &amp; Fund Data</span><span>Managed Investments</span><span>ETFs &amp; Pension Products</span><span>MiFID II &amp; Solvency II</span><span>ESG Data — CSRD/ESRS &amp; EU Taxonomy</span><span>Stakeholder Management</span><span>Morningstar Direct</span><span>Pitchbook</span><span>Salesforce</span><span>Excel</span>
         </div>
       </div>
     </div>
@@ -1767,8 +1835,6 @@
       </div>
       <div class="edu-degree sv-only">Kandidatexamen, Business Administration and Management</div>
       <div class="edu-degree en-only">B.S. Business Administration and Management</div>
-      <ul class="sv-only"><li>Business Management Departmental Award 2014 · USCSA 1st Team All-American 2010, 2011, 2012</li></ul>
-      <ul class="en-only"><li>Business Management Departmental Award 2014; USCSA 1st Team All-American 2010, 2011, 2012</li></ul>
     </div>
 
     <div class="edu-item">
@@ -1782,8 +1848,6 @@
       </div>
       <div class="edu-degree sv-only">Samhällsvetenskap och ekonomi</div>
       <div class="edu-degree en-only">Social Science and Economics</div>
-      <ul class="sv-only"><li>Del av Ski Team Sweden (2007–2009); representerade Sverige i junior-VM, Garmisch-Partenkirchen 2009</li></ul>
-      <ul class="en-only"><li>Part of Ski Team Sweden (2007–2009); represented Sweden at the Junior World Championship, Garmisch-Partenkirchen 2009</li></ul>
     </div>
   </section>
 
@@ -1820,12 +1884,12 @@
         <div class="skill-group-title"><span class="sv-only">Idrott</span><span class="en-only">Athletic</span></div>
         <ul class="ach-list sv-only">
           <li><span class="kp"></span><span><b>2024</b> — Tredjeplats, SM i skidalpinism (skimo)</span></li>
-          <li><span class="kp"></span><span><b>2009</b> — Team Sweden, junior-VM alpint, Garmisch-Partenkirchen</span></li>
+          <li><span class="kp"></span><span><b>2009</b> — Junior-VM i alpint, Team Sweden</span></li>
           <li><span class="kp"></span><span><b>2010–12</b> — 1st Team All-American</span></li>
         </ul>
         <ul class="ach-list en-only">
           <li><span class="kp"></span><span><b>2024</b> — 3rd place, Swedish Championship in Ski Mountaineering</span></li>
-          <li><span class="kp"></span><span><b>2009</b> — Team Sweden, Junior Alpine World Championship, Garmisch-Partenkirchen</span></li>
+          <li><span class="kp"></span><span><b>2009</b> — Junior Alpine World Championship, Team Sweden</span></li>
           <li><span class="kp"></span><span><b>2010–12</b> — 1st Team All-American</span></li>
         </ul>
       </div>
@@ -2056,7 +2120,7 @@
       'N:Ålin;Anton;;;',
       'FN:Anton Ålin',
       'ORG:Diös Fastigheter AB',
-      'TITLE:Head of Data & BI',
+      'TITLE:Data & BI Lead',
       'TEL;TYPE=CELL:' + revealedPhone,
       'EMAIL:' + revealedEmail,
       'URL:https://github.com/AntonAlin/',
@@ -2115,27 +2179,57 @@
     }
   })();
 
+  /* The pre-rendered sheets follow the reader's language and focus, so the
+     download always matches what is on screen: cv-<lang>[-am][-1p].pdf */
+  function pdfHref(short){
+    var lang = document.body.classList.contains('lang-en') ? 'en' : 'sv';
+    var am = document.body.classList.contains('focus-am') ? '-am' : '';
+    return 'pdf/anton-alin-cv-' + lang + am + (short ? '-1p' : '') + '.pdf';
+  }
+  function syncDownload(){
+    var dl = document.getElementById('dl-btn');
+    if(dl){ dl.href = pdfHref(false); }
+  }
   function setLang(lang){
     var isEn = lang === 'en';
     document.body.classList.toggle('lang-en', isEn);
     document.documentElement.setAttribute('lang', lang);
     document.getElementById('btn-en').classList.toggle('active', isEn);
     document.getElementById('btn-sv').classList.toggle('active', !isEn);
-    /* Hand the reader the sheet in the language they are reading */
-    var dl = document.getElementById('dl-btn');
-    if(dl){ dl.href = 'pdf/anton-alin-cv-' + lang + '.pdf'; }
+    syncDownload();
     try { localStorage.setItem('cv-lang', lang); } catch(e) {}
     /* The section readout and the palette both render language-dependent text
        they don't own, so let them re-read rather than reaching in from here. */
     document.dispatchEvent(new CustomEvent('cv:lang'));
   }
+  /* 'bi' or 'am': which reader the summary and ordering are written for.
+     ?focus=am in the URL wins, so a link can be sent to an asset manager with
+     the right reading already selected. */
+  function setFocus(focus){
+    var am = focus === 'am';
+    document.body.classList.toggle('focus-am', am);
+    document.getElementById('btn-am').classList.toggle('active', am);
+    document.getElementById('btn-bi').classList.toggle('active', !am);
+    syncDownload();
+    try { localStorage.setItem('cv-focus', am ? 'am' : 'bi'); } catch(e) {}
+    document.dispatchEvent(new CustomEvent('cv:focus'));
+  }
   (function(){
-    var saved = null;
-    try { saved = localStorage.getItem('cv-lang'); } catch(e) {}
-    if(!saved){
-      saved = (navigator.language || '').toLowerCase().indexOf('sv') === 0 ? 'sv' : 'en';
+    var q = {};
+    try {
+      (location.search || '').replace(/^\?/, '').split('&').forEach(function(kv){
+        var i = kv.indexOf('='); if(i > 0){ q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); }
+      });
+    } catch(e) {}
+    var lang = q.lang === 'en' || q.lang === 'sv' ? q.lang : null;
+    if(!lang){ try { lang = localStorage.getItem('cv-lang'); } catch(e) {} }
+    if(!lang){
+      lang = (navigator.language || '').toLowerCase().indexOf('sv') === 0 ? 'sv' : 'en';
     }
-    setLang(saved);
+    var focus = q.focus === 'am' || q.focus === 'bi' ? q.focus : null;
+    if(!focus){ try { focus = localStorage.getItem('cv-focus'); } catch(e) {} }
+    setLang(lang);
+    setFocus(focus === 'am' ? 'am' : 'bi');
   })();
 
   /* ---------- Motion: progress rail, section readout, scroll reveal ---------- */
@@ -2328,17 +2422,25 @@
         meta: en ? 'SV' : 'EN',
         run: function(){ setLang(en ? 'sv' : 'en'); }
       });
+      var am = document.body.classList.contains('focus-am');
+      out.push({
+        group:'act', icon:'lang', keys:'fokus focus profil bi kapitalforvaltning asset management',
+        label: en ? (am ? 'Read as: BI leadership' : 'Read as: asset management')
+                  : (am ? 'Läs som: BI-ledarskap' : 'Läs som: kapitalförvaltning'),
+        meta: am ? 'BI' : 'AM',
+        run: function(){ setFocus(am ? 'bi' : 'am'); }
+      });
       out.push({
         group:'act', icon:'down', keys:'pdf ladda ner download hamta cv',
         label: en ? 'Download CV (2 pages)' : 'Ladda ner CV (2 sidor)',
         meta:'.pdf',
-        run: function(){ grab('pdf/anton-alin-cv-' + (en ? 'en' : 'sv') + '.pdf'); }
+        run: function(){ grab(pdfHref(false)); }
       });
       out.push({
         group:'act', icon:'down', keys:'pdf kort short one page en sida ladda ner',
         label: en ? 'Download CV (1 page)' : 'Ladda ner CV (1 sida)',
         meta:'.pdf',
-        run: function(){ grab('pdf/anton-alin-cv-' + (en ? 'en' : 'sv') + '-1p.pdf'); }
+        run: function(){ grab(pdfHref(true)); }
       });
       out.push({
         group:'act', icon:'print', keys:'pdf skriv ut spara save',

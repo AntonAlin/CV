@@ -29,22 +29,24 @@ def check(name, cond, extra=""):
     print(("PASS  " if cond else "FAIL  ") + name + ("" if cond else "  -> " + str(extra)))
     if not cond: fails.append(name)
 
-def build(lang, path):
+def build(lang, path, focus="bi", short=False):
     with sync_playwright() as p:
         b = launch(p)
         pg = b.new_page(viewport={"width": 900, "height": 1200})
         fontmirror.prepare(pg, URL); pg.wait_for_timeout(1100)
-        pg.evaluate(f"setLang('{lang}')"); pg.evaluate("revealContact()")
+        pg.evaluate(f"setLang('{lang}')"); pg.evaluate(f"setFocus('{focus}')")
+        pg.evaluate("revealContact()")
+        pg.evaluate("s => document.body.classList.toggle('print-short', s)", short)
         pg.wait_for_timeout(400)
         pg.pdf(path=path, format="A4", print_background=True)
         b.close()
     return pymupdf.open(path)
 
 for lang, other_words, own_words in [
-    ("sv", ["Experience", "Native", "Head of Data & BI", "Sales Executive"],
+    ("sv", ["Experience", "Native", "Data & BI Lead", "Sales Executive"],
            ["Erfarenhet", "Modersmål", "Data- och BI-ansvarig", "Säljare"]),
     ("en", ["Erfarenhet", "Modersmål", "Data- och BI-ansvarig", "Säljare"],
-           ["Experience", "Native", "Head of Data & BI", "Sales Executive"]),
+           ["Experience", "Native", "Data & BI Lead", "Sales Executive"]),
 ]:
     d = build(lang, str(WORK / f"t_{lang}.pdf"))
     text = " ".join(p.get_text() for p in d)
@@ -92,6 +94,36 @@ for lang, other_words, own_words in [
 
     d.close()
 
+
+# --- Asset-management focus: same sheet, different summary and ordering ---
+print("\n=== FOCUS: ASSET MANAGEMENT ===")
+for lang in ("sv", "en"):
+    d = build(lang, str(WORK / f"t_{lang}_am.pdf"), focus="am")
+    text = " ".join(p.get_text() for p in d)
+    H = d[0].rect.height
+    check(f"[{lang}-am] fits on exactly 2 pages", d.page_count == 2, d.page_count)
+    fills = []
+    for i, pg in enumerate(d):
+        body = [b for b in pg.get_text("blocks") if b[4].strip()
+                and "Anton Ålin · CV" not in b[4]]
+        fills.append(max(b[3] for b in body) / H)
+    check(f"[{lang}-am] every page is at least 85% filled",
+          all(f > .85 for f in fills), [f"{f:.0%}" for f in fills])
+    am_word, bi_word = (("Sju år på Morningstar", "Data- och BI-specialist") if lang == "sv"
+                        else ("Seven years at Morningstar", "Data and BI lead"))
+    check(f"[{lang}-am] prints the asset-management summary only",
+          am_word in text and bi_word not in text)
+    # The market models lead the projects for this reader.
+    p2 = d[1].get_text()
+    first = p2.find("Nexus Options Lab"); se2 = p2.find("SE2 ")
+    check(f"[{lang}-am] options lab precedes the SE2 terminal", 0 <= first < se2, (first, se2))
+    check(f"[{lang}-am] the focus switch itself stays off paper",
+          "Profil för" not in text and "Profile for" not in text)
+    d.close()
+d = build("sv", str(WORK / "t_sv_am_1p.pdf"), focus="am", short=True)
+check("[sv-am-1p] fits on a single page", d.page_count == 1, d.page_count); d.close()
+d = build("en", str(WORK / "t_en_am_1p.pdf"), focus="am", short=True)
+check("[en-am-1p] fits on a single page", d.page_count == 1, d.page_count); d.close()
 
 # --- Short (one-page) variant, rendered from the same DOM ---
 import cv2, re

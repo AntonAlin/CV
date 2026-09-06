@@ -21,19 +21,25 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "pdf"
 SITE = (ROOT / "index.html").as_uri()
 
-# (lang, short?, filename, PDF title, expected page count)
+# (lang, focus, short?, filename, PDF title, expected page count)
+# The focus ("bi" or "am") picks the summary and the ordering the page shows
+# for that reader; the download button hands out the matching file.
 VARIANTS = [
-    ("sv", False, "anton-alin-cv-sv.pdf",    "Anton Ålin — CV",             2),
-    ("en", False, "anton-alin-cv-en.pdf",    "Anton Ålin — CV",             2),
-    ("sv", True,  "anton-alin-cv-sv-1p.pdf", "Anton Ålin — CV (en sida)",   1),
-    ("en", True,  "anton-alin-cv-en-1p.pdf", "Anton Ålin — CV (one page)",  1),
+    ("sv", "bi", False, "anton-alin-cv-sv.pdf",       "Anton Ålin — CV",             2),
+    ("en", "bi", False, "anton-alin-cv-en.pdf",       "Anton Ålin — CV",             2),
+    ("sv", "bi", True,  "anton-alin-cv-sv-1p.pdf",    "Anton Ålin — CV (en sida)",   1),
+    ("en", "bi", True,  "anton-alin-cv-en-1p.pdf",    "Anton Ålin — CV (one page)",  1),
+    ("sv", "am", False, "anton-alin-cv-sv-am.pdf",    "Anton Ålin — CV",             2),
+    ("en", "am", False, "anton-alin-cv-en-am.pdf",    "Anton Ålin — CV",             2),
+    ("sv", "am", True,  "anton-alin-cv-sv-am-1p.pdf", "Anton Ålin — CV (en sida)",   1),
+    ("en", "am", True,  "anton-alin-cv-en-am-1p.pdf", "Anton Ålin — CV (one page)",  1),
 ]
 
 KEYWORDS = ("Data, Business Intelligence, Microsoft Fabric, Power BI, "
             "Data Governance, Predictive Analytics, Financial Data")
 
 
-def render(page, lang, short, path):
+def render(page, lang, focus, short, path):
     # Webfonts change line breaking, which changes pagination. Waiting for
     # them is not enough on its own: `fonts.ready` settles just as happily
     # when the font host was unreachable and everything fell back to the
@@ -42,6 +48,7 @@ def render(page, lang, short, path):
     # actually arrived, reaching for a local mirror only if they did not.
     fontmirror.prepare(page, SITE)
     page.evaluate(f"setLang('{lang}')")
+    page.evaluate(f"setFocus('{focus}')")
     # A printed CV without contact details is useless; the page reveals them on
     # beforeprint anyway, but page.pdf() does not fire that event.
     page.evaluate("revealContact()")
@@ -56,7 +63,7 @@ def stamp(path, title):
     doc.set_metadata({
         "title": title,
         "author": "Anton Ålin",
-        "subject": "Curriculum vitae — Head of Data & BI",
+        "subject": "Curriculum vitae — Data & BI Lead",
         "keywords": KEYWORDS,
         "creator": "antonalin.github.io/CV",
     })
@@ -75,9 +82,9 @@ def main():
         exe = os.environ.get("CHROMIUM_PATH")
         browser = p.chromium.launch(executable_path=exe) if exe else p.chromium.launch()
         page = browser.new_page(viewport={"width": 900, "height": 1200})
-        for lang, short, name, title, expected in VARIANTS:
+        for lang, focus, short, name, title, expected in VARIANTS:
             path = OUT / name
-            render(page, lang, short, path)
+            render(page, lang, focus, short, path)
             pages = stamp(path, title)
             ok = pages == expected
             print(f"{'ok  ' if ok else 'FAIL'} {name}: {pages} page(s), "
