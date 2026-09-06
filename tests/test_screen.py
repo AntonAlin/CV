@@ -381,49 +381,10 @@ with sync_playwright() as p:
           and not any("god vana" in t for t in tge), tge)
     pg.click("#btn-sv"); pg.wait_for_timeout(300)
 
-    # --- Focus: one CV, two readers ---
-    def visible_summary():
-        return pg.eval_on_selector_all(".kicker-summary",
-            "els=>els.filter(e=>getComputedStyle(e).display!=='none')"
-            +".map(e=>e.dataset.focus+':'+(e.classList.contains('en-only')?'en':'sv'))")
-    def project_order():
-        return pg.eval_on_selector_all(".projects-grid > .project-card",
-            "els=>els.map(e=>({t:e.querySelector('.project-title').innerText.trim(),"
-            +"o:+getComputedStyle(e).order})).sort((a,b)=>a.o-b.o).map(x=>x.t)")
-    check("BI is the default focus and shows exactly one summary",
-          not pg.eval_on_selector("body", "b=>b.classList.contains('focus-am')")
-          and visible_summary() == ["bi:sv"], visible_summary())
-    check("BI reading leads the projects with the Fabric terminal",
-          project_order()[0].startswith("SE2") and project_order()[-1] == "ÅreWeather", project_order())
-    pg.click("#btn-am"); pg.wait_for_timeout(300)
-    check("switching to asset management swaps the summary, not the language",
-          visible_summary() == ["am:sv"], visible_summary())
-    check("asset-management reading leads with the options lab",
-          project_order()[0] == "Nexus Options Lab" and project_order()[-1] == "ÅreWeather",
-          project_order())
-    check("the domain skill group moves first for asset management",
-          pg.eval_on_selector("#skills .skills-grid > div:nth-child(3)",
-                              "e=>getComputedStyle(e).order") == "-1")
-    check("the download button hands out the matching sheet",
-          pg.get_attribute("#dl-btn", "href") == "pdf/anton-alin-cv-sv-am.pdf",
-          pg.get_attribute("#dl-btn", "href"))
-    pg.click("#btn-en"); pg.wait_for_timeout(300)
-    check("language and focus combine",
-          visible_summary() == ["am:en"]
-          and pg.get_attribute("#dl-btn", "href") == "pdf/anton-alin-cv-en-am.pdf",
-          (visible_summary(), pg.get_attribute("#dl-btn", "href")))
-    pg.click("#btn-sv"); pg.wait_for_timeout(200)
-    check("focus survives a reload",
-          (pg.reload(), pg.wait_for_timeout(800),
-           pg.eval_on_selector("body", "b=>b.classList.contains('focus-am')"))[-1])
-    pg.goto(URL + "?focus=bi&lang=en"); pg.wait_for_timeout(800)
-    check("?focus= and ?lang= in the URL win over the stored choice",
-          visible_summary() == ["bi:en"], visible_summary())
-    pg.evaluate("setLang('sv')"); pg.evaluate("setFocus('bi')"); pg.wait_for_timeout(300)
-    pg.emulate_media(media="print")
-    check("the focus switch stays off paper",
-          pg.eval_on_selector(".focus-toggle", "e=>getComputedStyle(e).display") == "none")
-    pg.emulate_media(media="screen")
+    pg.goto(URL + "?lang=en"); pg.wait_for_timeout(800)
+    check("?lang= in the URL wins over the stored choice",
+          pg.eval_on_selector("body", "b=>b.classList.contains('lang-en')"))
+    pg.evaluate("setLang('sv')"); pg.wait_for_timeout(300)
 
     check("no JS errors overall", not errors, errors)
 

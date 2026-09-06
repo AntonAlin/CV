@@ -656,34 +656,9 @@
   }
 
   .kicker-summary{
-    margin-top:22px;max-width:640px;
+    margin-top:34px;max-width:640px;
     color:var(--text-lo);font-size:15.5px;
   }
-  /* Two readings of one CV. The attribute selector plus !important keeps the
-     focus rule out of the language rules' specificity game: a summary shows
-     only when both its language and its focus are the active ones. */
-  body:not(.focus-am) .kicker-summary[data-focus="am"],
-  body.focus-am .kicker-summary[data-focus="bi"]{display:none !important;}
-  .focus-toggle{
-    display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:30px;
-  }
-  .focus-label{
-    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;
-    text-transform:uppercase;color:var(--text-faint);
-  }
-  /* Project cards and skill groups are written once and re-ordered per focus:
-     BI leads with the platform work, asset management with the market models. */
-  .projects-grid > .project-card:nth-child(1){order:3;}
-  .projects-grid > .project-card:nth-child(2){order:2;}
-  .projects-grid > .project-card:nth-child(3){order:4;}
-  .projects-grid > .project-card:nth-child(4){order:1;}
-  .projects-grid > .project-card:nth-child(5){order:5;}
-  body.focus-am .projects-grid > .project-card:nth-child(1){order:1;}
-  body.focus-am .projects-grid > .project-card:nth-child(2){order:3;}
-  body.focus-am .projects-grid > .project-card:nth-child(3){order:2;}
-  body.focus-am .projects-grid > .project-card:nth-child(4){order:4;}
-  body.focus-am #skills .skills-grid > div:nth-child(3){order:-1;}
-
   /* ---------- Sections ---------- */
   /* scroll-margin keeps a jumped-to heading clear of the sticky control bar */
   section{position:relative;padding:56px 0;border-bottom:1px solid var(--hairline);scroll-margin-top:72px;}
@@ -1095,7 +1070,7 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
-    .hero-sun, .hero-cloud, .career-map, .skip-link, .focus-toggle{display:none !important;}
+    .hero-sun, .hero-cloud, .career-map, .skip-link{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1471,51 +1446,21 @@
       <a href="https://github.com/AntonAlin/" target="_blank" rel="noopener">github.com/AntonAlin</a>
     </div>
 
-    <!-- Focus: the same CV read by a BI hiring manager and by an asset manager
-         should lead with different things. The summary and the order of the
-         projects and skill groups follow body.focus-am; everything else is
-         shared. -->
-    <div class="focus-toggle" role="group" aria-label="Profil / Profile">
-      <span class="focus-label"><span class="sv-only">Profil för</span><span class="en-only">Profile for</span></span>
-      <div class="lang-toggle">
-        <button type="button" id="btn-bi" class="active" onclick="setFocus('bi')"><span class="sv-only">BI-ledarskap</span><span class="en-only">BI leadership</span></button>
-        <button type="button" id="btn-am" onclick="setFocus('am')"><span class="sv-only">Kapitalförvaltning</span><span class="en-only">Asset management</span></button>
-      </div>
-    </div>
-
-    <p class="kicker-summary sv-only" data-focus="bi">
+    <p class="kicker-summary sv-only">
       Data- och BI-specialist med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ
       modellering och analysstrategi. Ansvarar för data- och BI-agendan på Diös Fastigheter och bygger bolagets
-      dataplattform i Microsoft Fabric, med grund i finansbranschen: investeringsdata och fondanalys på
-      Morningstar, kundnära derivatförsäljning hos IG Markets samt egenutvecklade prediktiva prismodeller för
+      dataplattform i Microsoft Fabric, med grund i finansbranschen: sju år med investeringsdata, fondanalys
+      och ESG-beräkningar på Morningstar, derivatförsäljning hos IG Markets samt egna ML-modeller för aktie-,
       fastighets- och elmarknaden. Van vid att omsätta marknads- och verksamhetsdata till skalbar infrastruktur
       och robusta beslutsunderlag, oavsett om mottagaren sitter på en tradingdesk eller i styrelserummet.
     </p>
-    <p class="kicker-summary en-only" data-focus="bi">
+    <p class="kicker-summary en-only">
       Data and BI lead with over 10 years of experience at the intersection of financial data, quantitative
       modelling and analytics strategy. Responsible for the data and BI agenda at Diös Fastigheter, building
-      its data platform on Microsoft Fabric, with roots in the finance industry: managed investment data and
-      fund analysis at Morningstar, client-facing derivatives sales at IG Markets, and self-built predictive
-      pricing models for real estate and power markets. Skilled at turning market and business data into
+      its data platform on Microsoft Fabric, with roots in the finance industry: seven years of investment
+      data, fund analysis and ESG calculations at Morningstar, derivatives sales at IG Markets, and self-built
+      ML models for equity, real estate and power markets. Skilled at turning market and business data into
       scalable infrastructure and decision support, whether the audience is a trading desk or a boardroom.
-    </p>
-    <p class="kicker-summary sv-only" data-focus="am">
-      Kvantitativt inriktad data- och analysspecialist med över 10 års erfarenhet av investeringsdata,
-      fondanalys och prediktiv modellering. Sju år på Morningstar: produktägare för portföljberäkningsmotorn
-      bakom över 800 ESG-datapunkter, ansvarig för datarelationer med fondbolag och sakkunnig inom ETF:er,
-      pensionsprodukter, MiFID II och Solvens II. Bygger i dag dataplattformen på ett börsnoterat
-      fastighetsbolag samt egna ML-modeller för aktie-, fastighets- och elmarknaden, utvärderade
-      out-of-sample. Van vid att omsätta marknadsdata till robusta beslutsunderlag, oavsett om mottagaren
-      sitter på en tradingdesk eller i styrelserummet.
-    </p>
-    <p class="kicker-summary en-only" data-focus="am">
-      Quantitatively minded data and analytics specialist with over 10 years of experience in investment
-      data, fund analysis and predictive modelling. Seven years at Morningstar: product owner of the portfolio
-      calculation engine behind 800+ ESG datapoints, owner of data relationships with fund companies, and
-      subject matter expert on ETFs, pension products, MiFID II and Solvency II. Now building the data
-      platform of a listed real estate company alongside self-built ML models for equity, real estate and
-      power markets, evaluated out-of-sample. Skilled at turning market data into robust decision support,
-      whether the audience is a trading desk or a boardroom.
     </p>
   </div>
 </header>
@@ -2197,12 +2142,11 @@
     }
   })();
 
-  /* The pre-rendered sheets follow the reader's language and focus, so the
-     download always matches what is on screen: cv-<lang>[-am][-1p].pdf */
+  /* The pre-rendered sheets follow the reader's language, so the download
+     always matches what is on screen: cv-<lang>[-1p].pdf */
   function pdfHref(short){
     var lang = document.body.classList.contains('lang-en') ? 'en' : 'sv';
-    var am = document.body.classList.contains('focus-am') ? '-am' : '';
-    return 'pdf/anton-alin-cv-' + lang + am + (short ? '-1p' : '') + '.pdf';
+    return 'pdf/anton-alin-cv-' + lang + (short ? '-1p' : '') + '.pdf';
   }
   function syncDownload(){
     var dl = document.getElementById('dl-btn');
@@ -2220,18 +2164,6 @@
        they don't own, so let them re-read rather than reaching in from here. */
     document.dispatchEvent(new CustomEvent('cv:lang'));
   }
-  /* 'bi' or 'am': which reader the summary and ordering are written for.
-     ?focus=am in the URL wins, so a link can be sent to an asset manager with
-     the right reading already selected. */
-  function setFocus(focus){
-    var am = focus === 'am';
-    document.body.classList.toggle('focus-am', am);
-    document.getElementById('btn-am').classList.toggle('active', am);
-    document.getElementById('btn-bi').classList.toggle('active', !am);
-    syncDownload();
-    try { localStorage.setItem('cv-focus', am ? 'am' : 'bi'); } catch(e) {}
-    document.dispatchEvent(new CustomEvent('cv:focus'));
-  }
   (function(){
     var q = {};
     try {
@@ -2244,10 +2176,7 @@
     if(!lang){
       lang = (navigator.language || '').toLowerCase().indexOf('sv') === 0 ? 'sv' : 'en';
     }
-    var focus = q.focus === 'am' || q.focus === 'bi' ? q.focus : null;
-    if(!focus){ try { focus = localStorage.getItem('cv-focus'); } catch(e) {} }
     setLang(lang);
-    setFocus(focus === 'am' ? 'am' : 'bi');
   })();
 
   /* ---------- Motion: progress rail, section readout, scroll reveal ---------- */
@@ -2439,14 +2368,6 @@
         label: en ? 'Switch to Swedish' : 'Byt till engelska',
         meta: en ? 'SV' : 'EN',
         run: function(){ setLang(en ? 'sv' : 'en'); }
-      });
-      var am = document.body.classList.contains('focus-am');
-      out.push({
-        group:'act', icon:'lang', keys:'fokus focus profil bi kapitalforvaltning asset management',
-        label: en ? (am ? 'Read as: BI leadership' : 'Read as: asset management')
-                  : (am ? 'Läs som: BI-ledarskap' : 'Läs som: kapitalförvaltning'),
-        meta: am ? 'BI' : 'AM',
-        run: function(){ setFocus(am ? 'bi' : 'am'); }
       });
       out.push({
         group:'act', icon:'down', keys:'pdf ladda ner download hamta cv',
