@@ -441,6 +441,74 @@ with sync_playwright() as p:
           pg.eval_on_selector("#music", "e=>getComputedStyle(e).display") == "none")
     pg.emulate_media(media="screen")
 
+    # --- Guess the company ---
+    data = pg.evaluate("cvQuiz.data()")
+    check("sixteen companies with long, positive, month-complete series",
+          len(data) == 16 and all(len(d["p"]) >= 60 and min(d["p"]) > 0 for d in data)
+          and all(len(d["p"]) == (2026 - int(d["s"][:4])) * 12 + (9 - int(d["s"][5:7])) + 1 for d in data),
+          [(d["t"], len(d["p"])) for d in data])
+    check("the game card is the last project card",
+          pg.eval_on_selector(".projects-grid > .project-card:last-child", "e=>e.classList.contains('is-game')")
+          and pg.locator(".projects-grid > .project-card").count() == 6)
+    check("the quiz starts closed", pg.get_attribute("#quiz", "hidden") is not None)
+    pg.click("#quiz-card"); pg.wait_for_timeout(300)
+    st = pg.evaluate("cvQuiz.state()")
+    check("clicking the card opens round one with four names and a chart",
+          pg.get_attribute("#quiz", "hidden") is None and st["round"] == 0 and st["score"] == 0
+          and pg.locator("#quiz-body .quiz-opts button").count() == 4
+          and pg.locator("#quiz-body svg path.quiz-line").count() == 1
+          and pg.locator("#quiz-body .quiz-axis").count() >= 2, st)
+    check("the chart names its scale and its window",
+          pg.locator("#quiz-body .quiz-scale").inner_text().lower().split(" · ")[0] in ("logskala", "linjär")
+          and " – " in pg.locator("#quiz-body .quiz-scale").inner_text())
+    names = pg.locator("#quiz-body .quiz-opts button").all_inner_texts()
+    ans = pg.evaluate("cvQuiz.answer()")
+    check("the answer is among the four options", any(ans in n for n in names), (ans, names))
+    # A wrong answer first, to see it marked and scored
+    wrong = next(i for i, n in enumerate(names) if ans not in n)
+    pg.locator("#quiz-body .quiz-opts button").nth(wrong).click(); pg.wait_for_timeout(200)
+    check("a wrong pick is marked, the right one revealed, no points",
+          pg.locator("#quiz-body .quiz-opts button.is-wrong").count() == 1
+          and pg.locator("#quiz-body .quiz-opts button.is-right").count() == 1
+          and pg.evaluate("cvQuiz.state().score") == 0
+          and ans in pg.locator("#quiz-body .quiz-reveal-name").inner_text())
+    check("the reveal reports return, CAGR and drawdown",
+          all(w in pg.locator("#quiz-body .quiz-stats").inner_text().lower() for w in ("totalavkastning", "cagr", "största nedgång")))
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+    check("Enter moves to round two", pg.evaluate("cvQuiz.state().round") == 1
+          and pg.locator("#quiz-round").inner_text() == "2")
+    # Keyboard answer on round two: find the right key and press it
+    names = pg.locator("#quiz-body .quiz-opts button").all_inner_texts(); ans = pg.evaluate("cvQuiz.answer()")
+    key = next(i for i, n in enumerate(names) if ans in n) + 1
+    pg.keyboard.press(str(key)); pg.wait_for_timeout(200)
+    check("a number key answers, a correct pick scores 100",
+          pg.evaluate("cvQuiz.state().score") == 100 and pg.locator("#quiz-body .quiz-opts button.is-wrong").count() == 0)
+    # Play out the rest correctly; the streak bonus should lift the total above 6 x 100
+    for _ in range(6):
+        pg.keyboard.press("Enter"); pg.wait_for_timeout(120)
+        names = pg.locator("#quiz-body .quiz-opts button").all_inner_texts(); ans = pg.evaluate("cvQuiz.answer()")
+        pg.keyboard.press(str(next(i for i, n in enumerate(names) if ans in n) + 1)); pg.wait_for_timeout(120)
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+    st = pg.evaluate("cvQuiz.state()")
+    check("eight rounds end on a result screen with a grade and a stored best",
+          st["state"] == "final" and st["score"] > 700
+          and pg.locator("#quiz-body .quiz-final-grade").inner_text() != ""
+          and pg.evaluate("+localStorage.getItem('cv-quiz-best')") == st["score"], st)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
+    check("Escape closes the quiz and unlocks the page",
+          pg.get_attribute("#quiz", "hidden") is not None
+          and pg.evaluate("document.body.style.overflow") == "")
+    pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
+    check("the palette lists the game",
+          "Spela: Gissa bolaget" in pg.locator(".cmdk-item .cmdk-label").all_inner_texts())
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    pg.emulate_media(media="print")
+    check("the game card stays off paper and the card before it takes the full row",
+          pg.eval_on_selector("#quiz-card", "e=>getComputedStyle(e).display") == "none"
+          and pg.eval_on_selector(".projects-grid > .project-card:nth-last-child(2)",
+                                  "e=>getComputedStyle(e).gridColumnStart+'/'+getComputedStyle(e).gridColumnEnd") == "1/-1")
+    pg.emulate_media(media="screen")
+
     check("no JS errors overall", not errors, errors)
 
     # --- Career map ---
