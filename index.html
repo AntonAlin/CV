@@ -900,12 +900,10 @@
   .projects-grid > .project-card:last-child:nth-child(odd){grid-column:1 / -1;}
 
   /* ---------- Guess the company ----------
-     A card in the projects grid opens a quiz: a real price chart, four
-     names, eight rounds. Rendered into #quiz-body by script. */
-  .project-card.is-game{cursor:pointer;}
-  .project-card.is-game:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
-  .project-game-badge{color:var(--violet);}
-  .project-game-badge .pulse-dot{background:var(--violet);box-shadow:0 0 0 0 rgba(139,124,246,.5);}
+     A button in the bar, beside the music, opens a quiz: a real price
+     chart, four names, eight rounds. Rendered into #quiz-body by script. */
+  .game-btn{color:var(--text-lo);}
+  .game-btn:hover{border-color:var(--violet);color:var(--text-hi);}
   .quiz-scrim{
     position:fixed;inset:0;z-index:210;
     background:rgba(4,7,13,.7);backdrop-filter:blur(4px);
@@ -1241,9 +1239,7 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
-    .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .quiz-scrim, .project-card.is-game{display:none !important;}
-    /* With the game card withheld, the card before it is the last one printed */
-    .projects-grid > .project-card:nth-last-child(2):nth-child(odd){grid-column:1 / -1;}
+    .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1556,6 +1552,10 @@
           <p class="music-hint"><span class="sv-only">Genereras i webbläsaren — inga filer, inget spåras.</span><span class="en-only">Generated in the browser — no files, nothing tracked.</span></p>
         </div>
       </div>
+      <button type="button" class="music-btn game-btn" id="quiz-btn" onclick="cvQuiz.open()" aria-haspopup="dialog" aria-controls="quiz">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg>
+        <span class="sr-only"><span class="sv-only">Gissa bolaget</span><span class="en-only">Guess the company</span></span>
+      </button>
       <div class="lang-toggle" role="group" aria-label="Language / Språk">
         <button id="btn-sv" class="active" onclick="setLang('sv')">SV</button>
         <button id="btn-en" onclick="setLang('en')">EN</button>
@@ -1919,20 +1919,6 @@
         </svg>
         <span class="project-open-link" data-print="antonalin.github.io/AreWeather"><span class="sv-only">Öppna verktyget</span><span class="en-only">Open the tool</span> →</span>
       </a>
-      <div class="project-card is-game" id="quiz-card" role="button" tabindex="0" onclick="cvQuiz.open()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();cvQuiz.open();}">
-        <div class="project-live-badge project-game-badge"><span class="pulse-dot"></span><span class="sv-only">Spel</span><span class="en-only">Game</span></div>
-        <div class="project-title"><span class="sv-only">Gissa bolaget</span><span class="en-only">Guess the Company</span></div>
-        <div class="tag-row"><span class="tag">Alpha Vantage</span><span class="tag">2008–2026</span><span class="tag">SVG</span></div>
-        <p class="project-desc sv-only">Vilket bolag döljer sig bakom kursgrafen? Åtta rundor, fyra alternativ och riktig månadsdata justerad för splittar och utdelningar.</p>
-        <p class="project-desc en-only">Which company is behind the price chart? Eight rounds, four options and real monthly data adjusted for splits and dividends.</p>
-        <svg class="project-chart" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-          <line x1="0" y1="32" x2="200" y2="32" stroke="var(--hairline-strong)" stroke-width="1"/>
-          <path d="M0 26 L20 22 L40 27 L60 18 L80 24 L100 12 L120 20 L140 8 L160 15 L180 5 L200 9"
-                stroke="var(--violet)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-          <text x="186" y="30" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--text-faint)">?</text>
-        </svg>
-        <span class="project-open-link"><span class="sv-only">Spela</span><span class="en-only">Play</span> →</span>
-      </div>
     </div>
   </section>
 
@@ -2661,7 +2647,7 @@
   })();
 
   /* ---------- Guess the company ----------
-     Sixteen listed companies, monthly adjusted closes fetched once from
+     Opened from the bar or the palette. Sixteen listed companies, monthly adjusted closes fetched once from
      Alpha Vantage and embedded here, so the game needs no network. Each
      round shows a window of one series indexed to 100 and four names. */
   var cvQuiz = (function(){

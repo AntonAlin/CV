@@ -447,13 +447,14 @@ with sync_playwright() as p:
           len(data) == 16 and all(len(d["p"]) >= 60 and min(d["p"]) > 0 for d in data)
           and all(len(d["p"]) == (2026 - int(d["s"][:4])) * 12 + (9 - int(d["s"][5:7])) + 1 for d in data),
           [(d["t"], len(d["p"])) for d in data])
-    check("the game card is the last project card",
-          pg.eval_on_selector(".projects-grid > .project-card:last-child", "e=>e.classList.contains('is-game')")
-          and pg.locator(".projects-grid > .project-card").count() == 6)
+    check("the game lives in the bar beside the music, not among the projects",
+          pg.locator(".controls #quiz-btn").count() == 1
+          and pg.locator(".projects-grid > .project-card").count() == 5
+          and pg.eval_on_selector("#quiz-btn", "e=>e.previousElementSibling.id") == "music")
     check("the quiz starts closed", pg.get_attribute("#quiz", "hidden") is not None)
-    pg.click("#quiz-card"); pg.wait_for_timeout(300)
+    pg.click("#quiz-btn"); pg.wait_for_timeout(300)
     st = pg.evaluate("cvQuiz.state()")
-    check("clicking the card opens round one with four names and a chart",
+    check("the bar button opens round one with four names and a chart",
           pg.get_attribute("#quiz", "hidden") is None and st["round"] == 0 and st["score"] == 0
           and pg.locator("#quiz-body .quiz-opts button").count() == 4
           and pg.locator("#quiz-body svg path.quiz-line").count() == 1
@@ -503,9 +504,9 @@ with sync_playwright() as p:
           "Spela: Gissa bolaget" in pg.locator(".cmdk-item .cmdk-label").all_inner_texts())
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.emulate_media(media="print")
-    check("the game card stays off paper and the card before it takes the full row",
-          pg.eval_on_selector("#quiz-card", "e=>getComputedStyle(e).display") == "none"
-          and pg.eval_on_selector(".projects-grid > .project-card:nth-last-child(2)",
+    check("the game button stays off paper and the projects keep their odd-card rule",
+          pg.eval_on_selector("#quiz-btn", "e=>getComputedStyle(e).display") == "none"
+          and pg.eval_on_selector(".projects-grid > .project-card:last-child",
                                   "e=>getComputedStyle(e).gridColumnStart+'/'+getComputedStyle(e).gridColumnEnd") == "1/-1")
     pg.emulate_media(media="screen")
 
