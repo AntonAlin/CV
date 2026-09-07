@@ -386,6 +386,61 @@ with sync_playwright() as p:
           pg.eval_on_selector("body", "b=>b.classList.contains('lang-en')"))
     pg.evaluate("setLang('sv')"); pg.wait_for_timeout(300)
 
+    # --- Music: generated, off by default, never autoplays ---
+    st = pg.evaluate("cvMusic.state()")
+    check("music is off on load and no audio context exists yet",
+          st["playing"] is False and st["started"] is False, st)
+    check("the music menu starts closed",
+          pg.get_attribute("#music-menu", "hidden") is not None
+          and pg.get_attribute("#music-btn", "aria-expanded") == "false")
+    pg.click("#music-btn"); pg.wait_for_timeout(200)
+    check("the note button opens a menu with four genres",
+          pg.get_attribute("#music-menu", "hidden") is None
+          and pg.locator("#music-menu [data-genre]").count() == 4)
+    check("genre descriptions render in one language only",
+          "Slow pads" not in pg.locator("#music-menu").inner_text()
+          and "Långsamma pads" in pg.locator("#music-menu").inner_text())
+    pg.click("#music-menu [data-genre='lofi']"); pg.wait_for_timeout(400)
+    st = pg.evaluate("cvMusic.state()")
+    check("choosing Lo-fi starts it", st["playing"] and st["genre"] == "lofi" and st["started"], st)
+    check("the bar shows it is playing and the genre is marked",
+          pg.eval_on_selector("#music", "e=>e.classList.contains('is-playing')")
+          and pg.get_attribute("#music-menu [data-genre='lofi']", "aria-pressed") == "true"
+          and not pg.eval_on_selector("#music-stop", "e=>e.disabled"))
+    pg.click("#music-menu [data-genre='synthwave']"); pg.wait_for_timeout(300)
+    st = pg.evaluate("cvMusic.state()")
+    check("switching genre keeps playing", st["playing"] and st["genre"] == "synthwave", st)
+    # Every piece must actually reach the output, not just flip a flag.
+    levels = {}
+    for g in ("synthwave", "ambient", "piano", "lofi"):
+        pg.evaluate(f"cvMusic.play('{g}')"); pg.wait_for_timeout(1500)
+        levels[g] = max(pg.evaluate("cvMusic.state().level") for _ in range(5))
+    check("all four genres produce sound (audio context running)",
+          pg.evaluate("cvMusic.state().ctx") == "running" and all(v > 0.003 for v in levels.values()),
+          {k: round(v, 4) for k, v in levels.items()})
+    pg.click("#music-menu [data-genre='synthwave']"); pg.wait_for_timeout(200)
+    pg.evaluate("cvMusic.volume(0.3)")
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+    check("Escape closes the menu", pg.get_attribute("#music-menu", "hidden") is not None)
+    pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
+    labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
+    check("the palette lists the genres and a stop while playing",
+          any(l.startswith("Spela: Piano") for l in labels) and "Stoppa musiken" in labels, labels)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    pg.evaluate("cvMusic.stop()"); pg.wait_for_timeout(200)
+    check("stop stops", not pg.evaluate("cvMusic.state().playing")
+          and not pg.eval_on_selector("#music", "e=>e.classList.contains('is-playing')"))
+    pg.reload(); pg.wait_for_timeout(1000)
+    st = pg.evaluate("cvMusic.state()")
+    check("a return visit remembers the genre and volume but stays silent",
+          st["playing"] is False and st["started"] is False
+          and st["genre"] == "synthwave" and abs(st["volume"] - 0.3) < .01, st)
+    pg.evaluate("setLang('sv')"); pg.wait_for_timeout(300)
+    pg.emulate_media(media="print")
+    check("the music control stays off paper",
+          pg.eval_on_selector("#music", "e=>getComputedStyle(e).display") == "none")
+    pg.emulate_media(media="screen")
+
     check("no JS errors overall", not errors, errors)
 
     # --- Career map ---
