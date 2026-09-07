@@ -459,6 +459,9 @@ with sync_playwright() as p:
           and pg.locator("#quiz-body .quiz-opts button").count() == 4
           and pg.locator("#quiz-body svg path.quiz-line").count() == 1
           and pg.locator("#quiz-body .quiz-axis").count() >= 2, st)
+    check("a time bar counts the bonus down while a round is open",
+          pg.locator("#quiz-time-fill").count() == 1
+          and pg.locator("#quiz-time-num").inner_text().startswith("+"))
     check("the chart names its scale and its window",
           pg.locator("#quiz-body .quiz-scale").inner_text().lower().split(" · ")[0] in ("logskala", "linjär")
           and " – " in pg.locator("#quiz-body .quiz-scale").inner_text())
@@ -482,8 +485,12 @@ with sync_playwright() as p:
     names = pg.locator("#quiz-body .quiz-opts button").all_inner_texts(); ans = pg.evaluate("cvQuiz.answer()")
     key = next(i for i, n in enumerate(names) if ans in n) + 1
     pg.keyboard.press(str(key)); pg.wait_for_timeout(200)
-    check("a number key answers, a correct pick scores 100",
-          pg.evaluate("cvQuiz.state().score") == 100 and pg.locator("#quiz-body .quiz-opts button.is-wrong").count() == 0)
+    st = pg.evaluate("cvQuiz.state()")
+    check("a number key answers; a quick correct pick scores 100 plus a time bonus",
+          140 <= st["score"] <= 150 and st["timeBonus"] == st["score"] - 100
+          and pg.locator("#quiz-body .quiz-opts button.is-wrong").count() == 0, st)
+    check("the reveal itemises right, time and streak",
+          all(w in pg.locator("#quiz-body .quiz-hint").inner_text() for w in ("rätt", "tid", "svit")))
     # Play out the rest correctly; the streak bonus should lift the total above 6 x 100
     for _ in range(6):
         pg.keyboard.press("Enter"); pg.wait_for_timeout(120)
@@ -492,7 +499,7 @@ with sync_playwright() as p:
     pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
     st = pg.evaluate("cvQuiz.state()")
     check("eight rounds end on a result screen with a grade and a stored best",
-          st["state"] == "final" and st["score"] > 700
+          st["state"] == "final" and st["score"] > 1200
           and pg.locator("#quiz-body .quiz-final-grade").inner_text() != ""
           and pg.evaluate("+localStorage.getItem('cv-quiz-best')") == st["score"], st)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
