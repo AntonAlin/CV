@@ -768,6 +768,35 @@ with sync_playwright() as p:
 
     check("no JS errors overall", not errors, errors)
 
+    # --- Daily market strip ---
+    MK = {"updated": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "items": [
+        {"id": "SPY", "label": "S&P 500", "kind": "etf", "price": 641.87, "chg": 0.00418, "day": "2026-09-08"},
+        {"id": "QQQ", "label": "Nasdaq 100", "kind": "etf", "price": 572.4, "chg": -0.00469, "day": "2026-09-08"},
+        {"id": "EURSEK", "label": "EUR/SEK", "kind": "fx", "price": 11.045, "chg": 0.00227, "day": "2026-09-08"}]}
+    check("the market strip stays hidden from a file:// copy", pg.get_attribute("#market-strip", "hidden") is not None
+          and pg.evaluate("cvMarkets.state()") is None)
+    ok = pg.evaluate("cvMarkets.render(" + _json.dumps(MK) + ")"); pg.wait_for_timeout(100)
+    txt = pg.locator("#market-strip").inner_text()
+    check("a fresh file renders a chip per item with a signed one-decimal move and the close date",
+          ok and pg.get_attribute("#market-strip", "hidden") is None
+          and pg.locator("#market-strip .mk").count() == 3
+          and pg.locator("#market-strip .mk[data-id='SPY'] .mk-c.is-up").count() == 1
+          and pg.locator("#market-strip .mk[data-id='QQQ'] .mk-c.is-down").count() == 1
+          and "641,87" in txt and "11,045" in txt and "+0,4\xa0%" in txt and "\u22120,5\xa0%" in txt
+          and "2026-09-08" in txt and "stängning" in txt.lower(), txt)
+    pg.evaluate("setLang('en')"); pg.wait_for_timeout(100)
+    txt = pg.locator("#market-strip").inner_text()
+    check("the strip follows the language", "641.87" in txt and "close" in txt.lower(), txt)
+    pg.evaluate("setLang('sv')"); pg.wait_for_timeout(100)
+    pg.emulate_media(media="print")
+    check("the strip never prints", pg.evaluate("getComputedStyle(document.getElementById('market-strip')).display") == "none")
+    pg.emulate_media(media="screen")
+    stale = dict(MK, updated="2026-01-05T21:20:00Z")
+    check("a stale file hides the strip again",
+          pg.evaluate("cvMarkets.render(" + _json.dumps(stale) + ")") is False
+          and pg.get_attribute("#market-strip", "hidden") is not None)
+    check("a bad file hides it too", pg.evaluate("cvMarkets.render({})") is False)
+
     # --- About this page ---
     check("the about panel starts closed and has a footer link", pg.get_attribute("#about", "hidden") is not None
           and pg.locator("#footer-about").count() == 1)

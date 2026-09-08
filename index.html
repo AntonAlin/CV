@@ -1284,6 +1284,23 @@
 
   /* Footer */
   footer{padding:40px 0 60px;text-align:center;}
+  /* Daily market strip: a quiet ticker row above the footer note, filled
+     from data/markets.json (refreshed by a weekday Action) */
+  .market-strip{
+    display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 10px;
+    margin:0 auto 22px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-lo);
+  }
+  .market-strip[hidden]{display:none;}
+  .market-strip .mk{
+    display:inline-flex;align-items:baseline;gap:7px;padding:5px 11px;border:1px solid var(--hairline);
+    border-radius:999px;background:var(--panel);white-space:nowrap;
+  }
+  .market-strip .mk-l{color:var(--text-faint);}
+  .market-strip .mk-p{color:var(--text);}
+  .market-strip .mk-c{font-size:11px;}
+  .market-strip .mk-c.is-up{color:var(--green);}
+  .market-strip .mk-c.is-down{color:var(--pink);}
+  .market-strip .mk-meta{flex-basis:100%;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-top:2px;}
   .footer-note{
     font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);
   }
@@ -1422,7 +1439,7 @@
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
     .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim, .hero-moon, .sky-line,
-    .live-note, .project-chart.is-live, .mc-wrap, .ski-scrim, .hero-snow{display:none !important;}
+    .live-note, .project-chart.is-live, .mc-wrap, .ski-scrim, .hero-snow, .market-strip{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -2272,6 +2289,7 @@
 
 <footer>
   <div class="wrap footer-inner">
+    <div class="market-strip" id="market-strip" aria-label="Marknaden / Markets" hidden></div>
     <div class="footer-note">
       <span class="sv-only">Referenser lämnas på begäran.</span><span class="en-only">References available on request.</span>
       <span class="footer-sep">&nbsp;·&nbsp;</span><a href="#contact-block" id="footer-contact-link"><span class="sv-only">Kontaktuppgifter ovan</span><span class="en-only">Contact info above</span></a><span id="footer-contact"></span>
@@ -3714,6 +3732,48 @@
       /* For the tests: the name the current round is looking for, or "up"/"down" */
       answer: function(){ return game && game.q ? (updown() ? (game.q.up ? 'up' : 'down') : DATA[game.q.idx].n) : null; }
     };
+  })();
+
+  /* ---------- Daily market strip ----------
+     Reads data/markets.json, written each weekday evening by
+     .github/workflows/update-markets.yml, and renders a row of chips in
+     the footer. Nothing is fetched from a file:// copy, and a file older
+     than a long weekend is treated as missing. */
+  var cvMarkets = (function(){
+    var URL = 'data/markets.json', MAX_AGE_H = 5 * 24, data = null;
+    function en(){ return document.body.classList.contains('lang-en'); }
+    function T(sv, e){ return en() ? e : sv; }
+    function num(x, dec){ return x.toLocaleString(en() ? 'en-GB' : 'sv-SE', {minimumFractionDigits: dec, maximumFractionDigits: dec}); }
+    function pct(x){
+      var v = Math.round(x * 1000) / 10;
+      return (v > 0 ? '+' : (v < 0 ? '\u2212' : '')) + num(Math.abs(v), 1) + '\u00a0%';
+    }
+    function fresh(json){
+      if(!json || !json.items || !json.items.length || !json.updated){ return false; }
+      var t = Date.parse(json.updated); if(isNaN(t)){ return false; }
+      return (Date.now() - t) / 36e5 <= MAX_AGE_H;
+    }
+    function render(json){
+      var el = document.getElementById('market-strip'); if(!el){ return false; }
+      if(json !== undefined){ data = fresh(json) ? json : null; }
+      if(!data){ el.setAttribute('hidden', ''); el.innerHTML = ''; return false; }
+      var day = data.items.reduce(function(m, it){ return it.day > m ? it.day : m; }, '');
+      el.innerHTML = data.items.map(function(it){
+        var dir = it.chg > 0 ? 'is-up' : (it.chg < 0 ? 'is-down' : '');
+        return '<span class="mk" data-id="' + it.id + '"><span class="mk-l">' + it.label + '</span>'
+             + '<span class="mk-p">' + num(it.price, it.kind === 'fx' ? 3 : 2) + '</span>'
+             + '<span class="mk-c ' + dir + '">' + (it.chg > 0 ? '\u25b2 ' : (it.chg < 0 ? '\u25bc ' : '')) + pct(it.chg) + '</span></span>';
+      }).join('') + '<span class="mk-meta">' + T('Stängning', 'Close') + ' ' + day + ' · Alpha Vantage</span>';
+      el.removeAttribute('hidden');
+      return true;
+    }
+    function load(){
+      if(location.protocol === 'file:' || !window.fetch){ return; }
+      fetch(URL, {cache: 'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(render, function(){ render(null); });
+    }
+    document.addEventListener('cv:lang', function(){ render(); });
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', load); } else { load(); }
+    return {render: render, fresh: fresh, state: function(){ return data; }};
   })();
 
   /* ---------- About this page ----------
