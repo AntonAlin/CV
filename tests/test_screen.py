@@ -32,6 +32,15 @@ def check(name, cond, extra=""):
 with sync_playwright() as p:
     b = launch(p)
     pg = b.new_page(viewport={"width":1280,"height":900})
+    # The sky asks NOAA for the K-index; serve a fixture so the run is deterministic and offline.
+    import json as _json, datetime as _dt
+    _now = _dt.datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+    KP_FIXTURE = [["time_tag", "kp", "observed", "noaa_scale"]] + [
+        [(_now + _dt.timedelta(hours=3 * i)).strftime("%Y-%m-%d %H:%M:%S"), v, "predicted" if i > 0 else "observed", None]
+        for i, v in enumerate(["3.00", "4.33", "4.67", "3.33", "2.00", "1.67", "1.33", "1.00", "1.00"])]
+    KP_FIXTURE.insert(1, [(_now - _dt.timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S"), "2.33", "observed", None])
+    pg.route("**/services.swpc.noaa.gov/**",
+             lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(KP_FIXTURE)))
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.on("console", lambda m: errors.append("console."+m.type+": "+m.text)
@@ -440,6 +449,47 @@ with sync_playwright() as p:
     check("the music control stays off paper",
           pg.eval_on_selector("#music", "e=>getComputedStyle(e).display") == "none")
     pg.emulate_media(media="screen")
+
+    # --- Moon and space weather ---
+    check("the moon's phase is computed from a real ephemeris",
+          pg.evaluate("cvSky.moon(new Date('2000-01-21T04:40:00Z')).fraction") > .98
+          and pg.evaluate("cvSky.moon(new Date('2000-01-06T18:14:00Z')).fraction") < .01
+          and abs(pg.evaluate("cvSky.moon(new Date('2000-01-14T13:34:00Z')).fraction") - .5) < .07
+          and pg.evaluate("cvSky.moon(new Date('2000-01-14T13:34:00Z')).waxing") is True)
+    check("tonight's moon is drawn with its lit fraction",
+          pg.locator("#hero-moon svg path.moon-lit").count() == 1
+          and abs(float(pg.get_attribute("#hero-moon", "data-fraction")) - pg.evaluate("cvSky.moon().fraction")) < .01)
+    kpst = pg.evaluate("cvSky.kp()")
+    check("the K-index forecast is parsed: current now, tonight's peak from the next 24 h",
+          kpst and kpst["now"] == 3.0 and abs(kpst["tonight"] - 4.67) < .01, kpst)
+    check("an active night strengthens the aurora and the sky line says so",
+          pg.evaluate("document.body.classList.contains('kp-quiet')") is False
+          and pg.get_attribute("#sky-line", "hidden") is None
+          and "Kp 4.7" in pg.locator("#sky-line").inner_text()
+          and "goda chanser" in pg.locator("#sky-line").inner_text()
+          and "%" in pg.locator("#sky-line").inner_text(), pg.locator("#sky-line").inner_text())
+    check("a quiet forecast reads quiet, a storm reads storm",
+          pg.evaluate("cvSky.parse([['t','kp','o','s'],['2020-01-01 00:00:00','1.0','observed',null]]).tonight") == 1.0
+          and pg.evaluate("cvSky.parse('nonsense')") is None)
+    pg.click("#btn-en"); pg.wait_for_timeout(200)
+    check("the sky line follows the language", "Aurora tonight" in pg.locator("#sky-line").inner_text())
+    pg.click("#btn-sv"); pg.wait_for_timeout(200)
+    pg.emulate_media(media="print")
+    check("moon and sky line stay off paper",
+          pg.eval_on_selector("#hero-moon", "e=>getComputedStyle(e).display") == "none"
+          and pg.eval_on_selector("#sky-line", "e=>getComputedStyle(e).display") == "none")
+    pg.emulate_media(media="screen")
+    # Without the forecast the page must stay quiet and error-free
+    fctx = b.new_context(viewport={"width":1280,"height":900}); fpg = fctx.new_page()
+    ferr = []; fpg.on("pageerror", lambda e: ferr.append(str(e)))
+    fpg.route("**/services.swpc.noaa.gov/**", lambda route: route.abort())
+    fontmirror.prepare(fpg, URL); fpg.wait_for_timeout(900)
+    check("no forecast: the moon still shows, the aurora keeps its default, no errors",
+          fpg.evaluate("cvSky.kp()") is None and fpg.get_attribute("#sky-line", "hidden") is None
+          and "Kp" not in fpg.locator("#sky-line").inner_text()
+          and not any(c in fpg.evaluate("document.body.className") for c in ("kp-quiet", "kp-active", "kp-storm"))
+          and not ferr, ferr)
+    fctx.close()
 
     # --- Guess the company ---
     data = pg.evaluate("cvQuiz.data()")

@@ -499,6 +499,40 @@
     pointer-events:none;
   }
   body.tod-day .hero-sun{opacity:.9;transform:scale(1);}
+
+  /* ---------- Moon and space weather ----------
+     The moon is drawn by script with tonight's real phase; it fades out by
+     day. The aurora layer's strength follows NOAA's planetary K-index when
+     that could be fetched (see cvSky), otherwise it keeps its default. */
+  .hero-moon{
+    position:absolute;top:9%;right:34%;width:54px;height:54px;
+    opacity:0;transform:scale(.9);transition:opacity 2.6s ease,transform 2.6s ease;
+    pointer-events:none;filter:drop-shadow(0 0 14px rgba(240,236,220,.35));
+  }
+  .hero-moon svg{display:block;width:100%;height:100%;overflow:visible;}
+  .hero-moon .moon-dark{fill:#1a2233;}
+  .hero-moon .moon-lit{fill:#efe9d6;}
+  body.tod-night .hero-moon{opacity:.95;transform:scale(1);}
+  body.tod-dusk  .hero-moon{opacity:.7;transform:scale(1);}
+  body.tod-dawn  .hero-moon{opacity:.5;transform:scale(1);}
+  @media (max-width:760px){ .hero-moon{top:3%;right:auto;left:8%;width:40px;height:40px;} }
+  @media (prefers-reduced-motion: reduce){ .hero-moon{transition:none;} }
+  .sky-line{
+    display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.06em;
+    color:var(--text-faint);
+  }
+  .sky-line span{display:inline-flex;align-items:center;gap:6px;}
+  .sky-line b{font-weight:500;color:var(--text-lo);}
+  .sky-line .kp-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);}
+  .sky-line .kp-dot.kp-2{background:var(--teal);}
+  .sky-line .kp-dot.kp-4{background:var(--green);box-shadow:0 0 8px var(--green);}
+  .sky-line .kp-dot.kp-5{background:var(--pink);box-shadow:0 0 10px var(--pink);}
+  /* Space weather scales the aurora: quiet nights stay soft, a storm glows */
+  body.kp-quiet .aurora-layer{opacity:.42;}
+  body.kp-active .aurora-layer{opacity:.72;filter:blur(60px) saturate(150%);}
+  body.kp-storm .aurora-layer{opacity:.9;filter:blur(56px) saturate(175%);}
+  body.kp-storm .aurora-band{animation-duration:14s;}
   @media (max-width:760px){ .hero-sun{top:2%;right:10%;width:120px;height:120px;} }
   /* Cloud positions are tuned as a percentage of a short, wide desktop hero.
      Stacked mobile layout makes the hero much taller, so those same
@@ -1256,7 +1290,7 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
-    .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim{display:none !important;}
+    .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim, .hero-moon, .sky-line{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1607,6 +1641,7 @@
     <circle cx="128" cy="98" r="1.3"/>
   </svg>
   <div class="hero-sun" aria-hidden="true"></div>
+  <div class="hero-moon" id="hero-moon" aria-hidden="true"></div>
   <div class="hero-cloud c1" aria-hidden="true"></div>
   <div class="hero-cloud c2" aria-hidden="true"></div>
   <div class="hero-cloud c3" aria-hidden="true"></div>
@@ -1659,6 +1694,8 @@
       <span class="dot">·</span>
       <a href="https://github.com/AntonAlin/" target="_blank" rel="noopener">github.com/AntonAlin</a>
     </div>
+
+    <div class="sky-line" id="sky-line" hidden></div>
 
     <p class="kicker-summary sv-only">
       Data- och BI-specialist med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ
@@ -2175,6 +2212,87 @@
     }
     apply();
     setInterval(apply, 10 * 60 * 1000);
+  })();
+
+  /* ---------- Moon phase and space weather ----------
+     The moon's age is counted from a known new moon, drawn as a lit disc
+     behind a terminator ellipse. The K-index forecast comes from NOAA's
+     Space Weather Prediction Center; on any failure the sky keeps its
+     default look and the line simply says nothing about the aurora. */
+  var cvSky = (function(){
+    var SYNODIC = 29.530588853, NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);
+    var KP_URL = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json';
+    var KP_KEY = 'cv-kp', kp = null;
+    function en(){ return document.body.classList.contains('lang-en'); }
+    function moon(date){
+      var age = (((date || new Date()).getTime() - NEW_MOON) / 864e5) % SYNODIC;
+      if(age < 0){ age += SYNODIC; }
+      var f = age / SYNODIC, lit = (1 - Math.cos(2 * Math.PI * f)) / 2, waxing = f < .5;
+      var name = lit < .03 ? ['nymåne', 'new moon'] : lit > .97 ? ['fullmåne', 'full moon']
+        : waxing ? (lit < .5 ? ['tilltagande skära', 'waxing crescent'] : ['tilltagande måne', 'waxing gibbous'])
+                 : (lit < .5 ? ['avtagande skära', 'waning crescent'] : ['avtagande måne', 'waning gibbous']);
+      return {age: age, fraction: lit, waxing: waxing, phase: f, sv: name[0], en: name[1]};
+    }
+    function drawMoon(){
+      var host = document.getElementById('hero-moon'); if(!host){ return; }
+      var m = moon(), r = 26, c = Math.cos(2 * Math.PI * m.phase), rx = Math.abs(c) * r;
+      /* Outer half circle on the lit side, back along the terminator */
+      var outer = m.waxing ? 'A' + r + ' ' + r + ' 0 0 1 0 ' + r : 'A' + r + ' ' + r + ' 0 0 0 0 ' + r;
+      var sweep = m.waxing ? (c > 0 ? 0 : 1) : (c > 0 ? 1 : 0);
+      var path = 'M0 ' + (-r) + ' ' + outer + ' A' + rx.toFixed(2) + ' ' + r + ' 0 0 ' + sweep + ' 0 ' + (-r) + ' Z';
+      host.innerHTML = '<svg viewBox="-28 -28 56 56"><circle class="moon-dark" r="' + r + '"/><path class="moon-lit" d="' + path + '"/></svg>';
+      host.setAttribute('data-fraction', m.fraction.toFixed(2));
+    }
+    function kpClass(v){ return v >= 5 ? 'kp-storm' : v >= 4 ? 'kp-active' : v >= 2 ? '' : 'kp-quiet'; }
+    function applyKp(){
+      ['kp-quiet', 'kp-active', 'kp-storm'].forEach(function(c){ document.body.classList.remove(c); });
+      if(!kp){ return; }
+      var cls = kpClass(kp.now);
+      if(cls){ document.body.classList.add(cls); }
+    }
+    function line(){
+      var el = document.getElementById('sky-line'); if(!el){ return; }
+      var m = moon(), isEn = en(), parts = [];
+      parts.push('<span>\u263D <b>' + (isEn ? m.en : m.sv) + '</b> ' + Math.round(m.fraction * 100) + '\u00a0%</span>');
+      if(kp){
+        var v = kp.tonight, tier = v >= 5 ? 5 : v >= 4 ? 4 : v >= 2 ? 2 : 0;
+        var word = isEn
+          ? (tier === 5 ? 'geomagnetic storm, strong chance' : tier === 4 ? 'good chance in Åre' : tier === 2 ? 'possible under a clear sky' : 'quiet')
+          : (tier === 5 ? 'geomagnetisk storm, stor chans' : tier === 4 ? 'goda chanser i Åre' : tier === 2 ? 'möjligt vid klar himmel' : 'lugnt');
+        parts.push('<span><i class="kp-dot kp-' + tier + '"></i>' + (isEn ? 'Aurora tonight' : 'Norrsken i natt') + ': <b>Kp ' + v.toFixed(v % 1 ? 1 : 0) + '</b> \u00b7 ' + word + '</span>');
+      }
+      el.innerHTML = parts.join('');
+      el.removeAttribute('hidden');
+    }
+    function parse(rows){
+      /* [["time_tag","kp","observed","noaa_scale"], ["2026-09-08 00:00:00","2.33","observed",null], ...] */
+      if(!Array.isArray(rows) || rows.length < 2){ return null; }
+      var now = Date.now(), cur = null, tonight = 0, hasFuture = false;
+      rows.slice(1).forEach(function(r){
+        var t = Date.parse(String(r[0]).replace(' ', 'T') + 'Z'), v = parseFloat(r[1]);
+        if(isNaN(t) || isNaN(v)){ return; }
+        if(t <= now){ cur = v; }
+        else if(t - now < 24 * 36e5){ tonight = Math.max(tonight, v); hasFuture = true; }
+      });
+      if(cur === null){ return null; }
+      return {now: cur, tonight: hasFuture ? Math.max(tonight, cur) : cur, at: now};
+    }
+    function load(){
+      try {
+        var cached = JSON.parse(sessionStorage.getItem(KP_KEY) || 'null');
+        if(cached && Date.now() - cached.at < 30 * 60 * 1000){ kp = cached; applyKp(); line(); return; }
+      } catch(e) {}
+      if(!window.fetch){ line(); return; }
+      fetch(KP_URL, {cache: 'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+        var parsed = parse(j);
+        if(parsed){ kp = parsed; try { sessionStorage.setItem(KP_KEY, JSON.stringify(kp)); } catch(e) {} }
+        applyKp(); line();
+      }).catch(function(){ line(); });
+    }
+    document.addEventListener('cv:lang', line);
+    drawMoon(); line(); load();
+    setInterval(drawMoon, 60 * 60 * 1000);
+    return {moon: moon, kp: function(){ return kp; }, parse: parse};
   })();
 
   /* ---------- Portrait carousel ---------- */
