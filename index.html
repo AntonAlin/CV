@@ -939,6 +939,31 @@
      both motion settings: the fade is the only part that needs motion, so
      that is the only part reduced-motion removes. */
   .is-hit{background:rgba(61,220,151,.16);box-shadow:0 0 0 6px rgba(61,220,151,.16);border-radius:6px;}
+  /* Evidence: a skill tag lights the lines and cards where it was used */
+  .skill-tags > span.has-evidence{cursor:pointer;border-color:var(--hairline-strong);transition:border-color .2s ease,color .2s ease;}
+  .skill-tags > span.has-evidence:hover{border-color:var(--teal);}
+  .skill-tags > span.has-evidence::after{
+    content:attr(data-hits);margin-left:7px;font-family:'JetBrains Mono',monospace;font-size:10px;
+    color:var(--text-faint);vertical-align:1px;
+  }
+  .skill-tags > span.is-on{border-color:var(--green);color:var(--green);box-shadow:inset 0 0 0 1px var(--green);}
+  .skill-tags > span.is-on::after{color:var(--green);}
+  .is-evidence{background:rgba(61,220,151,.12);box-shadow:0 0 0 6px rgba(61,220,151,.12);border-radius:6px;transition:background .3s ease,box-shadow .3s ease;}
+  .project-card.is-evidence{box-shadow:0 0 0 1px var(--green);}
+  .career-bar.is-evidence{box-shadow:0 0 0 2px var(--green),0 0 12px rgba(61,220,151,.5);}
+  .evidence-pill{
+    position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;
+    display:flex;align-items:center;gap:12px;padding:9px 14px 9px 16px;border-radius:999px;
+    background:var(--panel-2);border:1px solid var(--green);box-shadow:0 12px 32px rgba(0,0,0,.45);
+    font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.04em;color:var(--text-lo);white-space:nowrap;
+  }
+  .evidence-pill b{color:var(--green);font-weight:500;}
+  .evidence-pill button{
+    appearance:none;border:1px solid var(--hairline-strong);border-radius:999px;background:transparent;
+    color:var(--text-lo);font:inherit;padding:3px 9px;cursor:pointer;
+  }
+  .evidence-pill button:hover{border-color:var(--teal);color:var(--text-hi);}
+  @media print{ .skill-tags > span.has-evidence::after{content:none;} .evidence-pill{display:none !important;} }
   @media (prefers-reduced-motion: no-preference){
     .is-hit{animation:hit-fade 1.7s ease-out forwards;}
   }
@@ -4252,6 +4277,7 @@
                    + ' · ' + periodText(r.period, en) + (dur ? ' · ' + dur.textContent : '');
           bar.setAttribute('aria-label', name);
           bar.title = name;
+          bar._job = r.job;
           bar.addEventListener('click', function(){
             r.job.scrollIntoView({behavior: reduced ? 'instant' : 'smooth', block: 'start'});
             flashHit(r.job);
@@ -4334,7 +4360,19 @@
       }
       raf = requestAnimationFrame(frame);
     }
-    window.cvCareer = {replay: replay, stop: stop, playing: function(){ return playing; }};
+    /* Evidence marks: light the bars of the given job elements */
+    function mark(jobs){
+      fig.querySelectorAll('.career-bar').forEach(function(b){ b.classList.remove('is-evidence'); });
+      roles.forEach(function(r){
+        if(jobs.indexOf(r.job) >= 0){
+          var i = roles.indexOf(r);
+          var bars = fig.querySelectorAll('.career-bar');
+          /* bars are appended in role order per employer row; find by label instead */
+          bars.forEach(function(b){ if(b.getAttribute('aria-label') === (b._label || b.getAttribute('aria-label')) && b._job === r.job){ b.classList.add('is-evidence'); } });
+        }
+      });
+    }
+    window.cvCareer = {replay: replay, stop: stop, playing: function(){ return playing; }, mark: mark};
 
     document.addEventListener('cv:lang', render);
     render();
@@ -4347,6 +4385,95 @@
       }
     }, {threshold:0.3});
     io.observe(fig);
+  })();
+
+  /* ---------- Skills point at their evidence ----------
+     Each skill tag knows which words in the experience and the projects
+     count as proof of it. Click one: the matching lines, cards and career
+     bars light up and the page scrolls to the first. Esc clears. */
+  var cvEvidence = (function(){
+    var RX = {
+      'sql': /\bsql\b/i, 'python': /python/i, 'microsoft fabric': /fabric/i,
+      'datamodellering': /semantis|semantic|datamodell|data model|\bdax\b/i, 'data modelling': /semantis|semantic|datamodell|data model|\bdax\b/i,
+      'lakehouse': /lakehouse|pipeline/i, 'power bi': /power bi/i, 'tableau': /tableau/i, 'azure': /azure/i, 'aws athena': /athena/i,
+      'datastrategi': /strategi|strategy|roadmap/i, 'data strategy': /strategi|strategy|roadmap/i,
+      'datastyrning': /datastyrning|governance|kvalitet|quality/i, 'data governance': /datastyrning|governance|kvalitet|quality/i,
+      'ai/ml': /\bai\b|\bml\b|prediktiv|predictive|lightgbm|xgboost|ensemble/i,
+      'produktägarskap': /produktägare|product owner|backlogg|backlog/i, 'product ownership': /produktägare|product owner|backlogg|backlog/i,
+      'agile/scrum': /koordinerade|coordinated|tvärfunktion|cross-functional|utbildade|trained|team/i,
+      'investeringsdata': /investeringsdata|investment data|fond|fund/i, 'investment & fund data': /investeringsdata|investment data|fond|fund/i,
+      'förvaltade investeringar': /förvaltade|managed investment|fond|fund/i, 'managed investments': /förvaltade|managed investment|fond|fund/i,
+      'etf:er': /\betf|pension/i, 'etfs': /\betf|pension/i, 'mifid ii': /mifid|solven/i,
+      'esg-data': /\besg|csrd|esrs|taxonom/i, 'esg data': /\besg|csrd|esrs|taxonom/i,
+      'intressenthantering': /intressent|stakeholder|ledning|leadership|styrelse|board/i, 'stakeholder management': /intressent|stakeholder|ledning|leadership|styrelse|board/i,
+      'morningstar direct': /morningstar/i, 'pitchbook': /pitchbook/i, 'salesforce': /salesforce/i, 'excel': /excel/i
+    };
+    var active = null, pill = null;
+    function en(){ return document.body.classList.contains('lang-en'); }
+    function T(sv, e){ return en() ? e : sv; }
+    function norm(s){ return s.replace(/\s+/g, ' ').trim().toLowerCase(); }
+    function regexFor(tag){
+      var t = norm(tag.textContent), best = null;
+      Object.keys(RX).forEach(function(k){ if(t.indexOf(k) === 0 && (!best || k.length > best.length)){ best = k; } });
+      return best ? RX[best] : null;
+    }
+    function visibleTags(){
+      return Array.prototype.filter.call(document.querySelectorAll('#skills .skill-tags > span'), function(t){ return t.offsetParent !== null; });
+    }
+    function targets(rx){
+      var only = en() ? '.en-only' : '.sv-only', out = [];
+      document.querySelectorAll('#experience .job ul' + only + ' > li').forEach(function(li){ if(rx.test(li.textContent)){ out.push(li); } });
+      document.querySelectorAll('#projects .project-card').forEach(function(c){
+        var txt = (c.querySelector('.project-title') || c).textContent + ' ' + Array.prototype.map.call(c.querySelectorAll('.tag'), function(x){ return x.textContent; }).join(' ')
+          + ' ' + Array.prototype.map.call(c.querySelectorAll('.project-desc' + only), function(x){ return x.textContent; }).join(' ');
+        if(rx.test(txt)){ out.push(c); }
+      });
+      return out;
+    }
+    function clear(){
+      document.querySelectorAll('.is-evidence').forEach(function(e){ e.classList.remove('is-evidence'); });
+      document.querySelectorAll('#skills .skill-tags > span.is-on').forEach(function(t){ t.classList.remove('is-on'); t.setAttribute('aria-pressed', 'false'); });
+      if(pill){ pill.remove(); pill = null; }
+      active = null;
+    }
+    function show(tag){
+      var rx = regexFor(tag); if(!rx){ return; }
+      var was = active === tag;
+      clear();
+      if(was){ return; }
+      var hits = targets(rx); if(!hits.length){ return; }
+      active = tag; tag.classList.add('is-on'); tag.setAttribute('aria-pressed', 'true');
+      hits.forEach(function(h){ h.classList.add('is-evidence'); });
+      var jobs = hits.map(function(h){ return h.closest ? h.closest('.job') : null; }).filter(Boolean);
+      if(window.cvCareer && window.cvCareer.mark){ window.cvCareer.mark(jobs); }
+      pill = document.createElement('div'); pill.className = 'evidence-pill'; pill.setAttribute('role', 'status');
+      pill.innerHTML = '<span><b>' + tag.textContent.replace(/\s+/g, ' ').trim().split(' — ')[0] + '</b> · ' + hits.length + ' ' + T(hits.length === 1 ? 'träff' : 'träffar', hits.length === 1 ? 'hit' : 'hits') + '</span>'
+        + '<button type="button">' + T('Rensa', 'Clear') + ' (Esc)</button>';
+      pill.querySelector('button').addEventListener('click', clear);
+      document.body.appendChild(pill);
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      hits[0].scrollIntoView({behavior: reduced ? 'instant' : 'smooth', block: 'center'});
+    }
+    function count(){
+      visibleTags().forEach(function(t){
+        var rx = regexFor(t), n = rx ? targets(rx).length : 0;
+        t.classList.toggle('has-evidence', n > 0);
+        if(n > 0){ t.setAttribute('data-hits', String(n)); t.setAttribute('role', 'button'); t.setAttribute('tabindex', '0'); t.setAttribute('aria-pressed', 'false'); }
+        else { t.removeAttribute('data-hits'); t.removeAttribute('role'); t.removeAttribute('tabindex'); t.removeAttribute('aria-pressed'); }
+      });
+    }
+    document.addEventListener('click', function(e){
+      var t = e.target.closest ? e.target.closest('#skills .skill-tags > span.has-evidence') : null;
+      if(t){ show(t); }
+    });
+    document.addEventListener('keydown', function(e){
+      var t = e.target && e.target.closest ? e.target.closest('#skills .skill-tags > span.has-evidence') : null;
+      if(t && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); show(t); return; }
+      if(e.key === 'Escape' && active){ clear(); }
+    });
+    document.addEventListener('cv:lang', function(){ clear(); count(); });
+    count();
+    return {count: count, clear: clear, active: function(){ return active ? active.textContent.trim() : null; }, hits: function(){ return document.querySelectorAll('.is-evidence').length; }};
   })();
 
   /* ---------- Constellations light as they come into view ---------- */

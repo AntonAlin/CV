@@ -727,6 +727,33 @@ with sync_playwright() as p:
 
     check("no JS errors overall", not errors, errors)
 
+    # --- Skills point at their evidence ---
+    fabric = pg.locator("#skills .skill-tags > span", has_text="Microsoft Fabric").first
+    check("tags with proof in the text are marked clickable with a count, others are not",
+          fabric.evaluate("e=>e.classList.contains('has-evidence') && +e.dataset.hits>=3 && e.getAttribute('role')==='button'")
+          and not pg.locator("#skills .skill-tags > span", has_text="Pitchbook").first.evaluate("e=>e.classList.contains('has-evidence')"))
+    fabric.click(); pg.wait_for_timeout(600)
+    check("clicking Fabric lights its bullets, the SE2 card and the current role's bar, and says how many",
+          pg.locator("#experience li.is-evidence").count() >= 2
+          and pg.locator('[data-live="se2"].is-evidence').count() == 1
+          and pg.locator(".career-bar.is-evidence").count() >= 1
+          and fabric.get_attribute("aria-pressed") == "true"
+          and "träffar" in pg.locator(".evidence-pill").inner_text(), pg.evaluate("cvEvidence.hits()"))
+    try:
+        pg.wait_for_function("(()=>{const e=document.querySelector('#experience li.is-evidence');if(!e)return false;const r=e.getBoundingClientRect();return r.top>0&&r.bottom<innerHeight;})()", timeout=3000)
+        settled = True
+    except Exception:
+        settled = False
+    check("the first hit is scrolled into view", settled)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
+    check("Escape clears every mark", pg.evaluate("cvEvidence.hits()") == 0 and pg.locator(".evidence-pill").count() == 0
+          and fabric.get_attribute("aria-pressed") == "false")
+    fabric.click(); pg.wait_for_timeout(200); fabric.click(); pg.wait_for_timeout(200)
+    check("a second click on the same tag clears too", pg.evaluate("cvEvidence.hits()") == 0)
+    pg.emulate_media(media="print")
+    check("the count never prints", fabric.evaluate("e=>getComputedStyle(e,'::after').content") in ("none", "normal"))
+    pg.emulate_media(media="screen")
+
     # --- Career map ---
     n_roles = pg.locator("#experience .job-period[data-from]").count()
     check("career map draws one bar per dated role",
