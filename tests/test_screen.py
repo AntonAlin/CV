@@ -486,6 +486,7 @@ with sync_playwright() as p:
     _recent = (_now - _dt.timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
     check("a quiet recent reading parses, a stale or malformed one is rejected",
           pg.evaluate("cvSky.parse([['t','kp','o','s'],['%s','1.0','observed',null]]).tonight" % _recent) == 1.0
+          and pg.evaluate("cvSky.parse([{time_tag:'%s',kp:'2.67',observed:'observed',noaa_scale:null},{time_tag:'%s',kp:'5.00',observed:'predicted',noaa_scale:'G1'}]).tonight" % (_recent, (_now + _dt.timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"))) == 5.0
           and pg.evaluate("cvSky.parse([['t','kp','o','s'],['2020-01-01 00:00:00','1.0','observed',null]])") is None
           and pg.evaluate("cvSky.parse('nonsense')") is None)
     pg.click("#btn-en"); pg.wait_for_timeout(200)

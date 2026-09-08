@@ -29,9 +29,11 @@ jobs:
           python3 - <<'PY'
           import json
           rows = json.load(open("/tmp/kp.json"))
-          assert isinstance(rows, list) and len(rows) > 2 and rows[0][0] == "time_tag", rows[:1]
-          float(rows[1][1])
-          print(f"{len(rows) - 1} rows, latest {rows[-1][0]}")
+          assert isinstance(rows, list) and len(rows) > 2, type(rows)
+          def cell(r, i, k): return r[i] if isinstance(r, list) else r[k]
+          body = [r for r in rows if cell(r, 0, "time_tag") != "time_tag"]
+          float(cell(body[0], 1, "kp"))
+          print(f"{len(body)} rows, latest {cell(body[-1], 0, 'time_tag')}")
           PY
           cp /tmp/kp.json data/kp.json
 

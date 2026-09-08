@@ -2332,11 +2332,14 @@
       if(parts.length){ el.removeAttribute('hidden'); } else { el.setAttribute('hidden', ''); }
     }
     function parse(rows){
-      /* [["time_tag","kp","observed","noaa_scale"], ["2026-09-08 00:00:00","2.33","observed",null], ...] */
+      /* NOAA serves [{time_tag, kp, observed, noaa_scale}, ...]; older products
+         used a header row followed by arrays. Both are read. */
       if(!Array.isArray(rows) || rows.length < 2){ return null; }
       var now = Date.now(), cur = null, curAt = 0, tonight = 0, hasFuture = false;
-      rows.slice(1).forEach(function(r){
-        var t = Date.parse(String(r[0]).replace(' ', 'T').replace(/Z?$/, 'Z')), v = parseFloat(r[1]);
+      rows.forEach(function(r){
+        var tag = Array.isArray(r) ? r[0] : (r && r.time_tag), kpv = Array.isArray(r) ? r[1] : (r && r.kp);
+        if(tag === 'time_tag' || tag == null){ return; }
+        var t = Date.parse(String(tag).replace(' ', 'T').replace(/Z?$/, 'Z')), v = parseFloat(kpv);
         if(isNaN(t) || isNaN(v)){ return; }
         if(t <= now){ cur = v; curAt = t; }
         else if(t - now < 24 * 36e5){ tonight = Math.max(tonight, v); hasFuture = true; }
