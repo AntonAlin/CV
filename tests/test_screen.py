@@ -587,8 +587,8 @@ with sync_playwright() as p:
           "wx-rain" in pg.evaluate("document.body.className") and pg.locator(".hero .hero-rain i").count() >= 80
           and pg.locator(".hero .hero-snow").count() == 0 and "regn" in pg.locator("#sky-line").inner_text())
     pg.evaluate("cvWx.apply({temp: 2, wind: 1, gust: 2, dir: 10, code: 45, cloud: 100, rain: 0, snowfall: 0})"); pg.wait_for_timeout(200)
-    check("fog: two drifting banks", "wx-fog" in pg.evaluate("document.body.className")
-          and pg.locator(".hero .hero-fog i").count() == 2 and pg.locator(".hero .hero-rain").count() == 0
+    check("fog: three drifting banks", "wx-fog" in pg.evaluate("document.body.className")
+          and pg.locator(".hero .hero-fog i").count() == 3 and pg.locator(".hero .hero-rain").count() == 0
           and "dimma" in pg.locator("#sky-line").inner_text())
     pg.evaluate("cvWx.apply({temp: 18, wind: 4, gust: 12, dir: 180, code: 95, cloud: 80, rain: 5, snowfall: 0})"); pg.wait_for_timeout(200)
     check("thunder: the flash layer animates over heavy rain",
@@ -597,13 +597,27 @@ with sync_playwright() as p:
           and pg.locator(".hero .hero-rain i").count() >= 140 and "åska" in pg.locator("#sky-line").inner_text())
     pg.evaluate("cvWx.apply({temp: 3, wind: 2, gust: 3, dir: 10, code: 3, cloud: 100, rain: 0, snowfall: 0})")
     pg.evaluate("document.body.classList.remove('tod-day','tod-dusk','tod-dawn'); document.body.classList.add('tod-night'); document.dispatchEvent(new CustomEvent('cv:tod'))"); pg.wait_for_timeout(200)
-    check("an overcast night says so next to the aurora forecast",
+    pg.wait_for_timeout(2800)   # clouds fade over 2.6 s
+    check("an overcast night says so next to the aurora forecast, under night-tinted clouds",
           "mulet i Åre just nu" in pg.locator("#sky-line").inner_text()
-          and pg.eval_on_selector(".hero-cloud.c1", "e=>getComputedStyle(e).opacity") == "0.22", pg.locator("#sky-line").inner_text())
+          and pg.eval_on_selector(".hero-cloud.c1", "e=>String(Math.round(parseFloat(getComputedStyle(e).opacity)*100)/100)") == "0.32", pg.locator("#sky-line").inner_text())
     pg.evaluate("document.body.classList.remove('tod-night'); document.body.classList.add('tod-day'); document.dispatchEvent(new CustomEvent('cv:tod'))")
     pg.evaluate("cvWx.apply({temp: 9, wind: 3, gust: 5, dir: 10, code: 2, cloud: 40, rain: 0, snowfall: 0})"); pg.wait_for_timeout(200)
-    ops = [pg.eval_on_selector(".hero-cloud.c%d" % i, "e=>getComputedStyle(e).opacity") for i in (1, 2, 3)]
-    check("partly cloudy by day shows one cloud, not three", ops == ["0", "0", "0.5"], ops)
+    pg.wait_for_timeout(2800)   # clouds fade over 2.6 s
+    ops = [pg.eval_on_selector(".hero-cloud.c%d" % i, "e=>String(Math.round(parseFloat(getComputedStyle(e).opacity)*100)/100)") for i in (1, 2, 3, 4, 5)]
+    check("partly cloudy by day shows the two far clouds, not all five", ops == ["0", "0", "0.9", "0", "0.9"], ops)
+    check("the badge sits in the hero's top-right, above the portrait and clear of the bar",
+          pg.evaluate("(()=>{const b=document.getElementById('sky-line').getBoundingClientRect(), p=document.querySelector('.portrait-frame').getBoundingClientRect(), bar=document.querySelector('.controlbar').getBoundingClientRect(), w=document.querySelector('.hero-content').getBoundingClientRect(); return b.top>=bar.bottom && b.bottom<=p.top+2 && Math.abs(b.right-w.right)<30 && b.width<=270;})()"),
+          pg.evaluate("(()=>{const b=document.getElementById('sky-line').getBoundingClientRect(); return [b.top,b.bottom,b.right,b.width];})()"))
+    check("the badge carries an icon, a big temperature and a caption",
+          pg.locator("#sky-line .wx-ico svg").count() == 1 and pg.locator("#sky-line .wx-temp").count() == 1
+          and float(pg.eval_on_selector("#sky-line .wx-temp", "e=>parseFloat(getComputedStyle(e).fontSize)")) >= 18
+          and pg.locator("#sky-line .wx-cap").inner_text() == "Åre just nu")
+    sunpos = pg.evaluate("[getComputedStyle(document.body).getPropertyValue('--sun-x').trim(), getComputedStyle(document.body).getPropertyValue('--sun-y').trim(), cvTod.sun(new Date('2026-06-21T02:00:00Z')).az, cvTod.sun(new Date('2026-06-21T11:08:00Z')).az, cvTod.sun(new Date('2026-06-21T19:00:00Z')).az]")
+    check("the sun is placed by Åre's real azimuth: east in the morning, south at noon, west in the evening",
+          sunpos[0].endswith("%") and sunpos[1].endswith("%") and 25 < sunpos[2] < 100 and 170 < sunpos[3] < 190 and 260 < sunpos[4] < 330, sunpos)
+    check("thunder also draws a bolt, a blizzard also blows gusts",
+          pg.evaluate("(()=>{cvWx.apply({temp:18,wind:4,gust:12,dir:180,code:95,cloud:80,rain:5,snowfall:0}); const b=document.querySelector('.hero .hero-bolt svg path'); cvWx.apply({temp:-8,wind:16,gust:24,dir:270,code:75,cloud:100,rain:0,snowfall:3.1}); const g=document.querySelectorAll('.hero .hero-gust i').length; return !!b && g>=5 && !document.querySelector('.hero .hero-bolt');})()"))
     cl = pg.evaluate("[cvWx.classify({code:71, wind:3}).blizzard, cvWx.classify({code:71, wind:11}).blizzard, cvWx.classify({code:2}).sky, cvWx.classify({code:0, cloud:60}).sky, cvWx.classify({code:61, rain:0.2}).rate, cvWx.classify({code:53}).drizzle]")
     check("the classifier: wind makes a blizzard, cover beats the code, drizzle is drizzle", cl == [False, True, "partly", "cloudy", 1, True], cl)
     pg.evaluate("cvWx.apply(" + _json.dumps(FIX) + ")"); pg.wait_for_timeout(200)
@@ -1106,8 +1120,8 @@ with sync_playwright() as p:
           len([c for c in cls_on_load if c.startswith("tod-")]) == 1, cls_on_load)
     check("the ambient wash sits inside the starfield",
           pg.locator(".starfield .starfield-glow").count()==1)
-    check("one sun and three clouds exist, decorative and inert",
-          pg.locator(".hero-sun").count()==1 and pg.locator(".hero-cloud").count()==3
+    check("one sun and five clouds exist, decorative and inert",
+          pg.locator(".hero-sun").count()==1 and pg.locator(".hero-cloud").count()==5
           and pg.eval_on_selector_all(".hero-sun,.hero-cloud",
               "els=>els.every(e=>e.getAttribute('aria-hidden')==='true' "
               +"&& getComputedStyle(e).pointerEvents==='none')"))

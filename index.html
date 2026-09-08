@@ -490,15 +490,23 @@
      and entirely absent at night/dawn/dusk — this is additive to those, not
      a replacement for them. */
   .hero-sun{
-    position:absolute;top:6%;right:16%;
-    width:170px;height:170px;border-radius:50%;
+    position:absolute;top:var(--sun-y,10%);left:var(--sun-x,78%);
+    width:170px;height:170px;border-radius:50%;margin:-85px 0 0 -85px;
     background:radial-gradient(circle,
       #fff6df 0%,#ffd76b 30%,rgba(255,183,77,.5) 58%,rgba(255,183,77,0) 78%);
     filter:blur(3px);
     opacity:0;transform:scale(.85);
-    transition:opacity 2.6s ease,transform 2.6s ease;
+    transition:opacity 2.6s ease,transform 2.6s ease,top 2.6s ease,left 2.6s ease;
     pointer-events:none;
   }
+  /* A slow wheel of rays, only on a clear day */
+  .hero-sun::after{
+    content:'';position:absolute;inset:-70%;border-radius:50%;
+    background:repeating-conic-gradient(rgba(255,214,120,.16) 0 4deg,transparent 4deg 16deg);
+    -webkit-mask:radial-gradient(circle,rgba(0,0,0,.9) 22%,transparent 62%);mask:radial-gradient(circle,rgba(0,0,0,.9) 22%,transparent 62%);
+    animation:sun-rays 140s linear infinite;opacity:calc(1 - 2.5 * var(--wx-cloud,0));
+  }
+  @keyframes sun-rays{to{transform:rotate(360deg);}}
   body.tod-day .hero-sun{opacity:calc(.9 * (1 - .85 * var(--wx-cloud,0)));transform:scale(1);}
 
   /* ---------- Share image ----------
@@ -507,7 +515,7 @@
   body.og-mode .controlbar, body.og-mode .sky-line, body.og-mode .meta-row,
   body.og-mode .portrait-dots, body.og-mode .kicker-summary, body.og-mode .hero-sun,
   body.og-mode .hero-cloud, body.og-mode .hero-moon, body.og-mode .hero-rain, body.og-mode .hero-snow,
-  body.og-mode .hero-fog, body.og-mode .hero-deck, body.og-mode .hero-flash{display:none !important;}
+  body.og-mode .hero-fog, body.og-mode .hero-deck, body.og-mode .hero-flash, body.og-mode .hero-bolt, body.og-mode .hero-gust{display:none !important;}
   body.og-mode .hero{min-height:630px;padding:150px 0 0;border-bottom:none;}
   body.og-mode .hero-content{padding-right:0;}
   body.og-mode h1.name{font-size:92px;}
@@ -538,6 +546,7 @@
   body.tod-dusk  .hero-moon{--moon-op:.7;transform:scale(1);}
   body.tod-dawn  .hero-moon{--moon-op:.5;transform:scale(1);}
   @media (max-width:760px){ .hero-moon{top:3%;right:auto;left:8%;width:40px;height:40px;} }
+
   @media (prefers-reduced-motion: reduce){ .hero-moon{transition:none;} }
   /* Snow: drawn only while Open-Meteo reports snowfall on Åreskutan */
   .hero-snow{position:absolute;inset:-25% -25% 0;z-index:0;pointer-events:none;overflow:hidden;transform:rotate(var(--wx-tilt,0deg));transform-origin:50% 0;}
@@ -550,17 +559,43 @@
   @keyframes snow-fall{
     0%{transform:translate3d(0,0,0);opacity:0;}
     8%{opacity:1;}
-    100%{transform:translate3d(var(--sx,20px),calc(100% + 640px),0);opacity:.2;}
+    25%{transform:translate3d(calc(var(--sx,20px) * .25 + var(--sw,0px)),240px,0);}
+    50%{transform:translate3d(calc(var(--sx,20px) * .5),480px,0);}
+    75%{transform:translate3d(calc(var(--sx,20px) * .75 - var(--sw,0px)),720px,0);}
+    100%{transform:translate3d(var(--sx,20px),960px,0);opacity:.2;}
   }
   @media (prefers-reduced-motion: reduce){ .hero-snow{display:none;} }
+  /* The weather badge: Åre right now, in the hero's top-right corner, out of
+     the CV's own flow. Below the sticky bar, above the portrait. */
   .sky-line{
-    display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;
-    font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.06em;
+    position:absolute;top:-64px;right:0;z-index:3;
+    display:flex;flex-direction:column;gap:5px;min-width:150px;max-width:250px;
+    padding:9px 13px 9px 11px;border-radius:14px;
+    background:rgba(9,13,22,.5);border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);
+    box-shadow:0 8px 28px rgba(0,0,0,.28);
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;line-height:1.35;
     color:var(--text-faint);
   }
-  .sky-line span{display:inline-flex;align-items:center;gap:6px;}
+  .sky-line[hidden]{display:none;}
+  .sky-line .wx-cap{font-size:9.5px;letter-spacing:.16em;color:var(--text-faint);opacity:.8;}
+  .sky-line .wx-main{display:flex;align-items:center;gap:9px;}
+  .sky-line .wx-ico{flex:none;width:30px;height:30px;color:var(--text);}
+  .sky-line .wx-ico svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+  .sky-line .wx-ico .sun-core{fill:#ffd76b;stroke:none;}
+  .sky-line .wx-ico .moon-fill{fill:#efe9d6;stroke:none;}
+  .sky-line .wx-ico .bolt{fill:#ffd76b;stroke:none;}
+  .sky-line .wx-temp{display:block;font-family:'Inter',system-ui,sans-serif;font-size:19px;font-weight:600;letter-spacing:-.01em;color:var(--text-hi);line-height:1.1;}
+  .sky-line .wx-desc{display:block;margin-top:2px;white-space:nowrap;}
+  .sky-line .wx-sub{display:flex;flex-direction:column;gap:3px;padding-top:5px;border-top:1px solid rgba(255,255,255,.07);}
+  .sky-line .wx-sub span{display:block;}
   .sky-line b{font-weight:500;color:var(--text-lo);}
-  .sky-line .kp-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);}
+  .sky-line .kp-dot{display:inline-block;vertical-align:middle;width:7px;height:7px;margin:-2px 5px 0 0;border-radius:50%;background:var(--text-faint);}
+  /* Stacked layout: the badge sits in the flow above the portrait */
+  @media (max-width:760px){
+    .sky-line{position:static;display:inline-flex;margin:-6px 0 22px;max-width:100%;}
+    .sky-line .wx-desc{white-space:normal;}
+  }
   .sky-line .kp-dot.kp-2{background:var(--teal);}
   .sky-line .kp-dot.kp-4{background:var(--green);box-shadow:0 0 8px var(--green);}
   .sky-line .kp-dot.kp-5{background:var(--pink);box-shadow:0 0 10px var(--pink);}
@@ -569,7 +604,7 @@
   body.kp-active .aurora-layer{--aurora-op:.72;filter:blur(60px) saturate(150%);}
   body.kp-storm .aurora-layer{--aurora-op:.9;filter:blur(56px) saturate(175%);}
   body.kp-storm .aurora-band{animation-duration:14s;}
-  @media (max-width:760px){ .hero-sun{top:2%;right:10%;width:120px;height:120px;} }
+  @media (max-width:760px){ .hero-sun{width:120px;height:120px;margin:-60px 0 0 -60px;} }
   /* Cloud positions are tuned as a percentage of a short, wide desktop hero.
      Stacked mobile layout makes the hero much taller, so those same
      percentages land the clouds down over the name and eyebrow instead of
@@ -582,44 +617,63 @@
      gradients and shapes. Only `transform` (via the standalone `scale`
      property, composing independently of the drift keyframes below) and
      `opacity` change, so each cloud is as cheap as the star layers. */
+  body{--cloud-rgb:255,255,255;--cloud-shade:96,108,132;}
+  body.tod-night{--cloud-rgb:158,172,206;--cloud-shade:12,16,28;}
+  body.tod-dusk, body.tod-dawn{--cloud-rgb:244,214,208;--cloud-shade:80,60,90;}
   .hero-cloud{
-    position:absolute;
-    width:120px;height:38px;border-radius:40px;
-    background:rgba(255,255,255,.6);
-    filter:blur(1.5px);
+    position:absolute;left:0;
+    width:260px;height:96px;
+    background:
+      radial-gradient(ellipse 58px 50px at 50% 52%,rgba(var(--cloud-rgb),.98),rgba(var(--cloud-rgb),0) 72%),
+      radial-gradient(ellipse 46px 40px at 27% 66%,rgba(var(--cloud-rgb),.95),rgba(var(--cloud-rgb),0) 72%),
+      radial-gradient(ellipse 50px 42px at 73% 64%,rgba(var(--cloud-rgb),.95),rgba(var(--cloud-rgb),0) 72%),
+      radial-gradient(ellipse 34px 30px at 12% 78%,rgba(var(--cloud-rgb),.8),rgba(var(--cloud-rgb),0) 72%),
+      radial-gradient(ellipse 36px 30px at 90% 76%,rgba(var(--cloud-rgb),.8),rgba(var(--cloud-rgb),0) 72%),
+      radial-gradient(ellipse 120px 30px at 50% 84%,rgba(var(--cloud-rgb),.95),rgba(var(--cloud-rgb),0) 70%),
+      radial-gradient(ellipse 110px 18px at 50% 96%,rgba(var(--cloud-shade),.45),rgba(var(--cloud-shade),0) 70%);
+    filter:blur(2.5px);
     opacity:0;
     animation:cloud-drift linear infinite;
     animation-play-state:paused;
     pointer-events:none;
+    transition:opacity 2.6s ease;
   }
-  .hero-cloud::before,.hero-cloud::after{
-    content:'';position:absolute;background:inherit;border-radius:50%;
-  }
-  .hero-cloud::before{width:60px;height:60px;top:-28px;left:10px;}
-  .hero-cloud::after {width:42px;height:42px;top:-20px;left:64px;}
-  .hero-cloud.c1{top:12%;animation-duration:75s;}
-  .hero-cloud.c2{top:28%;animation-duration:100s;animation-delay:-30s;scale:.75;}
-  .hero-cloud.c3{top:20%;animation-duration:130s;animation-delay:-70s;scale:.55;}
-  body.tod-day .hero-cloud{opacity:.5;animation-play-state:running;}
-  /* With Åre's report in hand the cover decides: none, one, two or all three
-     clouds, at every hour, dark-tinted at night, and drifting faster in wind */
-  body{--cloud-op:.5;}
-  body.tod-dusk, body.tod-dawn{--cloud-op:.38;}
-  body.tod-night{--cloud-op:.22;}
+  /* Five clouds at three depths: the far ones small, soft and slow */
+  .hero-cloud.c1{top:4%;animation-duration:95s;scale:.9;}
+  .hero-cloud.c2{top:26%;animation-duration:125s;animation-delay:-40s;scale:.62;filter:blur(3.5px);}
+  .hero-cloud.c3{top:14%;animation-duration:160s;animation-delay:-90s;scale:.45;filter:blur(4px);}
+  .hero-cloud.c4{top:38%;animation-duration:110s;animation-delay:-15s;scale:.75;}
+  .hero-cloud.c5{top:0;animation-duration:180s;animation-delay:-120s;scale:.4;filter:blur(4px);}
+  /* Without a report a day shows three fair-weather clouds, as it always has */
+  body.tod-day:not(.has-wx) .hero-cloud.c1, body.tod-day:not(.has-wx) .hero-cloud.c3, body.tod-day:not(.has-wx) .hero-cloud.c5{opacity:var(--cloud-op);animation-play-state:running;}
+  /* With Åre's report in hand the cover decides how many clouds, at every
+     hour, tinted by the light, and drifting faster in wind */
+  body{--cloud-op:.9;}
+  body.tod-dusk, body.tod-dawn{--cloud-op:.55;}
+  body.tod-night{--cloud-op:.32;}
   body.has-wx .hero-cloud{opacity:0;animation-play-state:running;}
-  body.has-wx.wx-partly .hero-cloud.c3, body.has-wx.wx-cloudy .hero-cloud.c2, body.has-wx.wx-cloudy .hero-cloud.c3,
+  body.has-wx.wx-partly .hero-cloud.c3, body.has-wx.wx-partly .hero-cloud.c5,
+  body.has-wx.wx-cloudy .hero-cloud.c2, body.has-wx.wx-cloudy .hero-cloud.c3, body.has-wx.wx-cloudy .hero-cloud.c4, body.has-wx.wx-cloudy .hero-cloud.c5,
   body.has-wx.wx-overcast .hero-cloud{opacity:var(--cloud-op);}
-  body.tod-night .hero-cloud{background:rgba(168,182,214,.7);}
-  body.tod-dusk .hero-cloud, body.tod-dawn .hero-cloud{background:rgba(236,214,214,.6);}
-  body.has-wx .hero-cloud.c1{animation-duration:calc(75s / (1 + var(--wx-wind,0) / 5));}
-  body.has-wx .hero-cloud.c2{animation-duration:calc(100s / (1 + var(--wx-wind,0) / 5));}
-  body.has-wx .hero-cloud.c3{animation-duration:calc(130s / (1 + var(--wx-wind,0) / 5));}
-  /* Cloud deck: a veil that thickens from half cover to overcast, lit by the
-     hour; a blizzard whitens it */
+  body.has-wx .hero-cloud.c1{animation-duration:calc(95s / (1 + var(--wx-wind,0) / 5));}
+  body.has-wx .hero-cloud.c2{animation-duration:calc(125s / (1 + var(--wx-wind,0) / 5));}
+  body.has-wx .hero-cloud.c3{animation-duration:calc(160s / (1 + var(--wx-wind,0) / 5));}
+  body.has-wx .hero-cloud.c4{animation-duration:calc(110s / (1 + var(--wx-wind,0) / 5));}
+  body.has-wx .hero-cloud.c5{animation-duration:calc(180s / (1 + var(--wx-wind,0) / 5));}
+  /* Cloud deck: billows along the top that thicken from half cover to
+     overcast, lit by the hour; rain darkens it, a blizzard whitens it */
   .hero-deck{
     position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;
-    background:linear-gradient(180deg,var(--wx-deck-1) 0%,var(--wx-deck-2) 55%,transparent 100%);
+    background:
+      radial-gradient(ellipse 34% 42% at 12% -4%,var(--wx-deck-1),transparent 70%),
+      radial-gradient(ellipse 40% 46% at 48% -8%,var(--wx-deck-1),transparent 70%),
+      radial-gradient(ellipse 36% 40% at 84% -2%,var(--wx-deck-1),transparent 70%),
+      radial-gradient(ellipse 30% 30% at 30% 6%,var(--wx-deck-1),transparent 70%),
+      radial-gradient(ellipse 28% 32% at 68% 8%,var(--wx-deck-1),transparent 70%),
+      linear-gradient(180deg,var(--wx-deck-2) 0%,var(--wx-deck-2) 30%,transparent 100%);
   }
+  body.wx-rain{--wx-deck-1:rgba(98,110,136,.6);--wx-deck-2:rgba(64,74,96,.38);}
+  body.wx-rain.tod-night{--wx-deck-1:rgba(22,28,44,.9);--wx-deck-2:rgba(14,18,30,.62);}
   body{--wx-deck-1:rgba(150,162,182,.5);--wx-deck-2:rgba(112,124,144,.32);}
   body.tod-dusk, body.tod-dawn{--wx-deck-1:rgba(96,100,128,.6);--wx-deck-2:rgba(70,74,100,.4);}
   body.tod-night{--wx-deck-1:rgba(30,36,54,.86);--wx-deck-2:rgba(18,22,34,.6);}
@@ -629,28 +683,49 @@
   /* Rain: thin streaks, leaning with the wind */
   .hero-rain{position:absolute;inset:-25% -25% 0;z-index:0;pointer-events:none;overflow:hidden;transform:rotate(var(--wx-tilt,0deg));transform-origin:50% 0;}
   .hero-rain i{
-    position:absolute;top:-40px;width:1px;height:18px;display:block;
-    background:linear-gradient(180deg,rgba(196,212,240,0),rgba(196,212,240,.6));
+    position:absolute;top:-60px;width:1px;height:18px;display:block;border-radius:1px;
+    background:linear-gradient(180deg,rgba(196,212,240,0),rgba(196,212,240,.7));
     animation:rain-fall linear infinite;
   }
   @keyframes rain-fall{0%{transform:translate3d(0,0,0);}100%{transform:translate3d(0,1200px,0);}}
+  /* Blizzard gusts: bands of blown snow racing across, and the flakes streak */
+  .hero-gust{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .hero-gust i{
+    position:absolute;left:-40%;width:40%;height:2px;display:block;border-radius:2px;
+    background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.55),rgba(255,255,255,0));
+    filter:blur(1px);animation:gust-run linear infinite;
+  }
+  @keyframes gust-run{to{transform:translate3d(350%,0,0);}}
+  body.wx-blizzard .hero-gust i{animation-direction:var(--gust-dir,normal);}
+  /* Lightning: a bolt that shows in the flash */
+  .hero-bolt{position:absolute;top:0;left:var(--bolt-x,60%);width:70px;height:220px;z-index:0;pointer-events:none;opacity:0;}
+  .hero-bolt svg{width:100%;height:100%;overflow:visible;}
+  .hero-bolt path{fill:none;stroke:#f3f6ff;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 6px rgba(200,214,255,.95)) drop-shadow(0 0 16px rgba(160,180,255,.7));}
+  body.wx-thunder .hero-bolt{animation:wx-bolt 11s linear infinite;}
+  @keyframes wx-bolt{0%,90.6%,100%{opacity:0;}91%{opacity:1;}92%{opacity:.15;}93%{opacity:.9;}94.2%{opacity:0;}}
   /* Fog: two soft banks drifting across the hero */
   .hero-fog{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
   .hero-fog i{
     position:absolute;left:-30%;width:160%;height:48%;display:block;filter:blur(26px);
-    background:radial-gradient(ellipse at 50% 50%,rgba(204,214,230,.5),transparent 70%);
+    background:
+      radial-gradient(ellipse 40% 60% at 30% 50%,rgba(196,208,226,.42),transparent 70%),
+      radial-gradient(ellipse 36% 55% at 66% 40%,rgba(196,208,226,.38),transparent 70%),
+      radial-gradient(ellipse 60% 40% at 50% 70%,rgba(196,208,226,.3),transparent 70%);
     animation:fog-drift 46s ease-in-out infinite alternate;
   }
-  .hero-fog i:first-child{top:2%;}
-  .hero-fog i:last-child{top:46%;animation-delay:-23s;animation-duration:58s;}
-  body.tod-night .hero-fog i{opacity:.55;}
+  .hero-fog i:nth-child(1){top:-6%;}
+  .hero-fog i:nth-child(2){top:30%;animation-delay:-23s;animation-duration:58s;filter:blur(34px);}
+  .hero-fog i:nth-child(3){top:58%;animation-delay:-40s;animation-duration:70s;height:60%;}
+  .hero-fog::after{content:'';position:absolute;inset:auto 0 0;height:40%;background:linear-gradient(0deg,rgba(196,206,222,.2),transparent);}
+  body.tod-night .hero-fog i{opacity:.5;}
+  body.tod-night .hero-fog::after{opacity:.5;}
   @keyframes fog-drift{from{transform:translate3d(-6%,0,0);}to{transform:translate3d(6%,0,0);}}
   /* Thunder: an occasional flash across the sky */
   .hero-flash{position:absolute;inset:0;z-index:0;pointer-events:none;background:rgba(232,238,255,.8);opacity:0;}
   body.wx-thunder .hero-flash{animation:wx-flash 11s linear infinite;}
   @keyframes wx-flash{0%,90.5%,100%{opacity:0;}91%{opacity:.55;}92%{opacity:.08;}93%{opacity:.4;}94.5%{opacity:0;}}
   @media (prefers-reduced-motion: reduce){
-    .hero-rain{display:none;} .hero-fog i{animation:none;} body.wx-thunder .hero-flash{animation:none;}
+    .hero-rain, .hero-gust{display:none;} .hero-fog i{animation:none;} body.wx-thunder .hero-flash, body.wx-thunder .hero-bolt{animation:none;}
     .hero-cloud{animation:none;}
   }
   @keyframes cloud-drift{
@@ -658,7 +733,7 @@
     to{transform:translateX(125%);}
   }
   @media (prefers-reduced-motion: reduce){
-    .hero-sun{transition:none;}
+    .hero-sun{transition:none;} .hero-sun::after{animation:none;}
     .hero-cloud{animation:none;}
   }
 
@@ -748,6 +823,8 @@
   .portrait-dot:hover{background:var(--teal);}
   @media (min-width:761px){
     .hero-content{padding-right:206px;}
+    /* The portrait gives way to however tall the weather badge above it is */
+    .portrait-frame{top:calc(2px + var(--badge-shift,0px));transition:top .4s ease;}
   }
   @media (max-width:760px){
     .portrait-frame{position:static;margin-bottom:24px;}
@@ -1519,7 +1596,7 @@
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
     .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim, .hero-moon, .sky-line,
     .live-note, .project-chart.is-live, .mc-wrap, .ski-scrim, .hero-snow, .market-strip,
-    .hero-rain, .hero-fog, .hero-deck, .hero-flash{display:none !important;}
+    .hero-rain, .hero-fog, .hero-deck, .hero-flash, .hero-bolt, .hero-gust{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1874,9 +1951,12 @@
   <div class="hero-cloud c1" aria-hidden="true"></div>
   <div class="hero-cloud c2" aria-hidden="true"></div>
   <div class="hero-cloud c3" aria-hidden="true"></div>
+  <div class="hero-cloud c4" aria-hidden="true"></div>
+  <div class="hero-cloud c5" aria-hidden="true"></div>
   <div class="hero-deck" aria-hidden="true"></div>
   <div class="hero-flash" aria-hidden="true"></div>
   <div class="wrap hero-content">
+    <div class="sky-line" id="sky-line" role="status" aria-live="off" hidden></div>
     <div class="portrait-frame" id="portrait-frame">
       <div class="portrait-ring">
         <img class="portrait-img is-active" data-idx="0" src="img/portrait-1.jpg" alt="Anton Ålin">
@@ -1926,7 +2006,6 @@
       <a href="https://github.com/AntonAlin/" target="_blank" rel="noopener">github.com/AntonAlin</a>
     </div>
 
-    <div class="sky-line" id="sky-line" hidden></div>
 
     <p class="kicker-summary sv-only">
       Data- och BI-specialist med över 10 års erfarenhet i skärningspunkten mellan finansiell data, kvantitativ
@@ -2507,7 +2586,17 @@
       var H = ((gmst + LON / 15) * 15 * Math.PI / 180) - ra;                       /* hour angle, 0 at solar noon */
       var alt = Math.asin(Math.sin(LAT) * Math.sin(dec) + Math.cos(LAT) * Math.cos(dec) * Math.cos(H));
       var hDeg = ((H * 180 / Math.PI) % 360 + 360) % 360;
-      return {alt: alt * 180 / Math.PI, afternoon: hDeg < 180};
+      /* Azimuth from north through east: sunrise east, noon south, sunset west */
+      var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(LAT) - Math.tan(dec) * Math.cos(LAT)) * 180 / Math.PI + 180;
+      return {alt: alt * 180 / Math.PI, az: ((az % 360) + 360) % 360, afternoon: hDeg < 180};
+    }
+    /* Where the sun sits over the hero: east at the left edge, west at the
+       right, and higher the higher it stands. Read every ten minutes. */
+    function place(){
+      var s = sun(new Date()), b = document.body.style;
+      var x = 8 + 84 * Math.max(0, Math.min(1, (s.az - 60) / 240));
+      var y = 6 + 42 * (1 - Math.max(0, Math.min(1, s.alt / 50)));
+      b.setProperty('--sun-x', x.toFixed(1) + '%'); b.setProperty('--sun-y', y.toFixed(1) + '%');
     }
     function phase(date){
       var s = sun(date || new Date());
@@ -2516,6 +2605,7 @@
       return 'tod-night';
     }
     function apply(){
+      place();
       var next = phase(new Date());
       if(document.body.classList.contains(next)){ return; }
       PHASES.forEach(function(p){ document.body.classList.remove(p); });
@@ -2568,12 +2658,15 @@
       var el = document.getElementById('sky-line'); if(!el){ return; }
       var m = moon(), isEn = en(), parts = [];
       var wx = window.cvWx ? cvWx.state() : null;
-      if(wx){
-        parts.push('<span>' + cvWx.icon() + ' ' + (isEn ? 'Åre now' : 'Åre just nu') + ': <b>' + (typeof wx.temp === 'number' && !isNaN(wx.temp)
-          ? (Math.round(wx.temp * 10) / 10).toLocaleString(isEn ? 'en-GB' : 'sv-SE').replace('-', '\u2212') + '\u00a0°C' : '') + '</b> \u00b7 ' + cvWx.word(isEn)
-          + (wx.wind >= 5 ? ' \u00b7 ' + Math.round(wx.wind) + '\u00a0m/s' : '') + '</span>');
-      }
       var moonUp = /tod-(night|dusk|dawn)/.test(document.body.className);
+      var main = '';
+      if(wx){
+        var temp = typeof wx.temp === 'number' && !isNaN(wx.temp)
+          ? (Math.round(wx.temp * 10) / 10).toLocaleString(isEn ? 'en-GB' : 'sv-SE').replace('-', '\u2212') + '\u00a0°C' : '';
+        main = '<div class="wx-cap">' + (isEn ? 'Åre now' : 'Åre just nu') + '</div>'
+          + '<div class="wx-main"><span class="wx-ico">' + cvWx.icon() + '</span><span><b class="wx-temp">' + temp + '</b>'
+          + '<span class="wx-desc">' + cvWx.word(isEn) + (wx.wind >= 5 ? ' \u00b7 ' + Math.round(wx.wind) + '\u00a0m/s' : '') + '</span></span></div>';
+      }
       if(moonUp){ parts.push('<span>\u263D <b>' + (isEn ? m.en : m.sv) + '</b> ' + Math.round(m.fraction * 100) + '\u00a0%</span>'); }
       if(snow && snow.depth >= .05){
         parts.push('<span>\u2744 ' + (isEn ? 'Snow depth Åreskutan' : 'Snödjup Åreskutan') + ' <b>' + Math.round(snow.depth * 100) + '\u00a0cm</b>'
@@ -2587,8 +2680,10 @@
         if(tier >= 2 && wx && wx.cloud >= .75){ word += ' \u00b7 ' + (isEn ? 'overcast in Åre right now' : 'mulet i Åre just nu'); }
         parts.push('<span><i class="kp-dot kp-' + tier + '"></i>' + (isEn ? 'Aurora tonight' : 'Norrsken i natt') + ': <b>Kp ' + v.toFixed(v % 1 ? 1 : 0) + '</b> \u00b7 ' + word + '</span>');
       }
-      el.innerHTML = parts.join('');
-      if(parts.length){ el.removeAttribute('hidden'); } else { el.setAttribute('hidden', ''); }
+      el.innerHTML = main + (parts.length ? '<div class="wx-sub">' + parts.join('') + '</div>' : '');
+      if(main || parts.length){ el.removeAttribute('hidden'); } else { el.setAttribute('hidden', ''); }
+      /* The badge sits in the hero's top padding; anything taller than that pushes the portrait down */
+      document.body.style.setProperty('--badge-shift', Math.max(0, (el.hasAttribute('hidden') ? 0 : el.offsetHeight) - 56) + 'px');
     }
     function parse(rows){
       /* NOAA serves [{time_tag, kp, observed, noaa_scale}, ...]; older products
@@ -2673,14 +2768,25 @@
       if(c.kind === 'rain'){ return c.drizzle ? (isEn ? 'drizzle' : 'duggregn') : [null, isEn ? 'light rain' : 'lätt regn', isEn ? 'rain' : 'regn', isEn ? 'heavy rain' : 'kraftigt regn'][c.rate]; }
       return {clear: isEn ? 'clear' : 'klart', partly: isEn ? 'partly cloudy' : 'halvklart', cloudy: isEn ? 'cloudy' : 'molnigt', overcast: isEn ? 'overcast' : 'mulet'}[c.sky];
     }
+    /* Line icons for the badge, drawn to a 32-unit box */
+    var CLOUD = 'M9 24h13a5 5 0 0 0 .6-9.96A7 7 0 0 0 9.3 12.4 5.8 5.8 0 0 0 9 24z';
+    var SVG = function(inner){ return '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">' + inner + '</svg>'; };
     function icon(){
       var c = cur; if(!c){ return ''; }
-      if(c.thunder){ return '\u26a1'; }
-      if(c.kind === 'snow'){ return '\u2744'; }
-      if(c.kind === 'rain'){ return '\u2602'; }
-      if(c.fog){ return '\u2248'; }
-      if(c.sky === 'clear' && document.body.classList.contains('tod-day')){ return '\u2600'; }
-      return c.sky === 'clear' ? '\u2727' : '\u2601';
+      var day = document.body.classList.contains('tod-day');
+      if(c.thunder){ return SVG('<path d="' + CLOUD + '"/><path class="bolt" d="M17 16l-4 7h3l-1.5 6 5-8h-3l1.5-5z"/>'); }
+      if(c.blizzard){ return SVG('<path d="M4 12h14a3 3 0 1 0-3-3"/><path d="M4 18h20a3 3 0 1 1-3 3"/><path d="M4 24h9a2.5 2.5 0 1 1-2.5 2.5"/><path d="M24 8v6M21 11h6M22 9l4 4M26 9l-4 4"/>'); }
+      if(c.kind === 'snow'){ return SVG('<path d="' + CLOUD + '" transform="translate(0,-3)"/><path d="M11 25v4M9.3 26l3.4 2M9.3 28l3.4-2M17 25v4M15.3 26l3.4 2M15.3 28l3.4-2M23 25v4M21.3 26l3.4 2M21.3 28l3.4-2"/>'); }
+      if(c.kind === 'rain'){ return SVG('<path d="' + CLOUD + '" transform="translate(0,-3)"/><path d="M11 24l-1.5 4M17 24l-1.5 4M23 24l-1.5 4"/>'); }
+      if(c.fog){ return SVG('<path d="M6 12h20M4 17h24M8 22h16M11 27h10"/>'); }
+      if(c.sky === 'clear' || c.sky === 'partly'){
+        var body = day
+          ? '<circle class="sun-core" cx="' + (c.sky === 'partly' ? 12 : 16) + '" cy="' + (c.sky === 'partly' ? 11 : 16) + '" r="' + (c.sky === 'partly' ? 4.2 : 5.5) + '"/>'
+            + (c.sky === 'partly' ? '<path d="M12 3v2.5M4 11h2.5M6.3 5.3l1.8 1.8M17.7 5.3l-1.8 1.8M4.6 17.4l1.8-1.8"/>' : '<path d="M16 4v3M16 25v3M4 16h3M25 16h3M7.5 7.5l2.1 2.1M22.4 22.4l2.1 2.1M7.5 24.5l2.1-2.1M22.4 9.6l2.1-2.1"/>')
+          : '<path class="moon-fill" d="M20 4a10 10 0 1 0 8 15.5A9 9 0 0 1 20 4z" transform="' + (c.sky === 'partly' ? 'translate(-6,-4) scale(.8)' : '') + '"/>';
+        return SVG(body + (c.sky === 'partly' ? '<path d="' + CLOUD + '" transform="translate(2,2) scale(.85)"/>' : ''));
+      }
+      return SVG('<path d="' + CLOUD + '"/>' + (c.sky === 'overcast' ? '<path d="M11 9.5a6 6 0 0 1 11 1.5" transform="translate(2,-3)"/>' : ''));
     }
     function layer(hero, cls, on, k, html){
       var el = hero.querySelector('.' + cls);
@@ -2698,10 +2804,20 @@
       layer(hero, 'hero-snow', n > 0, 'snow' + n + (c.blizzard ? 'b' : ''), function(){
         var h = '';
         for(var i = 0; i < n; i++){
-          var size = c.blizzard ? rnd(1.4, 3.2) : rnd(2, 5), dur = c.blizzard ? rnd(2.2, 4) : (c.rate === 3 ? rnd(5, 9) : rnd(9, 18));
-          var sx = c.blizzard ? lean * rnd(140, 320) : rnd(-30, 30);
+          /* Three depths: a third far and soft, a third near and crisp */
+          var depth = i % 3, size = c.blizzard ? rnd(1.4, 3.2) : [rnd(1.6, 2.6), rnd(2.6, 3.8), rnd(3.8, 5.6)][depth];
+          var dur = c.blizzard ? rnd(2.2, 4) : (c.rate === 3 ? rnd(5, 9) : rnd(9, 18)) * [1.35, 1, .75][depth];
+          var sx = c.blizzard ? lean * rnd(140, 320) : rnd(-30, 30), sw = c.blizzard ? 0 : rnd(6, 22);
           h += '<i style="left:' + rnd(0, 100).toFixed(1) + '%;width:' + size.toFixed(1) + 'px;height:' + (c.blizzard ? size * 4 : size).toFixed(1) + 'px;'
-             + 'animation-duration:' + dur.toFixed(1) + 's;animation-delay:-' + rnd(0, 18).toFixed(1) + 's;--sx:' + Math.round(sx) + 'px;opacity:' + rnd(.4, .9).toFixed(2) + '"></i>';
+             + 'animation-duration:' + dur.toFixed(1) + 's;animation-delay:-' + rnd(0, 18).toFixed(1) + 's;--sx:' + Math.round(sx) + 'px;--sw:' + Math.round(sw) + 'px;'
+             + 'opacity:' + [rnd(.3, .5), rnd(.5, .75), rnd(.75, .95)][depth].toFixed(2) + (depth === 0 && !c.blizzard ? ';filter:blur(1.2px)' : '') + '"></i>';
+        }
+        return h;
+      });
+      layer(hero, 'hero-gust', c.blizzard, 'gust', function(){
+        var h = '';
+        for(var i = 0; i < 7; i++){
+          h += '<i style="top:' + rnd(8, 95).toFixed(1) + '%;width:' + rnd(25, 55).toFixed(0) + '%;animation-duration:' + rnd(1.1, 2.4).toFixed(2) + 's;animation-delay:-' + rnd(0, 3).toFixed(2) + 's;opacity:' + rnd(.25, .6).toFixed(2) + '"></i>';
         }
         return h;
       });
@@ -2709,11 +2825,18 @@
       layer(hero, 'hero-rain', r > 0, 'rain' + r, function(){
         var h = '';
         for(var i = 0; i < r; i++){
-          h += '<i style="left:' + rnd(0, 100).toFixed(1) + '%;height:' + rnd(12, 26).toFixed(0) + 'px;animation-duration:' + rnd(.9, 1.6).toFixed(2) + 's;animation-delay:-' + rnd(0, 2).toFixed(2) + 's;opacity:' + rnd(.25, .6).toFixed(2) + '"></i>';
+          var near = i % 2 === 0;
+          h += '<i style="left:' + rnd(0, 100).toFixed(1) + '%;height:' + (near ? rnd(22, 40) : rnd(12, 22)).toFixed(0) + 'px;width:' + (near ? 1.5 : 1) + 'px;'
+             + 'animation-duration:' + (near ? rnd(.7, 1) : rnd(1.1, 1.7)).toFixed(2) + 's;animation-delay:-' + rnd(0, 2).toFixed(2) + 's;opacity:' + (near ? rnd(.4, .7) : rnd(.2, .4)).toFixed(2) + '"></i>';
         }
         return h;
       });
-      layer(hero, 'hero-fog', c.fog, 'fog', function(){ return '<i></i><i></i>'; });
+      layer(hero, 'hero-fog', c.fog, 'fog', function(){ return '<i></i><i></i><i></i>'; });
+      layer(hero, 'hero-bolt', c.thunder, 'bolt', function(){
+        return '<svg viewBox="0 0 70 220" aria-hidden="true" focusable="false"><path d="M38 0 L30 62 L44 58 L26 128 L40 122 L18 220 M30 62 L14 96 M40 122 L58 150"/></svg>';
+      });
+      var bolt = hero.querySelector('.hero-bolt'); if(bolt){ bolt.style.setProperty('--bolt-x', rnd(15, 80).toFixed(0) + '%'); }
+      var gust = hero.querySelector('.hero-gust'); if(gust){ gust.style.setProperty('--gust-dir', c.dir > 180 ? 'normal' : 'reverse'); }
     }
     function apply(d){
       var c = classify(d), b = document.body;
