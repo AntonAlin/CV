@@ -579,7 +579,7 @@ with sync_playwright() as p:
     data = pg.evaluate("cvQuiz.data()")
     check("sixteen companies with long, positive, month-complete series",
           len(data) == 16 and all(len(d["p"]) >= 60 and min(d["p"]) > 0 for d in data)
-          and all(len(d["p"]) == (2026 - int(d["s"][:4])) * 12 + (9 - int(d["s"][5:7])) + 1 for d in data),
+          and all(len(d["p"]) == (int(d["e"][:4]) - int(d["s"][:4])) * 12 + (int(d["e"][5:7]) - int(d["s"][5:7])) + 1 for d in data),
           [(d["t"], len(d["p"])) for d in data])
     check("the game lives in the bar beside the music, not among the projects",
           pg.locator(".controls #quiz-btn").count() == 1

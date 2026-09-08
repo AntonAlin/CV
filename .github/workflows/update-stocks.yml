@@ -1,0 +1,58 @@
+name: Refresh stock quiz data
+
+# Once a week, fetch fresh monthly closes for the companies in
+# tools/stocks.txt and rewrite the blob embedded in index.html. The page
+# never calls the API itself; the quiz works offline from that blob.
+# Needs the repository secret ALPHAVANTAGE_KEY (a free key is enough:
+# the script sleeps between calls to stay within 5 a minute).
+on:
+  schedule:
+    - cron: "0 5 * * 1"    # Mondays 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-stocks
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch and embed
+        env:
+          ALPHAVANTAGE_KEY: ${{ secrets.ALPHAVANTAGE_KEY }}
+        run: python tools/update-stocks.py
+
+      - name: Sanity-check the page still parses
+        run: |
+          python - <<'PY'
+          import json, re, pathlib
+          t = pathlib.Path("index.html").read_text(encoding="utf-8")
+          m = re.search(r"^    var DATA = (\[.*\]);$", t, re.M)
+          data = json.loads(m.group(1))
+          assert len(data) >= 8, len(data)
+          for d in data:
+              assert len(d["p"]) >= 60 and min(d["p"]) > 0, d["t"]
+          print(f"{len(data)} companies OK")
+          PY
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --staged --quiet; then
+            echo "Data unchanged."
+          else
+            git commit -m "Refresh stock quiz data"
+            git push
+          fi

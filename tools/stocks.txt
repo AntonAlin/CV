@@ -1,0 +1,21 @@
+# Companies in the "Guess the company" quiz, one per line:
+#   SYMBOL | display name | sector hint (sv) | sector hint (en)
+# Symbols are Alpha Vantage symbols (US listings, or ADRs for foreign
+# companies). A line is skipped if its series comes back too short, gappy
+# or non-positive; the previously embedded series is kept in that case.
+AAPL | Apple | Konsumentelektronik | Consumer electronics
+AMZN | Amazon | E-handel & moln | E-commerce & cloud
+BA   | Boeing | Flygplanstillverkare | Aircraft manufacturer
+COIN | Coinbase | Kryptobörs | Crypto exchange
+ERIC | Ericsson | Telekomnät | Telecom networks
+GME  | GameStop | Spelbutikskedja, meme-aktie | Video-game retailer, meme stock
+INTC | Intel | Halvledare | Semiconductors
+META | Meta | Sociala medier | Social media
+MRNA | Moderna | Bioteknik, mRNA-vaccin | Biotech, mRNA vaccines
+MSTR | Strategy (MicroStrategy) | Mjukvara, bitcoin-innehav | Software, bitcoin treasury
+NFLX | Netflix | Streaming | Streaming
+NOK  | Nokia | Telekom | Telecoms
+NVDA | Nvidia | Grafikkort & AI-chip | GPUs & AI chips
+SPOT | Spotify | Musikstreaming | Music streaming
+TSLA | Tesla | Elbilar & batterier | EVs & batteries
+ZM   | Zoom | Videomöten | Video meetings
