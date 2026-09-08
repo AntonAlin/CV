@@ -39,5 +39,7 @@ jobs:
             echo "Unchanged."
           else
             git commit -m "Refresh market strip [skip ci]"
+            # Another workflow may have pushed meanwhile; land on top of it
+            git pull --rebase --quiet
             git push
           fi

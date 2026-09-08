@@ -54,5 +54,7 @@ jobs:
             echo "Data unchanged."
           else
             git commit -m "Refresh stock quiz data"
+            # Another workflow may have pushed meanwhile; land on top of it
+            git pull --rebase --quiet
             git push
           fi
