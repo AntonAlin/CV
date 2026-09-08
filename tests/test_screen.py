@@ -683,6 +683,47 @@ with sync_playwright() as p:
           share.startswith("Gissa bolaget · " + str(st["score"]) + " p · ") and share.count("\U0001F7E9") == 7
           and share.count("\U0001F7E5") == 1 and share.endswith("https://antonalin.github.io/CV/"), share)
     # Daily round: the same date gives everyone the same eight questions
+    # --- Higher or lower? mode ---
+    pg.evaluate("cvQuiz.start(false, 'updown')"); pg.wait_for_timeout(300)
+    st = pg.evaluate("cvQuiz.state()")
+    check("the higher-or-lower mode shows the company, two options, a cut line and a question mark",
+          st["mode"] == "updown" and pg.evaluate("cvQuiz.answer()") in ("up", "down")
+          and pg.locator("#quiz-body .quiz-opts.is-updown button").count() == 2
+          and pg.locator("#quiz-body svg .quiz-cut").count() == 1 and pg.locator("#quiz-body svg .quiz-q").count() == 1
+          and pg.locator("#quiz-body svg .quiz-line-next").count() == 0
+          and pg.locator("#quiz-body .quiz-ud-name b").count() == 1
+          and pg.get_attribute("#quiz-mode", "aria-pressed") == "true"
+          and pg.get_attribute("#quiz-title-ud", "hidden") is None and pg.get_attribute("#quiz-title-guess", "hidden") is not None, st)
+    ans = pg.evaluate("cvQuiz.answer()")
+    pg.keyboard.press("1" if ans == "up" else "2"); pg.wait_for_timeout(300)
+    st = pg.evaluate("cvQuiz.state()")
+    check("a right up/down call scores, draws the dashed continuation in the matching colour and names the next-12-month return",
+          st["answered"] and st["score"] >= 100 and st["marks"] == [True]
+          and pg.locator("#quiz-body svg .quiz-line-next.is-" + ans).count() == 1
+          and pg.locator("#quiz-body svg .quiz-q").count() == 0
+          and pg.locator("#quiz-body .quiz-opts button.is-right").count() == 1
+          and "%" in pg.locator("#quiz-body .quiz-stats").inner_text(), st)
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+    ans = pg.evaluate("cvQuiz.answer()")
+    pg.keyboard.press("2" if ans == "up" else "1"); pg.wait_for_timeout(200)
+    st = pg.evaluate("cvQuiz.state()")
+    check("a wrong call scores nothing and marks the wrong button",
+          st["marks"] == [True, False] and st["streak"] == 0
+          and pg.locator("#quiz-body .quiz-opts button.is-wrong").count() == 1
+          and pg.locator("#quiz-body .quiz-opts button.is-right").count() == 1, st)
+    for _ in range(6):
+        pg.keyboard.press("Enter"); pg.wait_for_timeout(120)
+        a = pg.evaluate("cvQuiz.answer()"); pg.keyboard.press("1" if a == "up" else "2"); pg.wait_for_timeout(120)
+    pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+    st = pg.evaluate("cvQuiz.state()")
+    check("the mode has its own best score and share text",
+          st["state"] == "final" and pg.evaluate("+localStorage.getItem('cv-quiz-best-ud')") == st["score"]
+          and pg.evaluate("cvQuiz.share()").lower().startswith("upp eller ner?")
+          and pg.locator("#quiz-body .quiz-final [data-act='mode']").count() == 1, st)
+    pg.click("#quiz-mode"); pg.wait_for_timeout(200)
+    check("the header button toggles back to guess-the-company",
+          pg.evaluate("cvQuiz.state().mode") == "guess" and pg.locator("#quiz-body .quiz-opts button").count() == 4)
+
     pg.evaluate("cvQuiz.start(true)"); pg.wait_for_timeout(200)
     first = [pg.evaluate("cvQuiz.answer()")]
     for _ in range(2):
@@ -716,7 +757,7 @@ with sync_playwright() as p:
     pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
     labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
     check("the palette lists the game and the daily round, and leaves the replay to the map",
-          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela upp karriärkartan" not in labels)
+          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela: Upp eller ner?" in labels and "Spela upp karriärkartan" not in labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.emulate_media(media="print")
     check("the game button stays off paper and the projects keep their odd-card rule",
