@@ -1115,6 +1115,9 @@ with sync_playwright() as p:
     # A fixed clock plus a pinned timezone makes "the visitor's local hour"
     # deterministic to test, rather than depending on when CI happens to run.
     tzctx = b.new_context(timezone_id="UTC")
+    # The hour alone must paint these pages: no live Åre report, no forecast
+    for _pat in ("**/api.open-meteo.com/**", "**/services.swpc.noaa.gov/**", "**elprisetjustnu.se/**"):
+        tzctx.route(_pat, lambda route: route.abort())
     seen = {}
     star_op = {}
     # Åre, 10 January: civil dawn about 07:20Z, sunrise 08:40Z, sunset 13:35Z, dark by 14:55Z.
@@ -1131,6 +1134,7 @@ with sync_playwright() as p:
         check(f"phase at {fixed} is {want}", want in cls.split(), cls)
         seen[want] = tpg.evaluate(
             "getComputedStyle(document.body).getPropertyValue('--tod-2').trim()")
+        tpg.wait_for_timeout(2800)   # the phase eases in over 2.6 s; read the settled value
         star_op[want] = float(tpg.eval_on_selector(".stars-far",
             "e=>getComputedStyle(e).opacity"))
         if want == "tod-day":
@@ -1158,8 +1162,9 @@ with sync_playwright() as p:
     tzctx.close()
     check("different phases actually carry different aurora colours",
           len(set(seen.values())) > 1, seen)
-    check("stars dim by day, without ever fully disappearing",
-          0 < star_op["tod-day"] < star_op["tod-night"], star_op)
+    check("stars are gone by day, faint in twilight, full at night",
+          star_op["tod-day"] == 0 and 0 < star_op["tod-dusk"] < star_op["tod-night"] == 1
+          and 0 < star_op["tod-dawn"] < star_op["tod-night"], star_op)
 
     pg.emulate_media(media="print")
     check("the sun and clouds are hidden in print",

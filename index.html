@@ -406,10 +406,8 @@
   @property --tod-2{syntax:'<color>';inherits:true;initial-value:#8b7cf6;}
   @property --tod-3{syntax:'<color>';inherits:true;initial-value:#22b8cf;}
   @property --tod-glow{syntax:'<color>';inherits:true;initial-value:transparent;}
-  /* How much the stars themselves dim per phase — never to zero, so the sky
-     never fully loses its signature, but day gives the sun and clouds below
-     room to read as the main event rather than competing with a full field
-     of bright stars in broad daylight. */
+  /* How much the stars show per phase: the full field at night, only the
+     brightest through civil twilight, none at all while the sun is up. */
   @property --tod-star-op{syntax:'<number>';inherits:true;initial-value:1;}
   /* Åre's cloud cover right now, 0–1; dims stars, aurora, sun and moon */
   @property --wx-cloud{syntax:'<number>';inherits:true;initial-value:0;}
@@ -417,10 +415,10 @@
                   --tod-glow 2.6s ease,--tod-star-op 2.6s ease,--wx-cloud 2.6s ease;}
   @media (prefers-reduced-motion: reduce){ body{transition:none;} }
 
-  body.tod-day  {--tod-1:#3ddc97;--tod-2:#ffb84d;--tod-3:#22b8cf;--tod-glow:rgba(255,196,120,.1);--tod-star-op:.4;}
-  body.tod-dusk {--tod-1:#ff6fae;--tod-2:#8b5cf6;--tod-3:#ff9a5a;--tod-glow:rgba(255,110,140,.11);--tod-star-op:.75;}
+  body.tod-day  {--tod-1:#3ddc97;--tod-2:#ffb84d;--tod-3:#22b8cf;--tod-glow:rgba(255,196,120,.1);--tod-star-op:0;}
+  body.tod-dusk {--tod-1:#ff6fae;--tod-2:#8b5cf6;--tod-3:#ff9a5a;--tod-glow:rgba(255,110,140,.11);--tod-star-op:.3;}
   body.tod-night{--tod-1:#3ddc97;--tod-2:#8b7cf6;--tod-3:#22b8cf;--tod-glow:rgba(91,108,255,.08);--tod-star-op:1;}
-  body.tod-dawn {--tod-1:#ff8f6b;--tod-2:#ff6fae;--tod-3:#ffcf6b;--tod-glow:rgba(255,150,110,.12);--tod-star-op:.55;}
+  body.tod-dawn {--tod-1:#ff8f6b;--tod-2:#ff6fae;--tod-3:#ffcf6b;--tod-glow:rgba(255,150,110,.12);--tod-star-op:.3;}
 
   .aurora-layer{
     position:absolute;inset:-20% -10% -10% -10%;
