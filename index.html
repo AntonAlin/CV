@@ -1023,6 +1023,25 @@
     animation:cmdk-fade .14s ease-out;
   }
   .quiz-scrim[hidden]{display:none;}
+  /* "About this page" shares the quiz panel's chrome */
+  .about-lead{font-size:15px;line-height:1.6;color:var(--text);margin:0 0 16px;}
+  .about-h{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:18px 0 8px;}
+  .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:0;padding:0;list-style:none;}
+  .about-grid li{font-size:13.5px;line-height:1.5;color:var(--text-lo);padding-left:14px;position:relative;}
+  .about-grid li::before{content:'';position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:var(--teal);opacity:.8;}
+  .about-grid li b{color:var(--text);font-weight:600;}
+  .about-keys{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;align-items:center;margin:0;}
+  .about-keys dt{margin:0;white-space:nowrap;font-size:12px;color:var(--text-lo);}
+  .about-keys dd{margin:0;font-size:13.5px;color:var(--text-lo);}
+  .about-keys kbd{
+    display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 7px;min-width:22px;text-align:center;
+    border:1px solid var(--hairline-strong);border-bottom-width:2px;border-radius:6px;background:var(--panel);color:var(--text);
+  }
+  .about-keys kbd + kbd{margin-left:4px;}
+  .about-foot{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:18px;padding-top:14px;border-top:1px solid var(--hairline);font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);}
+  .about-foot a{color:var(--teal);text-decoration:none;}
+  .about-foot a:hover{text-decoration:underline;}
+  @media (max-width:520px){ .about-grid{grid-template-columns:1fr;} }
   .quiz{
     width:min(680px,100%);background:var(--panel-2);
     border:1px solid var(--hairline-strong);border-radius:16px;
@@ -1607,7 +1626,7 @@
     }
     .footer-note{font-size:7.4pt;color:#79828f;}
     .footer-note a{color:#79828f;}
-    #footer-contact, .footer-sep, #footer-contact-link{display:none;}
+    #footer-contact, .footer-sep, #footer-contact-link, #footer-about{display:none;}
 
     /* --- Short variant ---
        Some applications insist on a single sheet. This keeps the header, the
@@ -2256,6 +2275,7 @@
     <div class="footer-note">
       <span class="sv-only">Referenser lämnas på begäran.</span><span class="en-only">References available on request.</span>
       <span class="footer-sep">&nbsp;·&nbsp;</span><a href="#contact-block" id="footer-contact-link"><span class="sv-only">Kontaktuppgifter ovan</span><span class="en-only">Contact info above</span></a><span id="footer-contact"></span>
+      <span class="footer-sep footer-about-sep">&nbsp;·&nbsp;</span><a href="#" id="footer-about" onclick="cvAbout.open(); return false;"><span class="sv-only">Om den här sidan</span><span class="en-only">About this page</span></a>
     </div>
     <!-- Print only: bridges the paper copy back to the live page. Verified to
          decode to the canonical URL after rasterising through the browser. -->
@@ -2309,6 +2329,44 @@
     </div>
     <div id="quiz-body"></div>
     <p class="quiz-foot"><span class="sv-only">Källa: Alpha Vantage. Månatliga slutkurser justerade för splittar och utdelningar, indexerade till 100 vid periodens start. Snabba svar ger upp till 50 extra poäng. Tangenter 1–4 svarar, Enter går vidare. I <em>Upp eller ner?</em> är bolaget känt och frågan är om kursen står högre eller lägre tolv månader senare.</span><span class="en-only">Source: Alpha Vantage. Monthly closes adjusted for splits and dividends, indexed to 100 at the start of the window. Quick answers earn up to 50 extra points. Keys 1–4 answer, Enter continues. In <em>Higher or lower?</em> the company is known and the question is whether the price is higher or lower twelve months on.</span></p>
+  </div>
+</div>
+
+<div class="quiz-scrim" id="about" role="dialog" aria-modal="true" aria-label="Om den här sidan / About this page" hidden>
+  <div class="quiz" tabindex="-1">
+    <div class="quiz-head">
+      <div>
+        <div class="quiz-title"><span class="sv-only">Om den här sidan</span><span class="en-only">About this page</span></div>
+        <div class="quiz-meta"><span><span class="sv-only">En HTML-fil · inga ramverk · ingen spårning</span><span class="en-only">One HTML file · no frameworks · no tracking</span></span></div>
+      </div>
+      <button type="button" class="quiz-close" onclick="cvAbout.close()" aria-label="Stäng / Close">×</button>
+    </div>
+    <p class="about-lead">
+      <span class="sv-only">Sidan är ett enda handskrivet HTML-dokument utan byggsteg och utan tredjepartsskript. Allt interaktivt, från himlen till spelen, är egen kod som körs lokalt i din webbläsare. Utskriften är en egen layout av samma dokument och PDF:erna byggs automatiskt när innehållet ändras.</span>
+      <span class="en-only">The page is a single hand-written HTML document with no build step and no third-party scripts. Everything interactive, from the sky to the games, is own code that runs locally in your browser. The print layout is a separate rendering of the same document, and the PDFs are rebuilt automatically whenever the content changes.</span>
+    </p>
+    <div class="about-h"><span class="sv-only">Under huven</span><span class="en-only">Under the hood</span></div>
+    <ul class="about-grid">
+      <li><b><span class="sv-only">Himlen</span><span class="en-only">The sky</span></b> · <span class="sv-only">solhöjd över Åre beräknad astronomiskt, månfas, norrsken efter NOAA:s Kp-index och snö efter Open-Meteo</span><span class="en-only">solar altitude over Åre computed astronomically, moon phase, aurora from NOAA's Kp index and snow from Open-Meteo</span></li>
+      <li><b><span class="sv-only">Live-kort</span><span class="en-only">Live cards</span></b> · <span class="sv-only">SE2-elpris och Årevädret hämtas när sidan öppnas, med statiska kurvor som reserv</span><span class="en-only">SE2 power price and Åre weather fetched on load, with static curves as fallback</span></li>
+      <li><b>Monte Carlo</b> · <span class="sv-only">geometrisk brownsk rörelse på canvas, volatiliteten styrs med pekaren</span><span class="en-only">geometric Brownian motion on canvas, volatility driven by the pointer</span></li>
+      <li><b><span class="sv-only">Aktiespelen</span><span class="en-only">Stock games</span></b> · <span class="sv-only">månadskurser från Alpha Vantage, uppdaterade varje vecka av en GitHub Action</span><span class="en-only">monthly prices from Alpha Vantage, refreshed weekly by a GitHub Action</span></li>
+      <li><b><span class="sv-only">Musiken</span><span class="en-only">The music</span></b> · <span class="sv-only">generativ, syntetiserad i realtid med Web Audio, inga ljudfiler</span><span class="en-only">generative, synthesised live with Web Audio, no audio files</span></li>
+      <li><b><span class="sv-only">Kvalitet</span><span class="en-only">Quality</span></b> · <span class="sv-only">över 250 Playwright-kontroller av skärm och utskrift körs på varje ändring</span><span class="en-only">over 250 Playwright checks of screen and print run on every change</span></li>
+    </ul>
+    <div class="about-h"><span class="sv-only">Kortkommandon</span><span class="en-only">Keyboard shortcuts</span></div>
+    <dl class="about-keys">
+      <dt><kbd>/</kbd> <span class="sv-only">eller</span><span class="en-only">or</span> <kbd id="about-cmdk-key">⌘K</kbd></dt><dd><span class="sv-only">Sök och kommandon</span><span class="en-only">Search and commands</span></dd>
+      <dt><kbd>?</kbd></dt><dd><span class="sv-only">Den här rutan</span><span class="en-only">This panel</span></dd>
+      <dt><kbd>Esc</kbd></dt><dd><span class="sv-only">Stäng rutor, rensa markeringar</span><span class="en-only">Close panels, clear highlights</span></dd>
+      <dt><kbd>1</kbd>–<kbd>4</kbd> <kbd>Enter</kbd></dt><dd><span class="sv-only">Svara och gå vidare i spelen</span><span class="en-only">Answer and continue in the games</span></dd>
+      <dt><kbd>←</kbd><kbd>→</kbd></dt><dd><span class="sv-only">Bläddra i karriärkartan när den har fokus</span><span class="en-only">Step through the career map when it has focus</span></dd>
+      <dt><kbd>↑↑↓↓←→←→BA</kbd></dt><dd><span class="sv-only">Ett påskägg för den som gillar skidor</span><span class="en-only">An easter egg for those who like skiing</span></dd>
+    </dl>
+    <div class="about-foot">
+      <a href="https://github.com/AntonAlin/CV" target="_blank" rel="noopener">github.com/AntonAlin/CV</a>
+      <span><span class="sv-only">Sidan är ett enda HTML-dokument</span><span class="en-only">The page is a single HTML document</span></span>
+    </div>
   </div>
 </div>
 
@@ -3658,6 +3716,42 @@
     };
   })();
 
+  /* ---------- About this page ----------
+     A plain panel: what the page is built of and the keys it answers to.
+     Opened from the footer, the palette or the ? key. */
+  var cvAbout = (function(){
+    var lastFocus = null;
+    function el(){ return document.getElementById('about'); }
+    function isOpen(){ var s = el(); return !!s && !s.hasAttribute('hidden'); }
+    function typing(t){ return !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)); }
+    function open(){
+      if(isOpen()){ return; }
+      lastFocus = document.activeElement;
+      var sw = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      if(sw > 0){ document.body.style.paddingRight = sw + 'px'; }
+      el().removeAttribute('hidden');
+      var panel = el().querySelector('.quiz'); if(panel){ panel.focus(); }
+    }
+    function close(){
+      if(!isOpen()){ return; }
+      el().setAttribute('hidden', '');
+      document.body.style.overflow = ''; document.body.style.paddingRight = '';
+      if(lastFocus && lastFocus.focus){ lastFocus.focus(); }
+    }
+    document.addEventListener('click', function(e){ if(isOpen() && e.target === el()){ close(); } });
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && isOpen()){ e.preventDefault(); close(); return; }
+      if(e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !typing(e.target) && !isOpen()
+         && !document.querySelector('.quiz-scrim:not([hidden]), .cmdk-scrim:not([hidden]), .ski-scrim:not([hidden])')){
+        e.preventDefault(); open();
+      }
+    });
+    var key = document.getElementById('about-cmdk-key');
+    if(key && !/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)){ key.textContent = 'Ctrl K'; }
+    return {open: open, close: close, isOpen: isOpen};
+  })();
+
   /* The pre-rendered sheets follow the reader's language, so the download
      always matches what is on screen: cv-<lang>[-1p].pdf */
   function pdfHref(short){
@@ -3830,7 +3924,8 @@
       out:   '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
       find:  '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
       music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
-      game:  '<polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/>'
+      game:  '<polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/>',
+      info:  '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'
     };
     var GROUPS = {
       nav:  {sv:'Navigera', en:'Navigate'},
@@ -3913,6 +4008,12 @@
         label: en ? 'Music' : 'Musik',
         meta: ms.playing ? '♪ ' + cvMusic.GENRES[ms.genre].label : (en ? 'off' : 'av'),
         run: function(){ setTimeout(function(){ cvMusic.toggleMenu(); }, 60); }
+      });
+      out.push({
+        group:'act', icon:'info', keys:'om about sidan page hjalp help kortkommandon shortcuts tangenter keys teknik',
+        label: en ? 'About this page' : 'Om den här sidan',
+        meta: '?',
+        run: function(){ setTimeout(cvAbout.open, 60); }
       });
       out.push({
         group:'act', icon:'down', keys:'pdf ladda ner download hamta cv',

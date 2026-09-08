@@ -757,7 +757,7 @@ with sync_playwright() as p:
     pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
     labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
     check("the palette lists the game and the daily round, and leaves the replay to the map",
-          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela: Upp eller ner?" in labels and "Spela upp karriärkartan" not in labels)
+          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela: Upp eller ner?" in labels and "Om den här sidan" in labels and "Spela upp karriärkartan" not in labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.emulate_media(media="print")
     check("the game button stays off paper and the projects keep their odd-card rule",
@@ -767,6 +767,31 @@ with sync_playwright() as p:
     pg.emulate_media(media="screen")
 
     check("no JS errors overall", not errors, errors)
+
+    # --- About this page ---
+    check("the about panel starts closed and has a footer link", pg.get_attribute("#about", "hidden") is not None
+          and pg.locator("#footer-about").count() == 1)
+    pg.keyboard.press("?"); pg.wait_for_timeout(200)
+    check("? opens the about panel with the tech list and the shortcut table",
+          pg.get_attribute("#about", "hidden") is None
+          and pg.locator("#about .about-grid li").count() >= 5
+          and pg.locator("#about .about-keys dt").count() >= 5
+          and "kortkommandon" in pg.locator("#about").inner_text().lower()
+          and pg.locator("#about a[href='https://github.com/AntonAlin/CV']").count() == 1
+          and pg.evaluate("document.body.style.overflow") == "hidden")
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
+    check("Escape closes it and restores scrolling", pg.get_attribute("#about", "hidden") is not None
+          and pg.evaluate("document.body.style.overflow") == "")
+    pg.click("#footer-about"); pg.wait_for_timeout(200)
+    check("the footer link opens it without following the href",
+          pg.get_attribute("#about", "hidden") is None and not pg.url.endswith("#"))
+    pg.evaluate("cvAbout.close()")
+    pg.evaluate("cvQuiz.open()"); pg.wait_for_timeout(100); pg.keyboard.press("?"); pg.wait_for_timeout(100)
+    check("? does nothing while another panel is open", pg.get_attribute("#about", "hidden") is not None)
+    pg.evaluate("cvQuiz.close()")
+    pg.emulate_media(media="print")
+    check("the footer about-link never prints", pg.evaluate("getComputedStyle(document.getElementById('footer-about')).display") == "none")
+    pg.emulate_media(media="screen")
 
     # --- Skills point at their evidence ---
     fabric = pg.locator("#skills .skill-tags > span", has_text="Microsoft Fabric").first
