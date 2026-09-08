@@ -642,8 +642,8 @@ with sync_playwright() as p:
           and pg.evaluate("document.body.style.overflow") == "")
     pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
     labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
-    check("the palette lists the game and the daily round",
-          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels)
+    check("the palette lists the game, the daily round and the career replay",
+          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela upp karriärkartan" in labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.emulate_media(media="print")
     check("the game button stays off paper and the projects keep their odd-card rule",
@@ -691,6 +691,19 @@ with sync_playwright() as p:
         landed = False
     check("clicking a bar jumps to that role, clear of the sticky bar, and lights it", landed,
           pg.eval_on_selector("#experience .job.is-current","e=>e.getBoundingClientRect().top"))
+    # Replay: the bars regrow behind a year cursor, then everything settles back
+    pg.evaluate("cvCareer.replay(700)"); pg.wait_for_timeout(350)
+    mid = pg.eval_on_selector_all(".career-bar", "els=>els.map(e=>e.style.transform)")
+    check("replay sweeps a cursor and grows the bars behind it",
+          pg.evaluate("cvCareer.playing()") and pg.locator("#career-map .career-cursor b").count() == 1
+          and pg.locator("#career-map .career-cursor b").inner_text().isdigit()
+          and any(t.startswith("scaleX(0") for t in mid) and any(t == "scaleX(1)" for t in mid)
+          and "Stopp" in pg.locator("#career-map .career-replay").inner_text(), mid)
+    pg.wait_for_timeout(1700)
+    check("replay ends on its own with the map whole again",
+          not pg.evaluate("cvCareer.playing()") and pg.locator("#career-map .career-cursor").count() == 0
+          and pg.eval_on_selector_all(".career-bar", "els=>els.every(e=>e.style.transform==='')")
+          and "Spela upp" in pg.locator("#career-map .career-replay").inner_text())
     pg.click("#btn-en"); pg.wait_for_timeout(400)
     cap_en = pg.locator("#career-map figcaption").inner_text()
     check("map caption and bar labels follow the language",

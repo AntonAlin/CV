@@ -874,6 +874,25 @@
   .career-map figcaption{
     margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:11px;
     letter-spacing:.03em;color:var(--text-faint);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+  /* Replay: the bars grow behind a cursor that sweeps the years */
+  .career-replay{
+    appearance:none;border:1px solid var(--hairline-strong);border-radius:999px;background:transparent;
+    color:var(--text-lo);font:inherit;letter-spacing:inherit;padding:4px 11px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:border-color .2s ease,color .2s ease;
+  }
+  .career-replay:hover{border-color:var(--teal);color:var(--text-hi);}
+  .career-replay svg{width:10px;height:10px;fill:currentColor;}
+  .career-map.is-replaying .career-bar{transition:none;}
+  .career-rows{position:relative;}
+  .career-cursor{
+    position:absolute;top:-6px;bottom:22px;width:1px;background:var(--green);
+    box-shadow:0 0 8px var(--green);pointer-events:none;
+  }
+  .career-cursor b{
+    position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:500;color:var(--green);letter-spacing:.06em;
   }
   @media (prefers-reduced-motion: reduce){
     .career-bar{transform:none;transition:none;}
@@ -3478,6 +3497,15 @@
         run: function(){ setTimeout(cvQuiz.open, 60); }
       });
       out.push({
+        group:'act', icon:'go', keys:'karriar karta career map spela upp replay tidslinje timeline',
+        label: en ? 'Replay the career map' : 'Spela upp karriärkartan',
+        run: function(){
+          var m = document.getElementById('career-map');
+          if(m){ m.scrollIntoView({behavior: ease(), block: 'center'}); }
+          setTimeout(function(){ if(window.cvCareer){ window.cvCareer.replay(); } }, 500);
+        }
+      });
+      out.push({
         group:'act', icon:'game', keys:'spel game gissa quiz dagens daily bolag',
         label: en ? 'Play: today\'s daily round' : 'Spela: Dagens omgång',
         run: function(){ setTimeout(function(){ cvQuiz.open(); cvQuiz.start(true); }, 60); }
@@ -3965,11 +3993,63 @@
       var cap = document.createElement('figcaption');
       var first = new Date(Math.floor(start / 12), start % 12, 1)
         .toLocaleString(locale, {month:'short', year:'numeric'});
-      cap.textContent = roles.length + (en ? ' roles' : ' roller') + ' · '
+      var capText = document.createElement('span');
+      capText.textContent = roles.length + (en ? ' roles' : ' roller') + ' · '
         + employers.filter(function(e){ return !e.self; }).length + (en ? ' employers' : ' arbetsgivare') + ' · '
         + first + ' – ' + (en ? 'present' : 'idag');
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'career-replay';
+      btn.innerHTML = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5 9 5 1 9.5z"/></svg>' + (en ? 'Replay' : 'Spela upp');
+      btn.addEventListener('click', function(){ if(playing){ stop(); } else { replay(); } });
+      cap.appendChild(capText); cap.appendChild(btn);
       fig.appendChild(cap);
+      if(playing){ stop(); }
     }
+
+    /* --- Replay: sweep a cursor across the years and grow the bars behind it --- */
+    var playing = false, raf = null;
+    function stop(){
+      playing = false;
+      if(raf){ cancelAnimationFrame(raf); raf = null; }
+      fig.classList.remove('is-replaying');
+      var c = fig.querySelector('.career-cursor'); if(c){ c.remove(); }
+      fig.querySelectorAll('.career-bar').forEach(function(b){ b.style.transform = ''; });
+      var b = fig.querySelector('.career-replay');
+      if(b){ b.innerHTML = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0.5 9 5 1 9.5z"/></svg>' + (document.body.classList.contains('lang-en') ? 'Replay' : 'Spela upp'); }
+    }
+    function replay(ms){
+      if(playing){ stop(); }
+      var rows = fig.querySelector('.career-rows'), tracks = fig.querySelectorAll('.career-track');
+      if(!rows || !tracks.length){ return; }
+      playing = true;
+      fig.classList.add('is-lit', 'is-replaying');
+      var btn = fig.querySelector('.career-replay');
+      if(btn){ btn.innerHTML = '<svg viewBox="0 0 10 10" aria-hidden="true"><rect x="1" y="1" width="8" height="8"/></svg>' + (document.body.classList.contains('lang-en') ? 'Stop' : 'Stopp'); }
+      var cursor = document.createElement('div'); cursor.className = 'career-cursor';
+      var label = document.createElement('b'); cursor.appendChild(label); rows.appendChild(cursor);
+      var bars = Array.prototype.map.call(fig.querySelectorAll('.career-bar'), function(b){
+        return {el: b, left: parseFloat(b.style.left), width: parseFloat(b.style.width)};
+      });
+      var dur = ms || 6500, t0 = null, hold = 900;
+      function frame(ts){
+        if(!playing){ return; }
+        if(t0 === null){ t0 = ts; }
+        var p = Math.min(1, (ts - t0) / dur);
+        if(reduced){ p = Math.min(1, Math.floor(p * span / 12) * 12 / span); }
+        var cur = p * 100;
+        bars.forEach(function(b){
+          var v = Math.min(1, Math.max(0, (cur - b.left) / b.width));
+          b.el.style.transform = 'scaleX(' + v + ')';
+        });
+        var tr = tracks[0].getBoundingClientRect(), rr = rows.getBoundingClientRect();
+        cursor.style.left = (tr.left - rr.left + tr.width * p) + 'px';
+        label.textContent = Math.floor((start + p * span) / 12);
+        if(p < 1){ raf = requestAnimationFrame(frame); }
+        else { raf = null; setTimeout(function(){ if(playing){ stop(); } }, hold); }
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    window.cvCareer = {replay: replay, stop: stop, playing: function(){ return playing; }};
 
     document.addEventListener('cv:lang', render);
     render();
