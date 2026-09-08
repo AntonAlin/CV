@@ -41,6 +41,17 @@ with sync_playwright() as p:
     KP_FIXTURE.insert(1, [(_now - _dt.timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S"), "2.33", "observed", None])
     pg.route("**/services.swpc.noaa.gov/**",
              lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(KP_FIXTURE)))
+    # Live cards: today's SE2 prices and Åreskutan weather, served from fixtures too.
+    _day = _dt.date.today()
+    SE2_FIXTURE = [{"SEK_per_kWh": round(0.4 + 0.9 * abs(((h - 18) % 24) - 12) / 12, 4), "EUR_per_kWh": 0.05, "EXR": 11.1,
+                    "time_start": f"{_day.isoformat()}T{h:02d}:00:00+02:00", "time_end": f"{_day.isoformat()}T{(h + 1) % 24:02d}:00:00+02:00"}
+                   for h in range(24)]
+    _hour = _dt.datetime.now().hour
+    ARE_FIXTURE = {"current": {"time": f"{_day.isoformat()}T{_hour:02d}:00", "temperature_2m": -1.3, "wind_speed_10m": 9.4, "weather_code": 71},
+                   "hourly": {"time": [f"{_day.isoformat()}T{h:02d}:00" for h in range(24)],
+                              "temperature_2m": [round(-4 + 5 * (1 - abs(h - 14) / 14), 1) for h in range(24)]}}
+    pg.route("**elprisetjustnu.se/**", lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(SE2_FIXTURE)))
+    pg.route("**/api.open-meteo.com/**", lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(ARE_FIXTURE)))
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.on("console", lambda m: errors.append("console."+m.type+": "+m.text)
@@ -483,13 +494,55 @@ with sync_playwright() as p:
     fctx = b.new_context(viewport={"width":1280,"height":900}); fpg = fctx.new_page()
     ferr = []; fpg.on("pageerror", lambda e: ferr.append(str(e)))
     fpg.route("**/services.swpc.noaa.gov/**", lambda route: route.abort())
+    fpg.route("**elprisetjustnu.se/**", lambda route: route.abort())
+    fpg.route("**/api.open-meteo.com/**", lambda route: route.abort())
     fontmirror.prepare(fpg, URL); fpg.wait_for_timeout(900)
+    check("offline, the live cards keep their drawings and stay quiet",
+          fpg.locator(".project-card.has-live").count() == 0
+          and fpg.locator('[data-live="se2"] .live-note').get_attribute("hidden") is not None
+          and fpg.locator('[data-live="se2"] .project-chart.is-static').evaluate("e=>getComputedStyle(e).display") == "block")
     check("no forecast: the moon still shows, the aurora keeps its default, no errors",
           fpg.evaluate("cvSky.kp()") is None and fpg.get_attribute("#sky-line", "hidden") is None
           and "Kp" not in fpg.locator("#sky-line").inner_text()
           and not any(c in fpg.evaluate("document.body.className") for c in ("kp-quiet", "kp-active", "kp-storm"))
           and not ferr, ferr)
     fctx.close()
+
+    # --- Live cards ---
+    lv = pg.evaluate("cvLive.state()")
+    se2c = pg.locator('[data-live="se2"]'); arec = pg.locator('[data-live="are"]')
+    check("the SE2 card draws today's real price curve with the current hour marked",
+          lv["se2"] and lv["se2"]["n"] == 24 and se2c.locator(".project-chart.is-live circle.live-now").count() == 1
+          and se2c.evaluate("e=>e.classList.contains('has-live')")
+          and "kr/kWh" in se2c.locator(".live-note").inner_text() and "topp" in se2c.locator(".live-note").inner_text(),
+          lv["se2"] and {k: lv["se2"][k] for k in ("n", "cur", "max")})
+    check("the drawn SE2 chart yields to the live one on screen",
+          se2c.locator(".project-chart.is-static").evaluate("e=>getComputedStyle(e).display") == "none")
+    check("the ÅreWeather card reads Åreskutan's temperature, wind and sky",
+          lv["are"] and lv["are"]["temp"] == -1.3 and lv["are"]["code"] == 71
+          and all(w in arec.locator(".live-note").inner_text() for w in ("Åreskutan", "−1,3", "°C", "m/s", "snö"))
+          and arec.locator(".project-chart.is-live").count() == 1, arec.locator(".live-note").inner_text())
+    pg.click("#btn-en"); pg.wait_for_timeout(200)
+    check("live notes follow the language",
+          "SE2 now" in se2c.locator(".live-note").inner_text() and "snow" in arec.locator(".live-note").inner_text())
+    pg.click("#btn-sv"); pg.wait_for_timeout(200)
+    mcc = pg.locator("[data-mc]")
+    mcc.scroll_into_view_if_needed(); pg.wait_for_timeout(900)
+    lv = pg.evaluate("cvLive.state()")
+    check("the Monte Carlo card simulates paths on a canvas once in view",
+          mcc.evaluate("e=>e.classList.contains('has-mc')") and lv["mc"] and lv["mc"]["step"] > 0 and lv["mc"]["paths"] == 60
+          and 0 <= lv["mc"]["up"] <= 1 and "σ" in mcc.locator(".mc-note").inner_text(), lv["mc"])
+    box = mcc.locator(".mc-wrap").bounding_box()
+    pg.mouse.move(box["x"] + box["width"] * 0.9, box["y"] + box["height"] / 2); pg.wait_for_timeout(250)
+    check("dragging sideways sets the volatility",
+          abs(pg.evaluate("cvLive.state().mc.sigma") - (0.08 + 0.9 * 0.72)) < .03, pg.evaluate("cvLive.state().mc.sigma"))
+    pg.emulate_media(media="print")
+    check("paper carries no charts at all: neither live curves, notes nor the simulation",
+          se2c.locator(".project-chart.is-live").evaluate("e=>getComputedStyle(e).display") == "none"
+          and se2c.locator(".live-note").evaluate("e=>getComputedStyle(e).display") == "none"
+          and mcc.locator(".mc-wrap").evaluate("e=>getComputedStyle(e).display") == "none"
+          and mcc.locator(".project-chart.is-static").evaluate("e=>getComputedStyle(e).display") == "none")
+    pg.emulate_media(media="screen")
 
     # --- Guess the company ---
     data = pg.evaluate("cvQuiz.data()")

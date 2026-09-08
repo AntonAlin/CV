@@ -1094,6 +1094,25 @@
     opacity:.5;transition:opacity .25s ease;
   }
   .project-card:hover .project-chart{opacity:.8;}
+  /* Live cards: the drawn chart yields to a real one once data arrived; the
+     static drawing stays for paper and for visitors whose fetch fails. */
+  .project-card.has-live .project-chart.is-static{display:none;}
+  .project-chart.is-live{opacity:.85;}
+  .project-chart.is-live .live-now{fill:var(--green);}
+  .live-note{
+    display:flex;align-items:center;gap:8px;margin-top:9px;
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;color:var(--text-faint);
+  }
+  .live-note b{color:var(--text-lo);font-weight:500;}
+  .live-note .pulse-dot{width:6px;height:6px;}
+  /* Monte Carlo card: a canvas simulation replaces the drawn line on screen */
+  .project-card.has-mc .project-chart.is-static{display:none;}
+  .mc-wrap{margin-top:14px;cursor:ew-resize;}
+  .mc-canvas{display:block;width:100%;height:96px;border-radius:8px;background:rgba(255,255,255,.025);}
+  .mc-note{
+    margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;color:var(--text-faint);
+  }
+  .mc-note b{color:var(--text-lo);font-weight:500;}
   .project-chart path,.project-chart line,.project-chart rect{
     vector-effect:non-scaling-stroke;
   }
@@ -1290,7 +1309,8 @@
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
-    .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim, .hero-moon, .sky-line{display:none !important;}
+    .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim, .hero-moon, .sky-line,
+    .live-note, .project-chart.is-live, .mc-wrap{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1934,23 +1954,24 @@
           <rect x="182" y="29" width="12" height="3"  fill="var(--teal)"  opacity=".18"/>
         </svg>
       </div>
-      <div class="project-card">
+      <div class="project-card" data-mc>
         <div class="project-title">Alpha Satellite</div>
         <div class="tag-row"><span class="tag">LightGBM</span><span class="tag">XGBoost</span></div>
         <p class="project-desc sv-only"><span class="sv-only">Microcap-pipeline. </span>Ensemblemodell med purged walk-forward-korsvalidering och invers volatilitetsriskparitet. Utvärderad out-of-sample; resultat på begäran.</p>
         <p class="project-desc en-only">Microcap equity pipeline. Ensemble with purged walk-forward cross-validation and inverse-volatility risk parity. Evaluated out-of-sample; results on request.</p>
-        <svg class="project-chart" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <svg class="project-chart is-static" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <line x1="0" y1="32" x2="200" y2="32" stroke="var(--hairline-strong)" stroke-width="1"/>
           <path d="M0 30 L14 21 L28 27 L42 14 L56 22 L70 10 L84 18 L98 6 L112 14 L126 4 L140 11 L154 3 L168 9 L182 2 L200 5"
                 stroke="var(--green)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
         </svg>
+        <div class="mc-wrap" hidden><canvas class="mc-canvas" aria-hidden="true"></canvas><div class="mc-note"></div></div>
       </div>
-      <div class="project-card">
+      <div class="project-card" data-live="se2">
         <div class="project-title"><span class="sv-only">SE2 Elprisprognosterminal</span><span class="en-only">SE2 Electricity Price Forecasting Terminal</span></div>
         <div class="tag-row"><span class="tag">Quantile Regression</span><span class="tag">Microsoft Fabric</span></div>
         <p class="project-desc sv-only">LightGBM/XGBoost-baserade kvantilprognoser, utvecklat i Microsoft Fabric.</p>
         <p class="project-desc en-only">LightGBM/XGBoost quantile forecasts, built on Microsoft Fabric.</p>
-        <svg class="project-chart" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <svg class="project-chart is-static" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <line x1="0" y1="32" x2="200" y2="32" stroke="var(--hairline-strong)" stroke-width="1"/>
           <path d="M0 20 L44 16 L88 21 L128 9 L164 4 L200 2 L200 32 L164 30 L128 29 L88 21 L44 16 L0 20 Z"
                 fill="var(--teal)" opacity=".16"/>
@@ -1958,19 +1979,21 @@
                 stroke="var(--green)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
           <line x1="88" y1="1" x2="88" y2="33" stroke="var(--hairline-strong)" stroke-width="1" stroke-dasharray="2 3"/>
         </svg>
+        <div class="live-note" hidden></div>
       </div>
-      <a class="project-card" href="https://antonalin.github.io/AreWeather/" target="_blank" rel="noopener">
+      <a class="project-card" href="https://antonalin.github.io/AreWeather/" target="_blank" rel="noopener" data-live="are">
         <div class="project-live-badge"><span class="pulse-dot"></span><span class="sv-only">Live-verktyg</span><span class="en-only">Live tool</span></div>
         <div class="project-title">ÅreWeather</div>
         <div class="tag-row"><span class="tag">Elevation-resolved</span><span class="tag">Ensemble ML</span><span class="tag">Open-Meteo</span></div>
         <p class="project-desc sv-only">Höjdupplöst väderprognos för tio toppar i Årefjällen, förfinad av ML tränad i webbläsaren.</p>
         <p class="project-desc en-only">Elevation-resolved forecasts for ten Åre peaks, refined by ML trained in the browser.</p>
-        <svg class="project-chart" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <svg class="project-chart is-static" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           <line x1="0" y1="32" x2="200" y2="32" stroke="var(--hairline-strong)" stroke-width="1"/>
           <path d="M0 30 L28 30 L52 6 L76 30 L104 30 L126 15 L150 30 L200 30"
                 stroke="var(--teal)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
           <line x1="0" y1="19" x2="200" y2="19" stroke="var(--green)" stroke-width="1" stroke-dasharray="2 3" opacity=".65"/>
         </svg>
+        <div class="live-note" hidden></div>
         <span class="project-open-link" data-print="antonalin.github.io/AreWeather"><span class="sv-only">Öppna verktyget</span><span class="en-only">Open the tool</span> →</span>
       </a>
     </div>
@@ -2780,6 +2803,167 @@
         return {playing: playing, genre: genre, started: !!ctx, ctx: ctx ? ctx.state : null, volume: vol, level: level};
       }
     };
+  })();
+
+  /* ---------- Live cards ----------
+     Two project cards fetch today's real data in the browser: the SE2 spot
+     price by hour from elprisetjustnu.se and the weather on Åreskutan from
+     Open-Meteo. A third runs a Monte Carlo simulation on a canvas. Each keeps
+     the drawn chart as a fallback, and print always uses the drawing. */
+  var cvLive = (function(){
+    var state = {se2: null, are: null, mc: null};
+    function en(){ return document.body.classList.contains('lang-en'); }
+    function T(sv, e){ return en() ? e : sv; }
+    function fmt(n, d){ return n.toLocaleString(en() ? 'en-GB' : 'sv-SE', {minimumFractionDigits: d, maximumFractionDigits: d}); }
+    function curve(vals, cur, color, fillOp){
+      var n = vals.length, lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), span = (hi - lo) || 1;
+      var X = function(i){ return (i / (n - 1) * 200).toFixed(1); };
+      var Y = function(v){ return (3 + (1 - (v - lo) / span) * 27).toFixed(1); };
+      var pts = vals.map(function(v, i){ return X(i) + ' ' + Y(v); });
+      return '<svg class="project-chart is-live" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">'
+        + '<line x1="0" y1="32" x2="200" y2="32" stroke="var(--hairline-strong)" stroke-width="1"/>'
+        + '<path d="M' + pts.join(' L') + ' L200 32 L0 32 Z" fill="' + color + '" opacity="' + fillOp + '"/>'
+        + '<path d="M' + pts.join(' L') + '" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+        + '<line x1="' + X(cur) + '" y1="1" x2="' + X(cur) + '" y2="33" stroke="var(--hairline-strong)" stroke-width="1" stroke-dasharray="2 3"/>'
+        + '<circle class="live-now" cx="' + X(cur) + '" cy="' + Y(vals[cur]) + '" r="2.4"/>'
+        + '</svg>';
+    }
+    function mount(card, svg){
+      var old = card.querySelector('.project-chart.is-live'); if(old){ old.remove(); }
+      card.querySelector('.project-chart.is-static').insertAdjacentHTML('afterend', svg);
+      card.classList.add('has-live');
+    }
+    function note(card, html){
+      var n = card.querySelector('.live-note'); if(!n){ return; }
+      n.innerHTML = '<span class="pulse-dot"></span><span>' + html + '</span>';
+      n.removeAttribute('hidden');
+    }
+    function getJSON(url){
+      if(!window.fetch){ return Promise.reject(new Error('no fetch')); }
+      return fetch(url, {cache: 'no-store'}).then(function(r){ if(!r.ok){ throw new Error(String(r.status)); } return r.json(); });
+    }
+
+    /* --- SE2 spot price, today --- */
+    function renderSe2(){
+      var d = state.se2, card = document.querySelector('[data-live="se2"]'); if(!d || !card){ return; }
+      mount(card, curve(d.vals, d.cur, 'var(--teal)', .16));
+      note(card, T('SE2 just nu', 'SE2 now') + ' <b>' + fmt(d.vals[d.cur], 2) + ' kr/kWh</b> · '
+        + T('dygnets topp', 'peak today') + ' ' + fmt(d.max, 2) + ' ' + T('kl', 'at') + ' ' + ('0' + d.maxHour).slice(-2));
+    }
+    function se2(){
+      var card = document.querySelector('[data-live="se2"]'); if(!card){ return; }
+      var d = new Date(), mm = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2);
+      getJSON('https://www.elprisetjustnu.se/api/v1/prices/' + d.getFullYear() + '/' + mm + '-' + dd + '_SE2.json').then(function(rows){
+        if(!Array.isArray(rows) || rows.length < 20){ throw new Error('shape'); }
+        var vals = rows.map(function(r){ return +r.SEK_per_kWh; }), now = Date.now(), cur = 0;
+        if(vals.some(isNaN)){ throw new Error('shape'); }
+        rows.forEach(function(r, i){ if(Date.parse(r.time_start) <= now){ cur = i; } });
+        var max = Math.max.apply(null, vals), maxI = vals.indexOf(max);
+        state.se2 = {vals: vals, cur: cur, max: max, min: Math.min.apply(null, vals), maxHour: new Date(rows[maxI].time_start).getHours(), n: vals.length};
+        renderSe2();
+      }).catch(function(){});
+    }
+
+    /* --- Åreskutan, now --- */
+    var WX = {0: ['klart', 'clear'], 1: ['mest klart', 'mostly clear'], 2: ['halvklart', 'partly cloudy'], 3: ['mulet', 'overcast'],
+              45: ['dimma', 'fog'], 48: ['dimma', 'fog'], 51: ['duggregn', 'drizzle'], 53: ['duggregn', 'drizzle'], 55: ['duggregn', 'drizzle'],
+              61: ['regn', 'rain'], 63: ['regn', 'rain'], 65: ['regn', 'rain'], 66: ['underkylt regn', 'freezing rain'], 67: ['underkylt regn', 'freezing rain'],
+              71: ['snö', 'snow'], 73: ['snö', 'snow'], 75: ['snö', 'snow'], 77: ['snö', 'snow'], 80: ['skurar', 'showers'], 81: ['skurar', 'showers'],
+              82: ['skurar', 'showers'], 85: ['snöbyar', 'snow showers'], 86: ['snöbyar', 'snow showers'], 95: ['åska', 'thunder'], 96: ['åska', 'thunder'], 99: ['åska', 'thunder']};
+    function renderAre(){
+      var d = state.are, card = document.querySelector('[data-live="are"]'); if(!d || !card){ return; }
+      mount(card, curve(d.hourly, d.cur, 'var(--teal)', .14));
+      var w = WX[d.code] || ['', ''];
+      note(card, T('Åreskutan 1 420 m', 'Åreskutan 1,420 m') + ' <b>' + fmt(d.temp, 1).replace('-', '−') + ' °C</b> · '
+        + fmt(d.wind, 0) + ' m/s' + (w[0] ? ' · ' + (en() ? w[1] : w[0]) : ''));
+    }
+    function are(){
+      var card = document.querySelector('[data-live="are"]'); if(!card){ return; }
+      getJSON('https://api.open-meteo.com/v1/forecast?latitude=63.4306&longitude=13.085&elevation=1420'
+        + '&current=temperature_2m,wind_speed_10m,weather_code&hourly=temperature_2m&forecast_days=1'
+        + '&timezone=Europe%2FStockholm&wind_speed_unit=ms').then(function(j){
+        var c = j && j.current, h = j && j.hourly;
+        if(!c || !h || !Array.isArray(h.temperature_2m) || h.temperature_2m.length < 12){ throw new Error('shape'); }
+        var cur = Math.max(0, h.time.indexOf(String(c.time).slice(0, 13) + ':00'));
+        state.are = {temp: +c.temperature_2m, wind: +c.wind_speed_10m, code: +c.weather_code, hourly: h.temperature_2m.map(Number), cur: cur};
+        renderAre();
+      }).catch(function(){});
+    }
+
+    /* --- Monte Carlo: geometric Brownian motion, live --- */
+    function monteCarlo(){
+      var card = document.querySelector('[data-mc]'); if(!card){ return; }
+      var wrap = card.querySelector('.mc-wrap'), cv = wrap.querySelector('canvas'), noteEl = wrap.querySelector('.mc-note');
+      if(!cv || !cv.getContext){ return; }
+      var ctx = cv.getContext('2d');
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var N = 60, STEPS = 120, dt = 1 / STEPS, mu = .06, sigma = .32;
+      var paths = [], step = 0, raf = null, hold = 0, visible = false;
+      var LO = Math.log(.3), HI = Math.log(3.2);
+      function gauss(){ var u = 1 - Math.random(), v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+      function seed(){ paths = []; for(var i = 0; i < N; i++){ paths.push([1]); } step = 0; }
+      function advance(k){
+        for(var s = 0; s < k && step < STEPS; s++){
+          paths.forEach(function(p){ p.push(p[p.length - 1] * Math.exp((mu - .5 * sigma * sigma) * dt + sigma * Math.sqrt(dt) * gauss())); });
+          step++;
+        }
+      }
+      function stats(){
+        var last = paths.map(function(p){ return p[p.length - 1]; }).sort(function(a, b){ return a - b; });
+        var up = last.filter(function(v){ return v > 1; }).length / last.length;
+        return {up: up, median: last[Math.floor(last.length / 2)], p10: last[Math.floor(last.length * .1)], p90: last[Math.floor(last.length * .9)]};
+      }
+      function draw(){
+        var dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+        if(!W || !H){ return; }
+        if(cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)){ cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+        var Y = function(v){ return H - 4 - (Math.log(v) - LO) / (HI - LO) * (H - 8); };
+        var X = function(i){ return 4 + i / STEPS * (W - 8); };
+        ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.setLineDash([2, 4]); ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(4, Y(1)); ctx.lineTo(W - 4, Y(1)); ctx.stroke(); ctx.setLineDash([]);
+        paths.forEach(function(p){
+          var last = p[p.length - 1];
+          ctx.strokeStyle = last >= 1 ? 'rgba(61,220,151,.28)' : 'rgba(255,111,174,.26)';
+          ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(0), Y(p[0]));
+          for(var i = 1; i < p.length; i++){ ctx.lineTo(X(i), Y(p[i])); }
+          ctx.stroke();
+        });
+        var st = stats();
+        state.mc = {sigma: sigma, mu: mu, step: step, paths: N, up: st.up, median: st.median};
+        noteEl.innerHTML = 'σ <b>' + Math.round(sigma * 100) + ' %</b> · μ ' + Math.round(mu * 100) + ' % · ' + N + ' ' + T('banor', 'paths')
+          + ' · P(> start) <b>' + Math.round(st.up * 100) + ' %</b> · P10–P90 ' + fmt(st.p10, 2) + '–' + fmt(st.p90, 2)
+          + ' · <span class="mc-hint">' + T('dra i sidled för volatilitet', 'drag sideways for volatility') + '</span>';
+      }
+      function frame(){
+        raf = null;
+        if(!visible){ return; }
+        if(step < STEPS){ advance(2); draw(); }
+        else if(hold++ > 110){ seed(); hold = 0; }
+        raf = requestAnimationFrame(frame);
+      }
+      function setSigma(x){
+        var r = wrap.getBoundingClientRect(), f = Math.min(1, Math.max(0, (x - r.left) / r.width));
+        sigma = .08 + f * .72;
+        if(reduced){ seed(); advance(STEPS); draw(); }
+      }
+      wrap.addEventListener('mousemove', function(e){ setSigma(e.clientX); });
+      wrap.addEventListener('touchmove', function(e){ if(e.touches[0]){ setSigma(e.touches[0].clientX); } }, {passive: true});
+      card.classList.add('has-mc'); wrap.removeAttribute('hidden');
+      seed();
+      if(reduced || !('IntersectionObserver' in window)){ advance(STEPS); draw(); return; }
+      var io = new IntersectionObserver(function(entries){
+        visible = entries[0].isIntersecting && !document.hidden;
+        if(visible && !raf){ raf = requestAnimationFrame(frame); }
+      }, {threshold: .2});
+      io.observe(wrap);
+      document.addEventListener('visibilitychange', function(){ if(document.hidden){ visible = false; } else { io.unobserve(wrap); io.observe(wrap); } });
+      window.addEventListener('resize', function(){ if(step > 0){ draw(); } });
+    }
+
+    document.addEventListener('cv:lang', function(){ renderSe2(); renderAre(); if(state.mc){ /* the note re-renders on the next frame */ } });
+    se2(); are(); monteCarlo();
+    return {state: function(){ return state; }};
   })();
 
   /* ---------- Guess the company ----------
