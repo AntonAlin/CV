@@ -116,7 +116,7 @@
     position:absolute;top:0;left:0;right:0;
     background-repeat:repeat;
     will-change:transform;
-    opacity:var(--tod-star-op,1);
+    opacity:calc(var(--tod-star-op,1) * (1 - .85 * var(--wx-cloud,0)));
   }
   .stars-far{
     height:calc(100% + 400px);
@@ -411,8 +411,10 @@
      room to read as the main event rather than competing with a full field
      of bright stars in broad daylight. */
   @property --tod-star-op{syntax:'<number>';inherits:true;initial-value:1;}
+  /* Åre's cloud cover right now, 0–1; dims stars, aurora, sun and moon */
+  @property --wx-cloud{syntax:'<number>';inherits:true;initial-value:0;}
   body{transition:--tod-1 2.6s ease,--tod-2 2.6s ease,--tod-3 2.6s ease,
-                  --tod-glow 2.6s ease,--tod-star-op 2.6s ease;}
+                  --tod-glow 2.6s ease,--tod-star-op 2.6s ease,--wx-cloud 2.6s ease;}
   @media (prefers-reduced-motion: reduce){ body{transition:none;} }
 
   body.tod-day  {--tod-1:#3ddc97;--tod-2:#ffb84d;--tod-3:#22b8cf;--tod-glow:rgba(255,196,120,.1);--tod-star-op:.4;}
@@ -424,7 +426,8 @@
     position:absolute;inset:-20% -10% -10% -10%;
     z-index:0;pointer-events:none;
     filter:blur(60px) saturate(130%);
-    opacity:.55;
+    --aurora-op:.55;
+    opacity:calc(var(--aurora-op) * (1 - var(--wx-cloud,0)));
   }
   .aurora-band{
     position:absolute;
@@ -498,14 +501,15 @@
     transition:opacity 2.6s ease,transform 2.6s ease;
     pointer-events:none;
   }
-  body.tod-day .hero-sun{opacity:.9;transform:scale(1);}
+  body.tod-day .hero-sun{opacity:calc(.9 * (1 - .85 * var(--wx-cloud,0)));transform:scale(1);}
 
   /* ---------- Share image ----------
      tools/build-og.py adds og-mode and captures 1200x630: the hero fills the
      card, the bar and everything interactive stay out of the picture. */
   body.og-mode .controlbar, body.og-mode .sky-line, body.og-mode .meta-row,
   body.og-mode .portrait-dots, body.og-mode .kicker-summary, body.og-mode .hero-sun,
-  body.og-mode .hero-cloud, body.og-mode .hero-moon{display:none !important;}
+  body.og-mode .hero-cloud, body.og-mode .hero-moon, body.og-mode .hero-rain, body.og-mode .hero-snow,
+  body.og-mode .hero-fog, body.og-mode .hero-deck, body.og-mode .hero-flash{display:none !important;}
   body.og-mode .hero{min-height:630px;padding:150px 0 0;border-bottom:none;}
   body.og-mode .hero-content{padding-right:0;}
   body.og-mode h1.name{font-size:92px;}
@@ -526,19 +530,20 @@
      that could be fetched (see cvSky), otherwise it keeps its default. */
   .hero-moon{
     position:absolute;top:9%;right:34%;width:54px;height:54px;
-    opacity:0;transform:scale(.9);transition:opacity 2.6s ease,transform 2.6s ease;
+    --moon-op:0;opacity:calc(var(--moon-op) * (1 - .8 * var(--wx-cloud,0)));transform:scale(.9);transition:opacity 2.6s ease,transform 2.6s ease;
     pointer-events:none;filter:drop-shadow(0 0 14px rgba(240,236,220,.35));
   }
   .hero-moon svg{display:block;width:100%;height:100%;overflow:visible;}
   .hero-moon .moon-dark{fill:#1a2233;}
   .hero-moon .moon-lit{fill:#efe9d6;}
-  body.tod-night .hero-moon{opacity:.95;transform:scale(1);}
-  body.tod-dusk  .hero-moon{opacity:.7;transform:scale(1);}
-  body.tod-dawn  .hero-moon{opacity:.5;transform:scale(1);}
+  body.tod-night .hero-moon{--moon-op:.95;transform:scale(1);}
+  body.tod-dusk  .hero-moon{--moon-op:.7;transform:scale(1);}
+  body.tod-dawn  .hero-moon{--moon-op:.5;transform:scale(1);}
   @media (max-width:760px){ .hero-moon{top:3%;right:auto;left:8%;width:40px;height:40px;} }
   @media (prefers-reduced-motion: reduce){ .hero-moon{transition:none;} }
   /* Snow: drawn only while Open-Meteo reports snowfall on Åreskutan */
-  .hero-snow{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .hero-snow{position:absolute;inset:-25% -25% 0;z-index:0;pointer-events:none;overflow:hidden;transform:rotate(var(--wx-tilt,0deg));transform-origin:50% 0;}
+  body.wx-blizzard .hero-snow i{border-radius:40%;filter:blur(.8px);}
   .hero-snow i{
     position:absolute;top:-12px;display:block;border-radius:50%;
     background:rgba(255,255,255,.75);filter:blur(.4px);
@@ -562,9 +567,9 @@
   .sky-line .kp-dot.kp-4{background:var(--green);box-shadow:0 0 8px var(--green);}
   .sky-line .kp-dot.kp-5{background:var(--pink);box-shadow:0 0 10px var(--pink);}
   /* Space weather scales the aurora: quiet nights stay soft, a storm glows */
-  body.kp-quiet .aurora-layer{opacity:.42;}
-  body.kp-active .aurora-layer{opacity:.72;filter:blur(60px) saturate(150%);}
-  body.kp-storm .aurora-layer{opacity:.9;filter:blur(56px) saturate(175%);}
+  body.kp-quiet .aurora-layer{--aurora-op:.42;}
+  body.kp-active .aurora-layer{--aurora-op:.72;filter:blur(60px) saturate(150%);}
+  body.kp-storm .aurora-layer{--aurora-op:.9;filter:blur(56px) saturate(175%);}
   body.kp-storm .aurora-band{animation-duration:14s;}
   @media (max-width:760px){ .hero-sun{top:2%;right:10%;width:120px;height:120px;} }
   /* Cloud positions are tuned as a percentage of a short, wide desktop hero.
@@ -598,6 +603,58 @@
   .hero-cloud.c2{top:28%;animation-duration:100s;animation-delay:-30s;scale:.75;}
   .hero-cloud.c3{top:20%;animation-duration:130s;animation-delay:-70s;scale:.55;}
   body.tod-day .hero-cloud{opacity:.5;animation-play-state:running;}
+  /* With Åre's report in hand the cover decides: none, one, two or all three
+     clouds, at every hour, dark-tinted at night, and drifting faster in wind */
+  body{--cloud-op:.5;}
+  body.tod-dusk, body.tod-dawn{--cloud-op:.38;}
+  body.tod-night{--cloud-op:.22;}
+  body.has-wx .hero-cloud{opacity:0;animation-play-state:running;}
+  body.has-wx.wx-partly .hero-cloud.c3, body.has-wx.wx-cloudy .hero-cloud.c2, body.has-wx.wx-cloudy .hero-cloud.c3,
+  body.has-wx.wx-overcast .hero-cloud{opacity:var(--cloud-op);}
+  body.tod-night .hero-cloud{background:rgba(168,182,214,.7);}
+  body.tod-dusk .hero-cloud, body.tod-dawn .hero-cloud{background:rgba(236,214,214,.6);}
+  body.has-wx .hero-cloud.c1{animation-duration:calc(75s / (1 + var(--wx-wind,0) / 5));}
+  body.has-wx .hero-cloud.c2{animation-duration:calc(100s / (1 + var(--wx-wind,0) / 5));}
+  body.has-wx .hero-cloud.c3{animation-duration:calc(130s / (1 + var(--wx-wind,0) / 5));}
+  /* Cloud deck: a veil that thickens from half cover to overcast, lit by the
+     hour; a blizzard whitens it */
+  .hero-deck{
+    position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;
+    background:linear-gradient(180deg,var(--wx-deck-1) 0%,var(--wx-deck-2) 55%,transparent 100%);
+  }
+  body{--wx-deck-1:rgba(150,162,182,.5);--wx-deck-2:rgba(112,124,144,.32);}
+  body.tod-dusk, body.tod-dawn{--wx-deck-1:rgba(96,100,128,.6);--wx-deck-2:rgba(70,74,100,.4);}
+  body.tod-night{--wx-deck-1:rgba(30,36,54,.86);--wx-deck-2:rgba(18,22,34,.6);}
+  body.wx-blizzard{--wx-deck-1:rgba(206,216,232,.55);--wx-deck-2:rgba(186,198,218,.34);}
+  body.wx-blizzard.tod-night{--wx-deck-1:rgba(124,138,166,.6);--wx-deck-2:rgba(92,102,128,.42);}
+  body.has-wx .hero-deck{opacity:clamp(0, calc((var(--wx-cloud,0) - .45) / .5), 1);}
+  /* Rain: thin streaks, leaning with the wind */
+  .hero-rain{position:absolute;inset:-25% -25% 0;z-index:0;pointer-events:none;overflow:hidden;transform:rotate(var(--wx-tilt,0deg));transform-origin:50% 0;}
+  .hero-rain i{
+    position:absolute;top:-40px;width:1px;height:18px;display:block;
+    background:linear-gradient(180deg,rgba(196,212,240,0),rgba(196,212,240,.6));
+    animation:rain-fall linear infinite;
+  }
+  @keyframes rain-fall{0%{transform:translate3d(0,0,0);}100%{transform:translate3d(0,1200px,0);}}
+  /* Fog: two soft banks drifting across the hero */
+  .hero-fog{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .hero-fog i{
+    position:absolute;left:-30%;width:160%;height:48%;display:block;filter:blur(26px);
+    background:radial-gradient(ellipse at 50% 50%,rgba(204,214,230,.5),transparent 70%);
+    animation:fog-drift 46s ease-in-out infinite alternate;
+  }
+  .hero-fog i:first-child{top:2%;}
+  .hero-fog i:last-child{top:46%;animation-delay:-23s;animation-duration:58s;}
+  body.tod-night .hero-fog i{opacity:.55;}
+  @keyframes fog-drift{from{transform:translate3d(-6%,0,0);}to{transform:translate3d(6%,0,0);}}
+  /* Thunder: an occasional flash across the sky */
+  .hero-flash{position:absolute;inset:0;z-index:0;pointer-events:none;background:rgba(232,238,255,.8);opacity:0;}
+  body.wx-thunder .hero-flash{animation:wx-flash 11s linear infinite;}
+  @keyframes wx-flash{0%,90.5%,100%{opacity:0;}91%{opacity:.55;}92%{opacity:.08;}93%{opacity:.4;}94.5%{opacity:0;}}
+  @media (prefers-reduced-motion: reduce){
+    .hero-rain{display:none;} .hero-fog i{animation:none;} body.wx-thunder .hero-flash{animation:none;}
+    .hero-cloud{animation:none;}
+  }
   @keyframes cloud-drift{
     from{transform:translateX(-25%);}
     to{transform:translateX(125%);}
@@ -1463,7 +1520,8 @@
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
     .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim, .hero-moon, .sky-line,
-    .live-note, .project-chart.is-live, .mc-wrap, .ski-scrim, .hero-snow, .market-strip{display:none !important;}
+    .live-note, .project-chart.is-live, .mc-wrap, .ski-scrim, .hero-snow, .market-strip,
+    .hero-rain, .hero-fog, .hero-deck, .hero-flash{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -1818,6 +1876,8 @@
   <div class="hero-cloud c1" aria-hidden="true"></div>
   <div class="hero-cloud c2" aria-hidden="true"></div>
   <div class="hero-cloud c3" aria-hidden="true"></div>
+  <div class="hero-deck" aria-hidden="true"></div>
+  <div class="hero-flash" aria-hidden="true"></div>
   <div class="wrap hero-content">
     <div class="portrait-frame" id="portrait-frame">
       <div class="portrait-ring">
@@ -2389,7 +2449,7 @@
     </p>
     <div class="about-h"><span class="sv-only">Under huven</span><span class="en-only">Under the hood</span></div>
     <ul class="about-grid">
-      <li><b><span class="sv-only">Himlen</span><span class="en-only">The sky</span></b> · <span class="sv-only">solhöjd över Åre beräknad astronomiskt, månfas, norrsken efter NOAA:s Kp-index och snö efter Open-Meteo</span><span class="en-only">solar altitude over Åre computed astronomically, moon phase, aurora from NOAA's Kp index and snow from Open-Meteo</span></li>
+      <li><b><span class="sv-only">Himlen</span><span class="en-only">The sky</span></b> · <span class="sv-only">Åres väder just nu från Open-Meteo styr moln, snö, regn, dimma och snöstorm; solhöjden över Åre beräknas astronomiskt, månfasen likaså, och norrskenet följer NOAA:s Kp-index</span><span class="en-only">Åre's current weather from Open-Meteo drives cloud, snow, rain, fog and blizzard; the sun's altitude over Åre is computed astronomically, so is the moon phase, and the aurora follows NOAA's Kp index</span></li>
       <li><b><span class="sv-only">Live-kort</span><span class="en-only">Live cards</span></b> · <span class="sv-only">SE2-elpris och Årevädret hämtas när sidan öppnas, med statiska kurvor som reserv</span><span class="en-only">SE2 power price and Åre weather fetched on load, with static curves as fallback</span></li>
       <li><b>Monte Carlo</b> · <span class="sv-only">geometrisk brownsk rörelse på canvas, volatiliteten styrs med pekaren</span><span class="en-only">geometric Brownian motion on canvas, volatility driven by the pointer</span></li>
       <li><b><span class="sv-only">Aktiespelen</span><span class="en-only">Stock games</span></b> · <span class="sv-only">månadskurser från Alpha Vantage, uppdaterade varje vecka av en GitHub Action</span><span class="en-only">monthly prices from Alpha Vantage, refreshed weekly by a GitHub Action</span></li>
@@ -2509,6 +2569,12 @@
     function line(){
       var el = document.getElementById('sky-line'); if(!el){ return; }
       var m = moon(), isEn = en(), parts = [];
+      var wx = window.cvWx ? cvWx.state() : null;
+      if(wx){
+        parts.push('<span>' + cvWx.icon() + ' ' + (isEn ? 'Åre now' : 'Åre just nu') + ': <b>' + (typeof wx.temp === 'number' && !isNaN(wx.temp)
+          ? (Math.round(wx.temp * 10) / 10).toLocaleString(isEn ? 'en-GB' : 'sv-SE').replace('-', '\u2212') + '\u00a0°C' : '') + '</b> \u00b7 ' + cvWx.word(isEn)
+          + (wx.wind >= 5 ? ' \u00b7 ' + Math.round(wx.wind) + '\u00a0m/s' : '') + '</span>');
+      }
       var moonUp = /tod-(night|dusk|dawn)/.test(document.body.className);
       if(moonUp){ parts.push('<span>\u263D <b>' + (isEn ? m.en : m.sv) + '</b> ' + Math.round(m.fraction * 100) + '\u00a0%</span>'); }
       if(snow && snow.depth >= .05){
@@ -2520,6 +2586,7 @@
         var word = isEn
           ? (tier === 5 ? 'geomagnetic storm, strong chance' : tier === 4 ? 'good chance in Åre' : tier === 2 ? 'possible under a clear sky' : 'quiet')
           : (tier === 5 ? 'geomagnetisk storm, stor chans' : tier === 4 ? 'goda chanser i Åre' : tier === 2 ? 'möjligt vid klar himmel' : 'lugnt');
+        if(tier >= 2 && wx && wx.cloud >= .75){ word += ' \u00b7 ' + (isEn ? 'overcast in Åre right now' : 'mulet i Åre just nu'); }
         parts.push('<span><i class="kp-dot kp-' + tier + '"></i>' + (isEn ? 'Aurora tonight' : 'Norrsken i natt') + ': <b>Kp ' + v.toFixed(v % 1 ? 1 : 0) + '</b> \u00b7 ' + word + '</span>');
       }
       el.innerHTML = parts.join('');
@@ -2554,32 +2621,124 @@
         applyKp(); line();
       }).catch(function(){ line(); });
     }
-    function flakes(on){
-      var hero = document.querySelector('.hero'); if(!hero){ return; }
-      var host = hero.querySelector('.hero-snow');
-      if(!on){ if(host){ host.remove(); } return; }
-      if(host){ return; }
-      host = document.createElement('div'); host.className = 'hero-snow'; host.setAttribute('aria-hidden', 'true');
-      var html = '';
-      for(var i = 0; i < 44; i++){
-        var size = (2 + Math.random() * 3).toFixed(1), dur = (9 + Math.random() * 9).toFixed(1);
-        html += '<i style="left:' + (Math.random() * 100).toFixed(1) + '%;width:' + size + 'px;height:' + size + 'px;'
-          + 'animation-duration:' + dur + 's;animation-delay:-' + (Math.random() * 18).toFixed(1) + 's;--sx:' + Math.round(-30 + Math.random() * 60) + 'px;opacity:' + (.4 + Math.random() * .5).toFixed(2) + '"></i>';
-      }
-      host.innerHTML = html;
-      hero.insertBefore(host, hero.firstChild);
-    }
     document.addEventListener('cv:weather', function(e){
       snow = e.detail && {falling: +e.detail.snowfall || 0, depth: +e.detail.snowDepth || 0};
       document.body.classList.toggle('is-snowing', !!(snow && snow.falling > 0));
-      flakes(snow && snow.falling > 0);
-      line();
     });
+    /* cvWx has classified the report by the time this fires */
+    document.addEventListener('cv:wx', line);
     document.addEventListener('cv:lang', line);
     document.addEventListener('cv:tod', line);
     drawMoon(); line(); load();
     setInterval(drawMoon, 60 * 60 * 1000);
     return {moon: moon, kp: function(){ return kp; }, snow: function(){ return snow; }, parse: parse};
+  })();
+
+  /* ---------- Åre's weather in the sky ----------
+     The hero shows what Åreskutan's station reports right now: cloud cover
+     veils stars, aurora, sun and moon; snow, rain, fog and thunder are drawn;
+     a blizzard leans the snow with the wind and whitens the deck. Without a
+     report (offline, file://) the sky stays as the hour alone paints it. */
+  var cvWx = (function(){
+    var SNOW = {71: 1, 73: 2, 75: 3, 77: 1, 85: 1, 86: 3};
+    var RAIN = {51: 1, 53: 1, 55: 2, 56: 1, 57: 2, 61: 1, 63: 2, 65: 3, 66: 2, 67: 3, 80: 1, 81: 2, 82: 3};
+    var THUNDER = {95: 2, 96: 3, 99: 3};
+    var CLOUD_BY_CODE = {0: .05, 1: .25, 2: .4, 3: .95, 45: .9, 48: .9};
+    var CLASSES = ['has-wx', 'wx-clear', 'wx-partly', 'wx-cloudy', 'wx-overcast', 'wx-fog', 'wx-rain', 'wx-snow', 'wx-blizzard', 'wx-thunder', 'wx-windy'];
+    var cur = null, key = '';
+    function classify(d){
+      d = d || {};
+      var code = +d.code || 0, cloud;
+      if(d.cloud != null && !isNaN(+d.cloud)){ cloud = Math.max(0, Math.min(1, +d.cloud / 100)); }
+      else { cloud = CLOUD_BY_CODE[code] != null ? CLOUD_BY_CODE[code] : .95; }
+      if(code >= 45){ cloud = Math.max(cloud, .8); }
+      var kind = SNOW[code] ? 'snow' : (RAIN[code] || THUNDER[code]) ? 'rain' : (+d.snowfall > 0 ? 'snow' : (+d.rain > 0 ? 'rain' : 'none'));
+      var rate = 0;
+      if(kind === 'snow'){ var sf = +d.snowfall || 0; rate = sf >= 2 ? 3 : sf >= .6 ? 2 : sf > 0 ? 1 : (SNOW[code] || 1); }
+      if(kind === 'rain'){ var rn = +d.rain || 0; rate = rn >= 4 ? 3 : rn >= 1 ? 2 : rn > 0 ? 1 : (RAIN[code] || THUNDER[code] || 1); }
+      var wind = +d.wind || 0, gust = Math.max(wind, +d.gust || 0);
+      var drizzle = kind === 'rain' && code >= 51 && code <= 57;
+      var blizzard = kind === 'snow' && (wind >= 10 || gust >= 17);
+      return {
+        code: code, cloud: cloud, sky: cloud < .2 ? 'clear' : cloud < .5 ? 'partly' : cloud < .8 ? 'cloudy' : 'overcast',
+        kind: kind, rate: rate, drizzle: drizzle, wind: wind, gust: gust, dir: +d.dir || 0,
+        fog: code === 45 || code === 48, thunder: !!THUNDER[code], blizzard: blizzard, windy: wind >= 12 || gust >= 20,
+        temp: d.temp == null ? NaN : +d.temp
+      };
+    }
+    function word(isEn){
+      var c = cur; if(!c){ return ''; }
+      if(c.blizzard){ return isEn ? 'blizzard' : 'snöstorm'; }
+      if(c.thunder){ return isEn ? 'thunder' : 'åska'; }
+      if(c.fog){ return isEn ? 'fog' : 'dimma'; }
+      if(c.kind === 'snow'){ return [null, isEn ? 'light snow' : 'lätt snöfall', isEn ? 'snow' : 'snöfall', isEn ? 'heavy snow' : 'kraftigt snöfall'][c.rate]; }
+      if(c.kind === 'rain'){ return c.drizzle ? (isEn ? 'drizzle' : 'duggregn') : [null, isEn ? 'light rain' : 'lätt regn', isEn ? 'rain' : 'regn', isEn ? 'heavy rain' : 'kraftigt regn'][c.rate]; }
+      return {clear: isEn ? 'clear' : 'klart', partly: isEn ? 'partly cloudy' : 'halvklart', cloudy: isEn ? 'cloudy' : 'molnigt', overcast: isEn ? 'overcast' : 'mulet'}[c.sky];
+    }
+    function icon(){
+      var c = cur; if(!c){ return ''; }
+      if(c.thunder){ return '\u26a1'; }
+      if(c.kind === 'snow'){ return '\u2744'; }
+      if(c.kind === 'rain'){ return '\u2602'; }
+      if(c.fog){ return '\u2248'; }
+      if(c.sky === 'clear' && document.body.classList.contains('tod-day')){ return '\u2600'; }
+      return c.sky === 'clear' ? '\u2727' : '\u2601';
+    }
+    function layer(hero, cls, on, k, html){
+      var el = hero.querySelector('.' + cls);
+      if(!on){ if(el){ el.remove(); } return; }
+      if(el && el.getAttribute('data-key') === k){ return; }
+      if(el){ el.remove(); }
+      el = document.createElement('div'); el.className = cls; el.setAttribute('aria-hidden', 'true'); el.setAttribute('data-key', k);
+      el.innerHTML = html(); hero.insertBefore(el, hero.firstChild);
+    }
+    function rnd(a, b){ return a + Math.random() * (b - a); }
+    function draw(c){
+      var hero = document.querySelector('.hero'); if(!hero){ return; }
+      var n = c.kind === 'snow' ? (c.blizzard ? 170 : [0, 36, 72, 120][c.rate]) : 0;
+      var lean = c.blizzard ? (c.dir > 180 ? 1 : -1) : 0;
+      layer(hero, 'hero-snow', n > 0, 'snow' + n + (c.blizzard ? 'b' : ''), function(){
+        var h = '';
+        for(var i = 0; i < n; i++){
+          var size = c.blizzard ? rnd(1.4, 3.2) : rnd(2, 5), dur = c.blizzard ? rnd(2.2, 4) : (c.rate === 3 ? rnd(5, 9) : rnd(9, 18));
+          var sx = c.blizzard ? lean * rnd(140, 320) : rnd(-30, 30);
+          h += '<i style="left:' + rnd(0, 100).toFixed(1) + '%;width:' + size.toFixed(1) + 'px;height:' + (c.blizzard ? size * 4 : size).toFixed(1) + 'px;'
+             + 'animation-duration:' + dur.toFixed(1) + 's;animation-delay:-' + rnd(0, 18).toFixed(1) + 's;--sx:' + Math.round(sx) + 'px;opacity:' + rnd(.4, .9).toFixed(2) + '"></i>';
+        }
+        return h;
+      });
+      var r = c.kind === 'rain' ? [0, 40, 90, 150][c.rate] : 0;
+      layer(hero, 'hero-rain', r > 0, 'rain' + r, function(){
+        var h = '';
+        for(var i = 0; i < r; i++){
+          h += '<i style="left:' + rnd(0, 100).toFixed(1) + '%;height:' + rnd(12, 26).toFixed(0) + 'px;animation-duration:' + rnd(.9, 1.6).toFixed(2) + 's;animation-delay:-' + rnd(0, 2).toFixed(2) + 's;opacity:' + rnd(.25, .6).toFixed(2) + '"></i>';
+        }
+        return h;
+      });
+      layer(hero, 'hero-fog', c.fog, 'fog', function(){ return '<i></i><i></i>'; });
+    }
+    function apply(d){
+      var c = classify(d), b = document.body;
+      cur = c;
+      CLASSES.forEach(function(x){ b.classList.remove(x); });
+      b.classList.add('has-wx', 'wx-' + c.sky);
+      if(c.fog){ b.classList.add('wx-fog'); }
+      if(c.kind === 'rain'){ b.classList.add('wx-rain'); }
+      if(c.kind === 'snow'){ b.classList.add('wx-snow'); }
+      if(c.blizzard){ b.classList.add('wx-blizzard'); }
+      if(c.thunder){ b.classList.add('wx-thunder'); }
+      if(c.windy){ b.classList.add('wx-windy'); }
+      var tilt = Math.min(30, c.wind * 1.6) * (c.dir > 180 ? 1 : -1);
+      b.style.setProperty('--wx-cloud', c.cloud.toFixed(2));
+      b.style.setProperty('--wx-wind', c.wind.toFixed(1));
+      b.style.setProperty('--wx-tilt', (c.kind === 'none' ? 0 : tilt).toFixed(0) + 'deg');
+      draw(c);
+      document.dispatchEvent(new CustomEvent('cv:wx', {detail: c}));
+      return c;
+    }
+    document.addEventListener('cv:weather', function(e){ if(e.detail){ apply(e.detail); } });
+    document.addEventListener('cv:tod', function(){ if(cur){ document.dispatchEvent(new CustomEvent('cv:wx', {detail: cur})); } });
+    return {apply: apply, classify: classify, word: word, icon: icon, state: function(){ return cur; }};
   })();
 
   /* ---------- Portrait carousel ---------- */
@@ -3144,17 +3303,20 @@
     function are(){
       var card = document.querySelector('[data-live="are"]'); if(!card){ return; }
       getJSON('https://api.open-meteo.com/v1/forecast?latitude=63.4306&longitude=13.085&elevation=1420'
-        + '&current=temperature_2m,wind_speed_10m,weather_code,snowfall,snow_depth&hourly=temperature_2m&forecast_days=1'
+        + '&current=temperature_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,cloud_cover,rain,snowfall,snow_depth&hourly=temperature_2m&forecast_days=1'
         + '&timezone=Europe%2FStockholm&wind_speed_unit=ms').then(function(j){
         var c = j && j.current, h = j && j.hourly;
         if(!c || !h || !Array.isArray(h.temperature_2m) || h.temperature_2m.length < 12){ throw new Error('shape'); }
         var cur = Math.max(0, h.time.indexOf(String(c.time).slice(0, 13) + ':00'));
-        state.are = {temp: +c.temperature_2m, wind: +c.wind_speed_10m, code: +c.weather_code, hourly: h.temperature_2m.map(Number), cur: cur,
-                     snowfall: +c.snowfall || 0, snowDepth: +c.snow_depth || 0};
+        state.are = {temp: +c.temperature_2m, wind: +c.wind_speed_10m, gust: +c.wind_gusts_10m || 0, dir: +c.wind_direction_10m || 0,
+                     code: +c.weather_code, cloud: c.cloud_cover == null ? null : +c.cloud_cover, rain: +c.rain || 0,
+                     hourly: h.temperature_2m.map(Number), cur: cur, snowfall: +c.snowfall || 0, snowDepth: +c.snow_depth || 0};
         renderAre();
-        document.dispatchEvent(new CustomEvent('cv:weather', {detail: {snowfall: state.are.snowfall, snowDepth: state.are.snowDepth}}));
+        document.dispatchEvent(new CustomEvent('cv:weather', {detail: state.are}));
       }).catch(function(){});
     }
+    /* The sky follows Åre through the visit, not only at the first paint */
+    setInterval(function(){ if(!document.hidden){ are(); } }, 20 * 60 * 1000);
 
     /* --- Monte Carlo: geometric Brownian motion, live --- */
     function monteCarlo(){
@@ -3768,8 +3930,8 @@
       {d: '2026-09-08', sv: 'Aktiespelet har fått läget <b>Upp eller ner?</b>, kompetenserna pekar på sina belägg och sidfoten visar dagens marknad.',
                         en: 'The stock quiz gained a <b>Higher or lower?</b> mode, skills point at their evidence and the footer shows today\'s market.',
                         sv_a: 'Prova spelet', en_a: 'Try the game', run: 'quiz-ud'},
-      {d: '2026-09-08', sv: 'Himlen följer solens verkliga höjd över Åre, med månfas och norrsken efter NOAA:s Kp-index.',
-                        en: 'The sky follows the sun\'s real altitude over Åre, with the moon phase and aurora from NOAA\'s Kp index.',
+      {d: '2026-09-08', sv: 'Himlen visar Åre just nu: solens verkliga höjd, molntäcke, snö, regn, dimma, snöstorm och norrsken efter NOAA:s Kp-index.',
+                        en: 'The sky shows Åre right now: the sun\'s real altitude, cloud cover, snow, rain, fog, blizzard and aurora from NOAA\'s Kp index.',
                         sv_a: 'Till toppen', en_a: 'To the top', href: '#top'},
       {d: '2026-09-08', sv: 'Elpris- och väderkorten är live och Alpha Satellite-kortet simulerar med Monte Carlo.',
                         en: 'The power-price and weather cards are live and the Alpha Satellite card simulates with Monte Carlo.',

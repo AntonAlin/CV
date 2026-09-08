@@ -48,6 +48,7 @@ with sync_playwright() as p:
                    for h in range(24)]
     _hour = _dt.datetime.now().hour
     ARE_FIXTURE = {"current": {"time": f"{_day.isoformat()}T{_hour:02d}:00", "temperature_2m": -1.3, "wind_speed_10m": 9.4, "weather_code": 71,
+                               "wind_gusts_10m": 14.1, "wind_direction_10m": 250, "cloud_cover": 100, "rain": 0.0,
                                "snowfall": 0.42, "snow_depth": 0.84},
                    "hourly": {"time": [f"{_day.isoformat()}T{h:02d}:00" for h in range(24)],
                               "temperature_2m": [round(-4 + 5 * (1 - abs(h - 14) / 14), 1) for h in range(24)]}}
@@ -216,6 +217,8 @@ with sync_playwright() as p:
         const b = document.body.classList;
         b.remove('tod-day','tod-dusk','tod-night','tod-dawn');
         b.add('tod-night');
+        /* Åre's cloud cover veils the stars by design; measure them under a clear sky */
+        document.body.style.setProperty('--wx-cloud', '0');
     })()""")
     pg.evaluate("window.scrollTo({top:2600,behavior:'instant'})"); pg.wait_for_timeout(700)
     pg.screenshot(path=str(WORK / "_startest.png"))
@@ -229,6 +232,7 @@ with sync_playwright() as p:
             b.remove('tod-day','tod-dusk','tod-night','tod-dawn');
             b.add(cls);
         }""", orig_tod[0])
+    pg.evaluate("(()=>{const w=cvWx.state(); if(w){document.body.style.setProperty('--wx-cloud', w.cloud.toFixed(2));}})()")
     pg.emulate_media(media="screen", reduced_motion="no-preference")
     pg.evaluate("window.scrollTo({top:0,behavior:'instant'})"); pg.wait_for_timeout(400)
 
@@ -549,6 +553,63 @@ with sync_playwright() as p:
           and "Snödjup Åreskutan" in pg.locator("#sky-line").inner_text()
           and "84\xa0cm" in pg.locator("#sky-line").inner_text()
           and "snöar nu" in pg.locator("#sky-line").inner_text(), pg.locator("#sky-line").inner_text())
+    # --- Åre's weather paints the sky ---
+    FIX = {"temp": -1.3, "wind": 9.4, "gust": 14.1, "dir": 250, "code": 71, "cloud": 100, "rain": 0, "snowfall": 0.42, "snowDepth": 0.84}
+    wx = pg.evaluate("cvWx.state()")
+    aur = lambda: float(pg.eval_on_selector(".aurora-layer", "e=>getComputedStyle(e).opacity"))
+    deck = lambda: float(pg.eval_on_selector(".hero-deck", "e=>getComputedStyle(e).opacity"))
+    check("the report classifies as an overcast, snowing sky and the body carries it",
+          wx and wx["sky"] == "overcast" and wx["kind"] == "snow" and wx["cloud"] == 1 and not wx["blizzard"]
+          and all(c in pg.evaluate("document.body.className").split() for c in ("has-wx", "wx-overcast", "wx-snow"))
+          and pg.evaluate("getComputedStyle(document.body).getPropertyValue('--wx-cloud').trim()") == "1", wx)
+    pg.wait_for_timeout(2900)   # the registered property eases over 2.6 s
+    check("overcast hides the aurora and stars almost entirely, and lays a cloud deck",
+          aur() < 0.05 and deck() > 0.95
+          and float(pg.eval_on_selector(".stars-far", "e=>getComputedStyle(e).opacity")) < 0.2, (aur(), deck()))
+    check("the sky line opens with Åre right now: temperature, snowfall and wind",
+          all(w in pg.locator("#sky-line").inner_text() for w in ("Åre just nu", "\u22121,3\xa0°C", "snöfall", "9\xa0m/s")),
+          pg.locator("#sky-line").inner_text())
+    pg.evaluate("cvWx.apply({temp: 11.2, wind: 2, gust: 3, dir: 90, code: 0, cloud: 4, rain: 0, snowfall: 0})"); pg.wait_for_timeout(2900)
+    check("a clear sky brings the aurora and stars back and removes the snow",
+          "wx-clear" in pg.evaluate("document.body.className") and aur() > 0.5 and deck() < 0.02
+          and pg.locator(".hero .hero-snow").count() == 0
+          and "klart" in pg.locator("#sky-line").inner_text() and "11,2" in pg.locator("#sky-line").inner_text(), (aur(), deck()))
+    pg.evaluate("cvWx.apply({temp: -8, wind: 16, gust: 24, dir: 270, code: 75, cloud: 100, rain: 0, snowfall: 3.1})"); pg.wait_for_timeout(200)
+    st = pg.evaluate("cvWx.state()")
+    check("a blizzard: wind-leaning heavy snow, a whitened deck and its own word",
+          st["blizzard"] and "wx-blizzard" in pg.evaluate("document.body.className")
+          and pg.locator(".hero .hero-snow i").count() >= 150
+          and pg.evaluate("parseFloat(getComputedStyle(document.body).getPropertyValue('--wx-tilt'))") >= 20
+          and "snöstorm" in pg.locator("#sky-line").inner_text()
+          and pg.evaluate("getComputedStyle(document.body).getPropertyValue('--wx-deck-1').trim()").startswith("rgba(206"), st)
+    pg.evaluate("cvWx.apply({temp: 6, wind: 6, gust: 9, dir: 200, code: 63, cloud: 92, rain: 2.4, snowfall: 0})"); pg.wait_for_timeout(200)
+    check("rain: streaks instead of flakes",
+          "wx-rain" in pg.evaluate("document.body.className") and pg.locator(".hero .hero-rain i").count() >= 80
+          and pg.locator(".hero .hero-snow").count() == 0 and "regn" in pg.locator("#sky-line").inner_text())
+    pg.evaluate("cvWx.apply({temp: 2, wind: 1, gust: 2, dir: 10, code: 45, cloud: 100, rain: 0, snowfall: 0})"); pg.wait_for_timeout(200)
+    check("fog: two drifting banks", "wx-fog" in pg.evaluate("document.body.className")
+          and pg.locator(".hero .hero-fog i").count() == 2 and pg.locator(".hero .hero-rain").count() == 0
+          and "dimma" in pg.locator("#sky-line").inner_text())
+    pg.evaluate("cvWx.apply({temp: 18, wind: 4, gust: 12, dir: 180, code: 95, cloud: 80, rain: 5, snowfall: 0})"); pg.wait_for_timeout(200)
+    check("thunder: the flash layer animates over heavy rain",
+          "wx-thunder" in pg.evaluate("document.body.className")
+          and pg.eval_on_selector(".hero-flash", "e=>getComputedStyle(e).animationName") == "wx-flash"
+          and pg.locator(".hero .hero-rain i").count() >= 140 and "åska" in pg.locator("#sky-line").inner_text())
+    pg.evaluate("cvWx.apply({temp: 3, wind: 2, gust: 3, dir: 10, code: 3, cloud: 100, rain: 0, snowfall: 0})")
+    pg.evaluate("document.body.classList.remove('tod-day','tod-dusk','tod-dawn'); document.body.classList.add('tod-night'); document.dispatchEvent(new CustomEvent('cv:tod'))"); pg.wait_for_timeout(200)
+    check("an overcast night says so next to the aurora forecast",
+          "mulet i Åre just nu" in pg.locator("#sky-line").inner_text()
+          and pg.eval_on_selector(".hero-cloud.c1", "e=>getComputedStyle(e).opacity") == "0.22", pg.locator("#sky-line").inner_text())
+    pg.evaluate("document.body.classList.remove('tod-night'); document.body.classList.add('tod-day'); document.dispatchEvent(new CustomEvent('cv:tod'))")
+    pg.evaluate("cvWx.apply({temp: 9, wind: 3, gust: 5, dir: 10, code: 2, cloud: 40, rain: 0, snowfall: 0})"); pg.wait_for_timeout(200)
+    ops = [pg.eval_on_selector(".hero-cloud.c%d" % i, "e=>getComputedStyle(e).opacity") for i in (1, 2, 3)]
+    check("partly cloudy by day shows one cloud, not three", ops == ["0", "0", "0.5"], ops)
+    cl = pg.evaluate("[cvWx.classify({code:71, wind:3}).blizzard, cvWx.classify({code:71, wind:11}).blizzard, cvWx.classify({code:2}).sky, cvWx.classify({code:0, cloud:60}).sky, cvWx.classify({code:61, rain:0.2}).rate, cvWx.classify({code:53}).drizzle]")
+    check("the classifier: wind makes a blizzard, cover beats the code, drizzle is drizzle", cl == [False, True, "partly", "cloudy", 1, True], cl)
+    pg.evaluate("cvWx.apply(" + _json.dumps(FIX) + ")"); pg.wait_for_timeout(200)
+    pg.emulate_media(media="print")
+    check("no weather layers on paper", all(pg.eval_on_selector(sel, "e=>getComputedStyle(e).display") == "none" for sel in (".hero-deck", ".hero-flash")))
+    pg.emulate_media(media="screen")
     pg.emulate_media(media="print")
     check("no snow on paper", pg.eval_on_selector(".hero-snow", "e=>getComputedStyle(e).display") == "none")
     pg.emulate_media(media="screen")
