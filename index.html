@@ -500,6 +500,26 @@
   }
   body.tod-day .hero-sun{opacity:.9;transform:scale(1);}
 
+  /* ---------- Share image ----------
+     tools/build-og.py adds og-mode and captures 1200x630: the hero fills the
+     card, the bar and everything interactive stay out of the picture. */
+  body.og-mode .controlbar, body.og-mode .sky-line, body.og-mode .meta-row,
+  body.og-mode .portrait-dots, body.og-mode .kicker-summary, body.og-mode .hero-sun,
+  body.og-mode .hero-cloud, body.og-mode .hero-moon{display:none !important;}
+  body.og-mode .hero{min-height:630px;padding:150px 0 0;border-bottom:none;}
+  body.og-mode .hero-content{padding-right:0;}
+  body.og-mode h1.name{font-size:92px;}
+  body.og-mode .role-line{font-size:32px;margin-top:22px;color:var(--text-hi);}
+  body.og-mode .role-line::after{
+    content:"Data strategy · Microsoft Fabric · Quant modelling";display:block;margin-top:26px;
+    font-family:'JetBrains Mono',monospace;font-size:17px;letter-spacing:.06em;color:var(--text-faint);
+  }
+  body.og-mode .role-former{font-size:18px;}
+  body.og-mode .eyebrow{font-size:16px;}
+  body.og-mode .portrait-frame{position:fixed;top:118px;right:70px;}
+  body.og-mode .portrait-ring{width:270px;height:270px;}
+  body.og-mode .aurora-layer{opacity:.7;}
+
   /* ---------- Moon and space weather ----------
      The moon is drawn by script with tonight's real phase; it fades out by
      day. The aurora layer's strength follows NOAA's planetary K-index when
@@ -517,6 +537,19 @@
   body.tod-dawn  .hero-moon{opacity:.5;transform:scale(1);}
   @media (max-width:760px){ .hero-moon{top:3%;right:auto;left:8%;width:40px;height:40px;} }
   @media (prefers-reduced-motion: reduce){ .hero-moon{transition:none;} }
+  /* Snow: drawn only while Open-Meteo reports snowfall on Åreskutan */
+  .hero-snow{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .hero-snow i{
+    position:absolute;top:-12px;display:block;border-radius:50%;
+    background:rgba(255,255,255,.75);filter:blur(.4px);
+    animation:snow-fall linear infinite;
+  }
+  @keyframes snow-fall{
+    0%{transform:translate3d(0,0,0);opacity:0;}
+    8%{opacity:1;}
+    100%{transform:translate3d(var(--sx,20px),calc(100% + 640px),0);opacity:.2;}
+  }
+  @media (prefers-reduced-motion: reduce){ .hero-snow{display:none;} }
   .sky-line{
     display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;
     font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.06em;
@@ -1334,7 +1367,7 @@
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
     .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim, .hero-moon, .sky-line,
-    .live-note, .project-chart.is-live, .mc-wrap, .ski-scrim{display:none !important;}
+    .live-note, .project-chart.is-live, .mc-wrap, .ski-scrim, .hero-snow{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -2260,16 +2293,34 @@
      this only decides which of the four applies. Rechecked every ten minutes
      in case a visit spans a phase boundary — the registered custom properties
      then ease the aurora across rather than snapping on the next repaint. */
-  (function(){
+  var cvTod = (function(){
     var PHASES = ['tod-day', 'tod-dusk', 'tod-night', 'tod-dawn'];
-    function phase(hour){
-      if(hour >= 5  && hour < 8)  return 'tod-dawn';
-      if(hour >= 8  && hour < 17) return 'tod-day';
-      if(hour >= 17 && hour < 22) return 'tod-dusk';
+    /* The sky is Åre's, not the visitor's: the sun's altitude over 63.4°N,
+       13.08°E at this moment decides the phase. Day above the horizon,
+       civil twilight (0 to −6°) is dawn or dusk by which side of solar noon
+       we are on, and below that it is night. Midsummer never gets dark. */
+    var LAT = 63.4 * Math.PI / 180, LON = 13.08;
+    function sun(date){
+      var d = date.getTime() / 864e5 - 10957.5;                                   /* days since J2000.0 */
+      var g = (357.529 + .98560028 * d) * Math.PI / 180;                          /* mean anomaly */
+      var L = (280.459 + .98564736 * d + 1.915 * Math.sin(g) + .02 * Math.sin(2 * g)) * Math.PI / 180;
+      var e = (23.439 - 3.6e-7 * d) * Math.PI / 180;
+      var ra = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L));
+      var dec = Math.asin(Math.sin(e) * Math.sin(L));
+      var gmst = (18.697374558 + 24.06570982441908 * d) % 24;
+      var H = ((gmst + LON / 15) * 15 * Math.PI / 180) - ra;                       /* hour angle, 0 at solar noon */
+      var alt = Math.asin(Math.sin(LAT) * Math.sin(dec) + Math.cos(LAT) * Math.cos(dec) * Math.cos(H));
+      var hDeg = ((H * 180 / Math.PI) % 360 + 360) % 360;
+      return {alt: alt * 180 / Math.PI, afternoon: hDeg < 180};
+    }
+    function phase(date){
+      var s = sun(date || new Date());
+      if(s.alt > 0){ return 'tod-day'; }
+      if(s.alt > -6){ return s.afternoon ? 'tod-dusk' : 'tod-dawn'; }
       return 'tod-night';
     }
     function apply(){
-      var next = phase(new Date().getHours());
+      var next = phase(new Date());
       if(document.body.classList.contains(next)){ return; }
       PHASES.forEach(function(p){ document.body.classList.remove(p); });
       document.body.classList.add(next);
@@ -2277,6 +2328,7 @@
     }
     apply();
     setInterval(apply, 10 * 60 * 1000);
+    return {phase: phase, sun: sun};
   })();
 
   /* ---------- Moon phase and space weather ----------
@@ -2288,7 +2340,7 @@
     var SYNODIC = 29.530588853, NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);
     var KP_URL = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json';
     var KP_LOCAL = 'data/kp.json';   /* refreshed by .github/workflows/update-kp.yml */
-    var KP_KEY = 'cv-kp', kp = null;
+    var KP_KEY = 'cv-kp', kp = null, snow = null;   /* snow: {falling: cm/h, depth: m} from the weather card */
     function en(){ return document.body.classList.contains('lang-en'); }
     function moon(date){
       var age = (((date || new Date()).getTime() - NEW_MOON) / 864e5) % SYNODIC;
@@ -2321,6 +2373,10 @@
       var m = moon(), isEn = en(), parts = [];
       var moonUp = /tod-(night|dusk|dawn)/.test(document.body.className);
       if(moonUp){ parts.push('<span>\u263D <b>' + (isEn ? m.en : m.sv) + '</b> ' + Math.round(m.fraction * 100) + '\u00a0%</span>'); }
+      if(snow && snow.depth >= .05){
+        parts.push('<span>\u2744 ' + (isEn ? 'Snow depth Åreskutan' : 'Snödjup Åreskutan') + ' <b>' + Math.round(snow.depth * 100) + '\u00a0cm</b>'
+          + (snow.falling > 0 ? ' \u00b7 ' + (isEn ? 'snowing now' : 'snöar nu') : '') + '</span>');
+      }
       if(kp){
         var v = kp.tonight, tier = v >= 5 ? 5 : v >= 4 ? 4 : v >= 2 ? 2 : 0;
         var word = isEn
@@ -2360,11 +2416,32 @@
         applyKp(); line();
       }).catch(function(){ line(); });
     }
+    function flakes(on){
+      var hero = document.querySelector('.hero'); if(!hero){ return; }
+      var host = hero.querySelector('.hero-snow');
+      if(!on){ if(host){ host.remove(); } return; }
+      if(host){ return; }
+      host = document.createElement('div'); host.className = 'hero-snow'; host.setAttribute('aria-hidden', 'true');
+      var html = '';
+      for(var i = 0; i < 44; i++){
+        var size = (2 + Math.random() * 3).toFixed(1), dur = (9 + Math.random() * 9).toFixed(1);
+        html += '<i style="left:' + (Math.random() * 100).toFixed(1) + '%;width:' + size + 'px;height:' + size + 'px;'
+          + 'animation-duration:' + dur + 's;animation-delay:-' + (Math.random() * 18).toFixed(1) + 's;--sx:' + Math.round(-30 + Math.random() * 60) + 'px;opacity:' + (.4 + Math.random() * .5).toFixed(2) + '"></i>';
+      }
+      host.innerHTML = html;
+      hero.insertBefore(host, hero.firstChild);
+    }
+    document.addEventListener('cv:weather', function(e){
+      snow = e.detail && {falling: +e.detail.snowfall || 0, depth: +e.detail.snowDepth || 0};
+      document.body.classList.toggle('is-snowing', !!(snow && snow.falling > 0));
+      flakes(snow && snow.falling > 0);
+      line();
+    });
     document.addEventListener('cv:lang', line);
     document.addEventListener('cv:tod', line);
     drawMoon(); line(); load();
     setInterval(drawMoon, 60 * 60 * 1000);
-    return {moon: moon, kp: function(){ return kp; }, parse: parse};
+    return {moon: moon, kp: function(){ return kp; }, snow: function(){ return snow; }, parse: parse};
   })();
 
   /* ---------- Portrait carousel ---------- */
@@ -2929,13 +3006,15 @@
     function are(){
       var card = document.querySelector('[data-live="are"]'); if(!card){ return; }
       getJSON('https://api.open-meteo.com/v1/forecast?latitude=63.4306&longitude=13.085&elevation=1420'
-        + '&current=temperature_2m,wind_speed_10m,weather_code&hourly=temperature_2m&forecast_days=1'
+        + '&current=temperature_2m,wind_speed_10m,weather_code,snowfall,snow_depth&hourly=temperature_2m&forecast_days=1'
         + '&timezone=Europe%2FStockholm&wind_speed_unit=ms').then(function(j){
         var c = j && j.current, h = j && j.hourly;
         if(!c || !h || !Array.isArray(h.temperature_2m) || h.temperature_2m.length < 12){ throw new Error('shape'); }
         var cur = Math.max(0, h.time.indexOf(String(c.time).slice(0, 13) + ':00'));
-        state.are = {temp: +c.temperature_2m, wind: +c.wind_speed_10m, code: +c.weather_code, hourly: h.temperature_2m.map(Number), cur: cur};
+        state.are = {temp: +c.temperature_2m, wind: +c.wind_speed_10m, code: +c.weather_code, hourly: h.temperature_2m.map(Number), cur: cur,
+                     snowfall: +c.snowfall || 0, snowDepth: +c.snow_depth || 0};
         renderAre();
+        document.dispatchEvent(new CustomEvent('cv:weather', {detail: {snowfall: state.are.snowfall, snowDepth: state.are.snowDepth}}));
       }).catch(function(){});
     }
 

@@ -47,7 +47,8 @@ with sync_playwright() as p:
                     "time_start": f"{_day.isoformat()}T{h:02d}:00:00+02:00", "time_end": f"{_day.isoformat()}T{(h + 1) % 24:02d}:00:00+02:00"}
                    for h in range(24)]
     _hour = _dt.datetime.now().hour
-    ARE_FIXTURE = {"current": {"time": f"{_day.isoformat()}T{_hour:02d}:00", "temperature_2m": -1.3, "wind_speed_10m": 9.4, "weather_code": 71},
+    ARE_FIXTURE = {"current": {"time": f"{_day.isoformat()}T{_hour:02d}:00", "temperature_2m": -1.3, "wind_speed_10m": 9.4, "weather_code": 71,
+                               "snowfall": 0.42, "snow_depth": 0.84},
                    "hourly": {"time": [f"{_day.isoformat()}T{h:02d}:00" for h in range(24)],
                               "temperature_2m": [round(-4 + 5 * (1 - abs(h - 14) / 14), 1) for h in range(24)]}}
     pg.route("**elprisetjustnu.se/**", lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(SE2_FIXTURE)))
@@ -542,6 +543,15 @@ with sync_playwright() as p:
           lv["are"] and lv["are"]["temp"] == -1.3 and lv["are"]["code"] == 71
           and all(w in arec.locator(".live-note").inner_text() for w in ("Åreskutan", "−1,3", "°C", "m/s", "snö"))
           and arec.locator(".project-chart.is-live").count() == 1, arec.locator(".live-note").inner_text())
+    check("snow on Åreskutan falls in the hero and is measured in the sky line",
+          pg.evaluate("document.body.classList.contains('is-snowing')")
+          and pg.locator(".hero .hero-snow i").count() > 20
+          and "Snödjup Åreskutan" in pg.locator("#sky-line").inner_text()
+          and "84\xa0cm" in pg.locator("#sky-line").inner_text()
+          and "snöar nu" in pg.locator("#sky-line").inner_text(), pg.locator("#sky-line").inner_text())
+    pg.emulate_media(media="print")
+    check("no snow on paper", pg.eval_on_selector(".hero-snow", "e=>getComputedStyle(e).display") == "none")
+    pg.emulate_media(media="screen")
     pg.click("#btn-en"); pg.wait_for_timeout(200)
     check("live notes follow the language",
           "SE2 now" in se2c.locator(".live-note").inner_text() and "snow" in arec.locator(".live-note").inner_text())
@@ -890,11 +900,12 @@ with sync_playwright() as p:
     tzctx = b.new_context(timezone_id="UTC")
     seen = {}
     star_op = {}
+    # Åre, 10 January: civil dawn about 07:20Z, sunrise 08:40Z, sunset 13:35Z, dark by 14:55Z.
     for fixed, want in [
         ("2026-01-10T02:00:00Z", "tod-night"),
-        ("2026-01-10T06:30:00Z", "tod-dawn"),
-        ("2026-01-10T12:00:00Z", "tod-day"),
-        ("2026-01-10T19:30:00Z", "tod-dusk"),
+        ("2026-01-10T08:00:00Z", "tod-dawn"),
+        ("2026-01-10T11:00:00Z", "tod-day"),
+        ("2026-01-10T14:15:00Z", "tod-dusk"),
     ]:
         tpg = tzctx.new_page()
         tpg.clock.set_fixed_time(fixed)
@@ -917,6 +928,16 @@ with sync_playwright() as p:
                   float(tpg.eval_on_selector(".hero-sun", "e=>getComputedStyle(e).opacity")) == 0
                   and float(tpg.eval_on_selector(".hero-cloud", "e=>getComputedStyle(e).opacity")) == 0)
         tpg.close()
+    # The sun's altitude itself: noon at midsummer is about 50° over Åre, and the
+    # midnight sun leaves the sky in twilight rather than night.
+    tpg = tzctx.new_page(); fontmirror.prepare(tpg, URL)
+    noon = tpg.evaluate("cvTod.sun(new Date('2026-06-21T11:08:00Z')).alt")
+    check("solar altitude at midsummer noon is about 50 degrees", abs(noon - 50) < 1.5, noon)
+    check("midsummer midnight over Åre is twilight, never night",
+          tpg.evaluate("cvTod.phase(new Date('2026-06-21T00:00:00Z'))") in ("tod-dawn", "tod-dusk")
+          and tpg.evaluate("cvTod.phase(new Date('2026-12-21T02:00:00Z'))") == "tod-night"
+          and tpg.evaluate("cvTod.phase(new Date('2026-12-21T19:00:00Z'))") == "tod-night")
+    tpg.close()
     tzctx.close()
     check("different phases actually carry different aurora colours",
           len(set(seen.values())) > 1, seen)

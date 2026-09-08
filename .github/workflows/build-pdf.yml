@@ -11,6 +11,7 @@ on:
       - index.html
       - img/**
       - tools/build-pdf.py
+      - tools/build-og.py
       - tools/fontmirror.py
       - .github/workflows/build-pdf.yml
   workflow_dispatch:
@@ -44,11 +45,15 @@ jobs:
         # (or one, for the short variant).
         run: python tools/build-pdf.py
 
-      - name: Commit rebuilt PDFs
+      - name: Render the share image
+        # The card LinkedIn and Slack show for the URL, taken from the page itself.
+        run: python tools/build-og.py
+
+      - name: Commit rebuilt PDFs and share image
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pdf/
+          git add pdf/ og-image.png
           if git diff --staged --quiet; then
             echo "PDFs unchanged."
           else
