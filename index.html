@@ -1443,8 +1443,9 @@
   /* Daily market strip: a quiet ticker row above the footer note, filled
      from data/markets.json (refreshed by a weekday Action) */
   .market-strip{
-    display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 10px;
-    margin:0 auto 22px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-lo);
+    display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:6px 8px;
+    margin:14px 0 4px;padding-top:12px;border-top:1px solid var(--hairline);
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-lo);
   }
   .market-strip[hidden]{display:none;}
   .market-strip .mk{
@@ -1456,7 +1457,7 @@
   .market-strip .mk-c{font-size:11px;}
   .market-strip .mk-c.is-up{color:var(--green);}
   .market-strip .mk-c.is-down{color:var(--pink);}
-  .market-strip .mk-meta{flex-basis:100%;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-top:2px;}
+  .market-strip .mk-meta{flex-basis:100%;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin-top:2px;}
   .footer-note{
     font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);
   }
@@ -2450,7 +2451,6 @@
 
 <footer>
   <div class="wrap footer-inner">
-    <div class="market-strip" id="market-strip" aria-label="Marknaden / Markets" hidden></div>
     <div class="footer-note">
       <span class="sv-only">Referenser lämnas på begäran.</span><span class="en-only">References available on request.</span>
       <span class="footer-sep">&nbsp;·&nbsp;</span><a href="#contact-block" id="footer-contact-link"><span class="sv-only">Kontaktuppgifter ovan</span><span class="en-only">Contact info above</span></a><span id="footer-contact"></span>
@@ -2507,6 +2507,7 @@
       <button type="button" class="quiz-close" onclick="cvQuiz.close()" aria-label="Stäng / Close">×</button>
     </div>
     <div id="quiz-body"></div>
+    <div class="market-strip" id="market-strip" aria-label="Marknaden / Markets" hidden></div>
     <p class="quiz-foot"><span class="sv-only">Källa: Alpha Vantage. Månatliga slutkurser justerade för splittar och utdelningar, indexerade till 100 vid periodens start. Snabba svar ger upp till 50 extra poäng. Tangenter 1–4 svarar, Enter går vidare. I <em>Upp eller ner?</em> är bolaget känt och frågan är om kursen står högre eller lägre tolv månader senare.</span><span class="en-only">Source: Alpha Vantage. Monthly closes adjusted for splits and dividends, indexed to 100 at the start of the window. Quick answers earn up to 50 extra points. Keys 1–4 answer, Enter continues. In <em>Higher or lower?</em> the company is known and the question is whether the price is higher or lower twelve months on.</span></p>
   </div>
 </div>
@@ -4048,8 +4049,8 @@
   var cvNews = (function(){
     var KEY = 'cv-last-visit';
     var CHANGES = [
-      {d: '2026-09-08', sv: 'Aktiespelet har fått läget <b>Upp eller ner?</b>, kompetenserna pekar på sina belägg och sidfoten visar dagens marknad.',
-                        en: 'The stock quiz gained a <b>Higher or lower?</b> mode, skills point at their evidence and the footer shows today\'s market.',
+      {d: '2026-09-08', sv: 'Aktiespelet har fått läget <b>Upp eller ner?</b>, kompetenserna pekar på sina belägg och spelet visar dagens marknad.',
+                        en: 'The stock quiz gained a <b>Higher or lower?</b> mode, skills point at their evidence and the game shows today\'s market.',
                         sv_a: 'Prova spelet', en_a: 'Try the game', run: 'quiz-ud'},
       {d: '2026-09-08', sv: 'Himlen visar Åre just nu: solens verkliga höjd, molntäcke, snö, regn, dimma, snöstorm och norrsken efter NOAA:s Kp-index.',
                         en: 'The sky shows Åre right now: the sun\'s real altitude, cloud cover, snow, rain, fog, blizzard and aurora from NOAA\'s Kp index.',
@@ -4115,8 +4116,8 @@
 
   /* ---------- Daily market strip ----------
      Reads data/markets.json, written each weekday evening by
-     .github/workflows/update-markets.yml, and renders a row of chips in
-     the footer. Nothing is fetched from a file:// copy, and a file older
+     .github/workflows/update-markets.yml, and renders a row of chips at
+     the foot of the stock game, where a ticker belongs. Nothing is fetched from a file:// copy, and a file older
      than a long weekend is treated as missing. */
   var cvMarkets = (function(){
     var URL = 'data/markets.json', MAX_AGE_H = 5 * 24, data = null;

@@ -882,6 +882,8 @@ with sync_playwright() as p:
         {"id": "SPY", "label": "S&P 500", "kind": "etf", "price": 641.87, "chg": 0.00418, "day": "2026-09-08"},
         {"id": "QQQ", "label": "Nasdaq 100", "kind": "etf", "price": 572.4, "chg": -0.00469, "day": "2026-09-08"},
         {"id": "EURSEK", "label": "EUR/SEK", "kind": "fx", "price": 11.045, "chg": 0.00227, "day": "2026-09-08"}]}
+    check("the market strip lives in the stock game, not in the CV or its footer",
+          pg.locator("#quiz .quiz #market-strip").count() == 1 and pg.locator("footer #market-strip").count() == 0)
     check("the market strip stays hidden from a file:// copy", pg.get_attribute("#market-strip", "hidden") is not None
           and pg.evaluate("cvMarkets.state()") is None)
     ok = pg.evaluate("cvMarkets.render(" + _json.dumps(MK) + ")"); pg.wait_for_timeout(100)
