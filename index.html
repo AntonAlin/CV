@@ -2273,6 +2273,7 @@
       if(document.body.classList.contains(next)){ return; }
       PHASES.forEach(function(p){ document.body.classList.remove(p); });
       document.body.classList.add(next);
+      document.dispatchEvent(new CustomEvent('cv:tod'));
     }
     apply();
     setInterval(apply, 10 * 60 * 1000);
@@ -2286,6 +2287,7 @@
   var cvSky = (function(){
     var SYNODIC = 29.530588853, NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);
     var KP_URL = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json';
+    var KP_LOCAL = 'data/kp.json';   /* refreshed by .github/workflows/update-kp.yml */
     var KP_KEY = 'cv-kp', kp = null;
     function en(){ return document.body.classList.contains('lang-en'); }
     function moon(date){
@@ -2317,7 +2319,8 @@
     function line(){
       var el = document.getElementById('sky-line'); if(!el){ return; }
       var m = moon(), isEn = en(), parts = [];
-      parts.push('<span>\u263D <b>' + (isEn ? m.en : m.sv) + '</b> ' + Math.round(m.fraction * 100) + '\u00a0%</span>');
+      var moonUp = /tod-(night|dusk|dawn)/.test(document.body.className);
+      if(moonUp){ parts.push('<span>\u263D <b>' + (isEn ? m.en : m.sv) + '</b> ' + Math.round(m.fraction * 100) + '\u00a0%</span>'); }
       if(kp){
         var v = kp.tonight, tier = v >= 5 ? 5 : v >= 4 ? 4 : v >= 2 ? 2 : 0;
         var word = isEn
@@ -2326,19 +2329,19 @@
         parts.push('<span><i class="kp-dot kp-' + tier + '"></i>' + (isEn ? 'Aurora tonight' : 'Norrsken i natt') + ': <b>Kp ' + v.toFixed(v % 1 ? 1 : 0) + '</b> \u00b7 ' + word + '</span>');
       }
       el.innerHTML = parts.join('');
-      el.removeAttribute('hidden');
+      if(parts.length){ el.removeAttribute('hidden'); } else { el.setAttribute('hidden', ''); }
     }
     function parse(rows){
       /* [["time_tag","kp","observed","noaa_scale"], ["2026-09-08 00:00:00","2.33","observed",null], ...] */
       if(!Array.isArray(rows) || rows.length < 2){ return null; }
-      var now = Date.now(), cur = null, tonight = 0, hasFuture = false;
+      var now = Date.now(), cur = null, curAt = 0, tonight = 0, hasFuture = false;
       rows.slice(1).forEach(function(r){
-        var t = Date.parse(String(r[0]).replace(' ', 'T') + 'Z'), v = parseFloat(r[1]);
+        var t = Date.parse(String(r[0]).replace(' ', 'T').replace(/Z?$/, 'Z')), v = parseFloat(r[1]);
         if(isNaN(t) || isNaN(v)){ return; }
-        if(t <= now){ cur = v; }
+        if(t <= now){ cur = v; curAt = t; }
         else if(t - now < 24 * 36e5){ tonight = Math.max(tonight, v); hasFuture = true; }
       });
-      if(cur === null){ return null; }
+      if(cur === null || now - curAt > 18 * 36e5){ return null; }   /* nothing observed within 18 h: stale */
       return {now: cur, tonight: hasFuture ? Math.max(tonight, cur) : cur, at: now};
     }
     function load(){
@@ -2347,13 +2350,15 @@
         if(cached && Date.now() - cached.at < 30 * 60 * 1000){ kp = cached; applyKp(); line(); return; }
       } catch(e) {}
       if(!window.fetch){ line(); return; }
-      fetch(KP_URL, {cache: 'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
-        var parsed = parse(j);
+      var get = function(url){ return fetch(url, {cache: 'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(parse); };
+      var local = location.protocol === 'file:' ? Promise.resolve(null) : get(KP_LOCAL).catch(function(){ return null; });
+      local.then(function(p){ return p || get(KP_URL); }).then(function(parsed){
         if(parsed){ kp = parsed; try { sessionStorage.setItem(KP_KEY, JSON.stringify(kp)); } catch(e) {} }
         applyKp(); line();
       }).catch(function(){ line(); });
     }
     document.addEventListener('cv:lang', line);
+    document.addEventListener('cv:tod', line);
     drawMoon(); line(); load();
     setInterval(drawMoon, 60 * 60 * 1000);
     return {moon: moon, kp: function(){ return kp; }, parse: parse};

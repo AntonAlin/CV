@@ -467,6 +467,10 @@ with sync_playwright() as p:
           and pg.evaluate("cvSky.moon(new Date('2000-01-06T18:14:00Z')).fraction") < .01
           and abs(pg.evaluate("cvSky.moon(new Date('2000-01-14T13:34:00Z')).fraction") - .5) < .07
           and pg.evaluate("cvSky.moon(new Date('2000-01-14T13:34:00Z')).waxing") is True)
+    # The moon line belongs to the night; force it for the checks below and restore after
+    day_classes = pg.evaluate("[...document.body.classList].filter(c=>c.startsWith('tod-'))")
+    pg.evaluate("document.body.classList.remove('tod-day','tod-dusk','tod-dawn','tod-night'); document.body.classList.add('tod-night'); document.dispatchEvent(new CustomEvent('cv:tod'))")
+    pg.wait_for_timeout(100)
     check("tonight's moon is drawn with its lit fraction",
           pg.locator("#hero-moon svg path.moon-lit").count() == 1
           and abs(float(pg.get_attribute("#hero-moon", "data-fraction")) - pg.evaluate("cvSky.moon().fraction")) < .01)
@@ -479,8 +483,10 @@ with sync_playwright() as p:
           and "Kp 4.7" in pg.locator("#sky-line").inner_text()
           and "goda chanser" in pg.locator("#sky-line").inner_text()
           and "%" in pg.locator("#sky-line").inner_text(), pg.locator("#sky-line").inner_text())
-    check("a quiet forecast reads quiet, a storm reads storm",
-          pg.evaluate("cvSky.parse([['t','kp','o','s'],['2020-01-01 00:00:00','1.0','observed',null]]).tonight") == 1.0
+    _recent = (_now - _dt.timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
+    check("a quiet recent reading parses, a stale or malformed one is rejected",
+          pg.evaluate("cvSky.parse([['t','kp','o','s'],['%s','1.0','observed',null]]).tonight" % _recent) == 1.0
+          and pg.evaluate("cvSky.parse([['t','kp','o','s'],['2020-01-01 00:00:00','1.0','observed',null]])") is None
           and pg.evaluate("cvSky.parse('nonsense')") is None)
     pg.click("#btn-en"); pg.wait_for_timeout(200)
     check("the sky line follows the language", "Aurora tonight" in pg.locator("#sky-line").inner_text())
@@ -490,6 +496,11 @@ with sync_playwright() as p:
           pg.eval_on_selector("#hero-moon", "e=>getComputedStyle(e).display") == "none"
           and pg.eval_on_selector("#sky-line", "e=>getComputedStyle(e).display") == "none")
     pg.emulate_media(media="screen")
+    pg.evaluate("document.body.classList.remove('tod-night'); document.body.classList.add('tod-day'); document.dispatchEvent(new CustomEvent('cv:tod'))")
+    pg.wait_for_timeout(100)
+    check("by day the line keeps the forecast but drops the moon",
+          "Kp" in pg.locator("#sky-line").inner_text() and "%" not in pg.locator("#sky-line").inner_text())
+    pg.evaluate("document.body.classList.remove('tod-day'); document.body.classList.add(%r); document.dispatchEvent(new CustomEvent('cv:tod'))" % (day_classes[0] if day_classes else "tod-day"))
     # Without the forecast the page must stay quiet and error-free
     fctx = b.new_context(viewport={"width":1280,"height":900}); fpg = fctx.new_page()
     ferr = []; fpg.on("pageerror", lambda e: ferr.append(str(e)))
@@ -501,11 +512,16 @@ with sync_playwright() as p:
           fpg.locator(".project-card.has-live").count() == 0
           and fpg.locator('[data-live="se2"] .live-note').get_attribute("hidden") is not None
           and fpg.locator('[data-live="se2"] .project-chart.is-static').evaluate("e=>getComputedStyle(e).display") == "block")
-    check("no forecast: the moon still shows, the aurora keeps its default, no errors",
+    fpg.evaluate("document.body.classList.remove('tod-day','tod-dusk','tod-dawn'); document.body.classList.add('tod-night'); document.dispatchEvent(new CustomEvent('cv:tod'))")
+    fpg.wait_for_timeout(100)
+    check("no forecast: the moon still shows at night, the aurora keeps its default, no errors",
           fpg.evaluate("cvSky.kp()") is None and fpg.get_attribute("#sky-line", "hidden") is None
-          and "Kp" not in fpg.locator("#sky-line").inner_text()
+          and "Kp" not in fpg.locator("#sky-line").inner_text() and "%" in fpg.locator("#sky-line").inner_text()
           and not any(c in fpg.evaluate("document.body.className") for c in ("kp-quiet", "kp-active", "kp-storm"))
           and not ferr, ferr)
+    fpg.evaluate("document.body.classList.remove('tod-night'); document.body.classList.add('tod-day'); document.dispatchEvent(new CustomEvent('cv:tod'))")
+    fpg.wait_for_timeout(100)
+    check("no forecast by day: the line stays hidden", fpg.get_attribute("#sky-line", "hidden") is not None)
     fctx.close()
 
     # --- Live cards ---
