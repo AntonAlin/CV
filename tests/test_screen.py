@@ -502,13 +502,45 @@ with sync_playwright() as p:
           st["state"] == "final" and st["score"] > 1200
           and pg.locator("#quiz-body .quiz-final-grade").inner_text() != ""
           and pg.evaluate("+localStorage.getItem('cv-quiz-best')") == st["score"], st)
+    share = pg.evaluate("cvQuiz.share()")
+    check("the result can be shared as a line of squares with the score and the URL",
+          share.startswith("Gissa bolaget · " + str(st["score"]) + " p · ") and share.count("\U0001F7E9") == 7
+          and share.count("\U0001F7E5") == 1 and share.endswith("https://antonalin.github.io/CV/"), share)
+    # Daily round: the same date gives everyone the same eight questions
+    pg.evaluate("cvQuiz.start(true)"); pg.wait_for_timeout(200)
+    first = [pg.evaluate("cvQuiz.answer()")]
+    for _ in range(2):
+        names = pg.locator("#quiz-body .quiz-opts button").all_inner_texts(); a = pg.evaluate("cvQuiz.answer()")
+        pg.keyboard.press(str(next(i for i, n in enumerate(names) if a in n) + 1)); pg.wait_for_timeout(100); pg.keyboard.press("Enter"); pg.wait_for_timeout(100)
+        first.append(pg.evaluate("cvQuiz.answer()"))
+    pg.evaluate("localStorage.removeItem('cv-quiz-daily')"); pg.evaluate("cvQuiz.start(true)"); pg.wait_for_timeout(200)
+    again = [pg.evaluate("cvQuiz.answer()")]
+    for _ in range(2):
+        names = pg.locator("#quiz-body .quiz-opts button").all_inner_texts(); a = pg.evaluate("cvQuiz.answer()")
+        pg.keyboard.press(str(next(i for i, n in enumerate(names) if a in n) + 1)); pg.wait_for_timeout(100); pg.keyboard.press("Enter"); pg.wait_for_timeout(100)
+        again.append(pg.evaluate("cvQuiz.answer()"))
+    check("the daily round is the same sequence every time that day",
+          first == again and pg.get_attribute("#quiz-daily", "aria-pressed") == "true"
+          and pg.evaluate("cvQuiz.state().daily") is not None, (first, again))
+    for _ in range(6):
+        names = pg.locator("#quiz-body .quiz-opts button").all_inner_texts(); a = pg.evaluate("cvQuiz.answer()")
+        pg.keyboard.press(str(next(i for i, n in enumerate(names) if a in n) + 1)); pg.wait_for_timeout(100); pg.keyboard.press("Enter"); pg.wait_for_timeout(100)
+    daily_score = pg.evaluate("cvQuiz.state().score")
+    check("finishing the daily round stores it and numbers the result",
+          pg.evaluate("cvQuiz.state().state") == "final" and "#" in pg.evaluate("cvQuiz.share()")
+          and pg.evaluate("JSON.parse(localStorage.getItem('cv-quiz-daily')).score") == daily_score)
+    pg.evaluate("cvQuiz.start(true)"); pg.wait_for_timeout(200)
+    check("a second daily start the same day shows the stored result rather than a new game",
+          pg.evaluate("cvQuiz.state().state") == "final" and pg.evaluate("cvQuiz.state().score") == daily_score
+          and pg.locator("#quiz-body .quiz-final-daily").count() == 1)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
     check("Escape closes the quiz and unlocks the page",
           pg.get_attribute("#quiz", "hidden") is not None
           and pg.evaluate("document.body.style.overflow") == "")
     pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
-    check("the palette lists the game",
-          "Spela: Gissa bolaget" in pg.locator(".cmdk-item .cmdk-label").all_inner_texts())
+    labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
+    check("the palette lists the game and the daily round",
+          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.emulate_media(media="print")
     check("the game button stays off paper and the projects keep their odd-card rule",
@@ -545,11 +577,16 @@ with sync_playwright() as p:
     check("bars draw in once the map is in view",
           pg.eval_on_selector("#career-map", "e=>e.classList.contains('is-lit')")
           and pg.eval_on_selector(".career-bar", "e=>e.getBoundingClientRect().width") > 4)
-    pg.click(".career-bar.is-current"); pg.wait_for_timeout(1000)
-    check("clicking a bar jumps to that role, clear of the sticky bar, and lights it",
-          pg.eval_on_selector("#experience .job.is-current",
-              "e=>{const r=e.getBoundingClientRect();"
-              +"return r.top>=60&&r.top<220&&e.classList.contains('is-hit');}"),
+    pg.click(".career-bar.is-current")
+    # Smooth scroll over reveal transitions: wait for the landing rather than a fixed pause.
+    landed = True
+    try:
+        pg.wait_for_function(
+            "(()=>{const e=document.querySelector('#experience .job.is-current');const r=e.getBoundingClientRect();"
+            +"return r.top>=60&&r.top<220&&e.classList.contains('is-hit');})()", timeout=3000)
+    except Exception:
+        landed = False
+    check("clicking a bar jumps to that role, clear of the sticky bar, and lights it", landed,
           pg.eval_on_selector("#experience .job.is-current","e=>e.getBoundingClientRect().top"))
     pg.click("#btn-en"); pg.wait_for_timeout(400)
     cap_en = pg.locator("#career-map figcaption").inner_text()

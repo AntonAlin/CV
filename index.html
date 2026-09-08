@@ -993,6 +993,18 @@
   .quiz-stats b.is-up{color:var(--green);}
   .quiz-stats b.is-down{color:var(--pink);}
   .quiz-foot{margin:14px 0 0;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);letter-spacing:.02em;line-height:1.5;}
+  .quiz-daily{
+    appearance:none;border:1px solid var(--hairline-strong);border-radius:999px;background:transparent;
+    color:var(--text-faint);font:inherit;letter-spacing:inherit;text-transform:inherit;
+    padding:2px 9px;cursor:pointer;transition:border-color .2s ease,color .2s ease;
+  }
+  .quiz-daily:hover{border-color:var(--teal);color:var(--text-hi);}
+  .quiz-daily.is-on{border-color:var(--green);color:var(--green);}
+  .quiz-marks{display:flex;justify-content:center;gap:5px;margin-top:14px;}
+  .quiz-marks i{display:block;width:16px;height:16px;border-radius:4px;background:var(--hairline-strong);}
+  .quiz-marks i.is-up{background:var(--green);}
+  .quiz-marks i.is-down{background:var(--pink);}
+  .quiz-final-daily{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:8px;}
   .quiz-final{text-align:center;padding:26px 0 10px;}
   .quiz-final-score{font-family:'Fraunces',serif;font-size:64px;color:var(--green);line-height:1;}
   .quiz-final-grade{font-size:18px;color:var(--text-hi);margin-top:12px;}
@@ -2118,6 +2130,7 @@
           <span><span class="sv-only">Runda</span><span class="en-only">Round</span> <b id="quiz-round">1</b>/<span id="quiz-rounds">8</span></span>
           <span><span class="sv-only">Poäng</span><span class="en-only">Score</span> <b id="quiz-score">0</b></span>
           <span id="quiz-streak-wrap" hidden><span class="sv-only">Svit</span><span class="en-only">Streak</span> <b id="quiz-streak">0</b></span>
+          <button type="button" class="quiz-daily" id="quiz-daily" data-act="daily"><span class="sv-only">Dagens omgång</span><span class="en-only">Daily round</span></button>
         </div>
       </div>
       <button type="button" class="quiz-close" onclick="cvQuiz.close()" aria-label="Stäng / Close">×</button>
@@ -2676,10 +2689,19 @@
     function en(){ return document.body.classList.contains('lang-en'); }
     function T(sv, e){ return en() ? e : sv; }
     function el(id){ return document.getElementById(id); }
+    var rnd = Math.random;   /* swapped for a seeded generator in the daily round */
+    function seeded(seed){
+      var a = 0; for(var i = 0; i < seed.length; i++){ a = (a * 31 + seed.charCodeAt(i)) >>> 0; }
+      return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    }
     function shuffle(a){
-      for(var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+      for(var i = a.length - 1; i > 0; i--){ var j = Math.floor(rnd() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
       return a;
     }
+    function today(){ var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    /* Daily number one was 2026-09-08 */
+    function dailyNo(date){ return Math.round((new Date(date + 'T12:00:00') - new Date('2026-09-08T12:00:00')) / 864e5) + 1; }
+    var DAILY_KEY = 'cv-quiz-daily';
     function esc(str){ return String(str).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
     /* Month index i of series d, as {y, m} with m zero-based */
     function ym(d, i){ var y = +d.s.slice(0, 4), m = +d.s.slice(5, 7) - 1 + i; return {y: y + Math.floor(m / 12), m: ((m % 12) + 12) % 12}; }
@@ -2691,9 +2713,9 @@
       var d = DATA[idx], n = d.p.length, len = n, from = 0;
       /* Most rounds show a window rather than the whole history, so a start
          date alone does not give the company away */
-      if(n > 72 && Math.random() < .65){
-        len = 36 + Math.floor(Math.random() * Math.min(n - 36, 84));
-        from = Math.floor(Math.random() * (n - len + 1));
+      if(n > 72 && rnd() < .65){
+        len = 36 + Math.floor(rnd() * Math.min(n - 36, 84));
+        from = Math.floor(rnd() * (n - len + 1));
       }
       var pool = shuffle(DATA.map(function(_, i){ return i; }).filter(function(i){ return i !== idx; }));
       return {idx: idx, from: from, to: from + len, opts: shuffle([idx].concat(pool.slice(0, 3))), hint: false, pick: -1, t0: null, tb: 0};
@@ -2745,6 +2767,8 @@
     function render(){
       var body = el('quiz-body'); if(!body || !game){ return; }
       el('quiz-round').textContent = Math.min(game.round + 1, ROUNDS);
+      var db = el('quiz-daily');
+      if(db){ db.classList.toggle('is-on', !!game.daily); db.setAttribute('aria-pressed', game.daily ? 'true' : 'false'); }
       el('quiz-rounds').textContent = ROUNDS;
       el('quiz-score').textContent = game.score;
       var sw = el('quiz-streak-wrap'); if(game.streak >= 2){ sw.removeAttribute('hidden'); el('quiz-streak').textContent = game.streak; } else { sw.setAttribute('hidden', ''); }
@@ -2754,11 +2778,18 @@
                   : game.score >= 800 ? T('Senioranalytiker', 'Senior analyst')
                   : game.score >= 450 ? T('Junioranalytiker', 'Junior analyst')
                   : T('Indexfond är ett klokt val', 'Index funds are a wise choice');
+        var sq = game.marks.map(function(m){ return '<i class="' + (m ? 'is-up' : 'is-down') + '"></i>'; }).join('');
         body.innerHTML = '<div class="quiz-final">'
+          + (game.daily ? '<div class="quiz-final-daily">' + T('Dagens omgång', 'Daily round') + ' #' + dailyNo(game.daily) + '</div>' : '')
           + '<div class="quiz-final-score">' + game.score + '</div>'
           + '<div class="quiz-final-grade">' + grade + '</div>'
+          + '<div class="quiz-marks" aria-hidden="true">' + sq + '</div>'
           + '<div class="quiz-final-best">' + T('Bästa resultat', 'Best score') + ': ' + best + ' · ' + game.right + '/' + ROUNDS + ' ' + T('rätt', 'correct') + '</div>'
-          + '<div class="quiz-row"><button type="button" class="quiz-btn is-primary" data-act="again">' + T('Spela igen', 'Play again') + '</button>'
+          + '<div class="quiz-row">'
+          + '<button type="button" class="quiz-btn is-primary" data-act="share" id="quiz-share">' + T('Kopiera resultat', 'Copy result') + '</button>'
+          + (game.daily ? '<button type="button" class="quiz-btn" data-act="again">' + T('Fri omgång', 'Free play') + '</button>'
+                        : '<button type="button" class="quiz-btn" data-act="daily">' + T('Dagens omgång', 'Daily round') + '</button>'
+                          + '<button type="button" class="quiz-btn" data-act="again">' + T('Spela igen', 'Play again') + '</button>')
           + '<button type="button" class="quiz-btn" data-act="close">' + T('Stäng', 'Close') + '</button></div></div>';
         return;
       }
@@ -2809,10 +2840,26 @@
         if(slot){ slot.innerHTML = chart(game.q); }
       }, 150);
     });
-    function start(){
-      game = {order: shuffle(DATA.map(function(_, i){ return i; })).slice(0, ROUNDS), round: 0, score: 0, streak: 0, right: 0, state: 'play'};
+    function start(daily){
+      var date = daily ? today() : null;
+      rnd = daily ? seeded('cv-quiz-' + date) : Math.random;
+      game = {order: shuffle(DATA.map(function(_, i){ return i; })).slice(0, ROUNDS), round: 0, score: 0, streak: 0, right: 0, state: 'play', daily: date, marks: []};
+      /* A day's round is played once; a return shows the result again */
+      if(daily){
+        var saved = null;
+        try { saved = JSON.parse(localStorage.getItem(DAILY_KEY) || 'null'); } catch(e) {}
+        if(saved && saved.date === date){
+          game.score = saved.score; game.right = saved.right; game.marks = saved.marks || []; game.state = 'final'; game.round = ROUNDS;
+          rnd = Math.random; render(); return;
+        }
+      }
       game.q = question(game.order[0]);
       render();
+    }
+    function shareText(){
+      var sq = game.marks.map(function(m){ return m ? '\ud83d\udfe9' : '\ud83d\udfe5'; }).join('');
+      var head = game.daily ? T('Gissa bolaget #', 'Guess the company #') + dailyNo(game.daily) : T('Gissa bolaget', 'Guess the company');
+      return head + ' \u00b7 ' + game.score + ' p \u00b7 ' + sq + '\n' + 'https://antonalin.github.io/CV/';
     }
     function pick(idx){
       var q = game.q; if(!q || q.pick >= 0){ return; }
@@ -2825,6 +2872,7 @@
         q.gained = q.base + q.tb + q.sb;
         game.score += q.gained;
       } else { game.streak = 0; q.gained = 0; q.tb = 0; }
+      game.marks.push(idx === q.idx);
       clearInterval(timer); timer = null;
       render();
     }
@@ -2833,7 +2881,11 @@
       game.round++;
       if(game.round >= ROUNDS){
         game.state = 'final';
-        try { var best = +localStorage.getItem(BEST_KEY) || 0; if(game.score > best){ localStorage.setItem(BEST_KEY, String(game.score)); } } catch(e) {}
+        rnd = Math.random;
+        try {
+          var best = +localStorage.getItem(BEST_KEY) || 0; if(game.score > best){ localStorage.setItem(BEST_KEY, String(game.score)); }
+          if(game.daily){ localStorage.setItem(DAILY_KEY, JSON.stringify({date: game.daily, score: game.score, right: game.right, marks: game.marks})); }
+        } catch(e) {}
       } else { game.q = question(game.order[game.round]); }
       render();
     }
@@ -2845,7 +2897,7 @@
       document.body.style.overflow = 'hidden';
       if(sw > 0){ document.body.style.paddingRight = sw + 'px'; }
       el('quiz').removeAttribute('hidden');
-      if(!game || game.state === 'final'){ start(); } else { render(); if(game.q && game.q.pick < 0){ clearInterval(timer); timer = setInterval(tick, 100); } }
+      if(!game || game.state === 'final'){ start(false); } else { render(); if(game.q && game.q.pick < 0){ clearInterval(timer); timer = setInterval(tick, 100); } }
       var panel = el('quiz').querySelector('.quiz'); if(panel){ panel.focus(); }
     }
     function close(){
@@ -2856,28 +2908,34 @@
       if(lastFocus && lastFocus.focus){ lastFocus.focus(); }
     }
     document.addEventListener('click', function(e){
-      var b = e.target.closest ? e.target.closest('#quiz-body [data-act]') : null;
+      var b = e.target.closest ? e.target.closest('#quiz [data-act]') : null;
       if(!b){ if(isOpen() && e.target === el('quiz')){ close(); } return; }
       var act = b.getAttribute('data-act');
       if(act === 'pick'){ pick(+b.getAttribute('data-idx')); }
       else if(act === 'hint'){ game.q.hint = true; render(); }
       else if(act === 'next'){ next(); }
-      else if(act === 'again'){ start(); }
+      else if(act === 'again'){ start(false); }
+      else if(act === 'daily'){ if(!(game && game.daily && game.state !== 'final')){ start(true); } }
+      else if(act === 'share'){
+        var txt = shareText(), btn = b;
+        var done = function(){ btn.textContent = T('Kopierat!', 'Copied!'); setTimeout(function(){ btn.textContent = T('Kopiera resultat', 'Copy result'); }, 1800); };
+        if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done, done); } else { done(); }
+      }
       else if(act === 'close'){ close(); }
     });
     document.addEventListener('keydown', function(e){
       if(!isOpen()){ return; }
       if(e.key === 'Escape'){ e.preventDefault(); close(); return; }
-      if(game.state === 'final'){ if(e.key === 'Enter'){ e.preventDefault(); start(); } return; }
+      if(game.state === 'final'){ if(e.key === 'Enter'){ e.preventDefault(); start(false); } return; }
       var k = parseInt(e.key, 10);
       if(k >= 1 && k <= 4 && game.q.pick < 0){ e.preventDefault(); pick(game.q.opts[k - 1]); return; }
       if(e.key === 'Enter' && game.q.pick >= 0){ e.preventDefault(); next(); }
     });
     document.addEventListener('cv:lang', function(){ if(isOpen()){ render(); } });
     return {
-      open: open, close: close, start: start,
+      open: open, close: close, start: start, share: shareText,
       data: function(){ return DATA; },
-      state: function(){ return game ? {round: game.round, score: game.score, streak: game.streak, state: game.state, answered: game.q ? game.q.pick >= 0 : null, timeBonus: game.q ? game.q.tb : 0} : null; },
+      state: function(){ return game ? {round: game.round, score: game.score, streak: game.streak, state: game.state, answered: game.q ? game.q.pick >= 0 : null, timeBonus: game.q ? game.q.tb : 0, daily: game.daily, marks: game.marks.slice()} : null; },
       /* For the tests: the name the current round is looking for */
       answer: function(){ return game && game.q ? DATA[game.q.idx].n : null; }
     };
@@ -3116,6 +3174,11 @@
         group:'act', icon:'game', keys:'spel game gissa quiz bolag aktie stock chart kurs',
         label: en ? 'Play: Guess the company' : 'Spela: Gissa bolaget',
         run: function(){ setTimeout(cvQuiz.open, 60); }
+      });
+      out.push({
+        group:'act', icon:'game', keys:'spel game gissa quiz dagens daily bolag',
+        label: en ? 'Play: today\'s daily round' : 'Spela: Dagens omgång',
+        run: function(){ setTimeout(function(){ cvQuiz.open(); cvQuiz.start(true); }, 60); }
       });
       var ms = cvMusic.state();
       Object.keys(cvMusic.GENRES).forEach(function(k){
