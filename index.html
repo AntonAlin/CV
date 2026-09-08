@@ -3037,7 +3037,7 @@
       var d = (u - SUMMIT) / (1 - SUMMIT);                                       /* down to the finish, two bumps */
       return .88 - .58 * d + .05 * Math.sin(d * 4 * Math.PI) * Math.sin(d * Math.PI);
     }
-    function slope(px){ return (terrain(px + 3) - terrain(px - 3)) / 6 * 1200; }
+    function slope(px){ return (terrain(px + 3) - terrain(px - 3)) / 6 * LEN; }   /* dh/du: the same steepness whatever the course length */
     function descending(px){ return px / LEN >= SUMMIT; }
     var BUMPS = [SUMMIT + (1 - SUMMIT) * .25, SUMMIT + (1 - SUMMIT) * .75];    /* crests, as course shares */
     function isOpen(){ var s = document.getElementById('ski'); return s && !s.hasAttribute('hidden'); }
