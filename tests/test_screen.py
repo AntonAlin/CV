@@ -768,6 +768,40 @@ with sync_playwright() as p:
 
     check("no JS errors overall", not errors, errors)
 
+    # --- New since your last visit ---
+    check("a first visit shows no card and only notes the date",
+          pg.locator(".news-card").count() == 0 and pg.evaluate("localStorage.getItem('cv-last-visit')") == pg.evaluate("new Date().toLocaleDateString('sv-SE')"))
+    check("nothing is newer than today", pg.evaluate("cvNews.items(new Date().toLocaleDateString('sv-SE')).length") == 0
+          and pg.evaluate("cvNews.check()") is False)
+    shown = pg.evaluate("cvNews.check('2026-09-06')"); pg.wait_for_timeout(200)
+    n = pg.evaluate("cvNews.items('2026-09-06').length")
+    check("a reader last here on 6 Sep gets a card listing what came after, at most four rows",
+          shown and n >= 4 and pg.locator(".news-card").count() == 1
+          and pg.locator(".news-card .news-list li").count() == min(n, 4)
+          and "nytt sedan ditt senaste besök" in pg.locator(".news-card").inner_text().lower()
+          and "2026-09-06" in pg.locator(".news-card .news-foot").inner_text()
+          and pg.locator(".news-card a").count() >= 4)
+    check("a reader last here on 7 Sep sees fewer rows than one from 6 Sep",
+          pg.evaluate("cvNews.items('2026-09-07').length") < n)
+    pg.evaluate("setLang('en')"); pg.wait_for_timeout(150)
+    check("the card follows the language", "new since your last visit" in pg.locator(".news-card").inner_text().lower())
+    pg.evaluate("setLang('sv')"); pg.wait_for_timeout(150)
+    pg.emulate_media(media="print")
+    check("the card never prints", pg.evaluate("getComputedStyle(document.querySelector('.news-card')).display") == "none")
+    pg.emulate_media(media="screen")
+    pg.evaluate("localStorage.setItem('cv-last-visit', '2026-09-06')")
+    pg.locator(".news-card .news-close").click(); pg.wait_for_timeout(150)
+    check("closing it remembers today's date", pg.locator(".news-card").count() == 0
+          and pg.evaluate("localStorage.getItem('cv-last-visit')") == pg.evaluate("new Date().toLocaleDateString('sv-SE')"))
+    pg.evaluate("cvNews.check('2026-09-06')"); pg.wait_for_timeout(150)
+    pg.locator(".news-card a[data-i]").first.click(); pg.wait_for_timeout(300)
+    check("a row's action link runs it and closes the card",
+          pg.locator(".news-card").count() == 0 and pg.get_attribute("#quiz", "hidden") is None)
+    pg.evaluate("cvQuiz.close()")
+    pg.evaluate("cvNews.check('2026-09-06')"); pg.wait_for_timeout(150)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
+    check("Escape closes the card", pg.locator(".news-card").count() == 0)
+
     # --- Daily market strip ---
     MK = {"updated": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "items": [
         {"id": "SPY", "label": "S&P 500", "kind": "etf", "price": 641.87, "chg": 0.00418, "day": "2026-09-08"},

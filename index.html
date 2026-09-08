@@ -964,6 +964,30 @@
   }
   .evidence-pill button:hover{border-color:var(--teal);color:var(--text-hi);}
   @media print{ .skill-tags > span.has-evidence::after{content:none;} .evidence-pill{display:none !important;} }
+
+  /* "New since your last visit": a small card for returning readers */
+  .news-card{
+    position:fixed;right:22px;bottom:22px;z-index:60;width:min(360px,calc(100vw - 32px));
+    background:var(--panel-2);border:1px solid var(--hairline-strong);border-radius:14px;
+    box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px rgba(139,124,246,.1);padding:14px 16px 12px;
+    animation:cmdk-rise .2s cubic-bezier(.2,.7,.3,1);
+  }
+  .news-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+  .news-title{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--violet);}
+  .news-close{
+    appearance:none;border:1px solid var(--hairline-strong);border-radius:999px;background:transparent;width:26px;height:26px;
+    color:var(--text-lo);font-size:15px;line-height:1;cursor:pointer;
+  }
+  .news-close:hover{border-color:var(--pink);color:var(--text-hi);}
+  .news-list{list-style:none;margin:0;padding:0;}
+  .news-list li{display:grid;grid-template-columns:auto 1fr;gap:10px;font-size:13px;line-height:1.45;color:var(--text-lo);padding:5px 0;border-top:1px solid var(--hairline);}
+  .news-list li:first-child{border-top:0;}
+  .news-list time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);padding-top:2px;}
+  .news-list a{color:var(--teal);text-decoration:none;}
+  .news-list a:hover{text-decoration:underline;}
+  .news-foot{margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);}
+  @media print{ .news-card{display:none !important;} }
+  @media (max-width:640px){ .news-card{right:12px;bottom:12px;} }
   @media (prefers-reduced-motion: no-preference){
     .is-hit{animation:hit-fade 1.7s ease-out forwards;}
   }
@@ -3732,6 +3756,78 @@
       /* For the tests: the name the current round is looking for, or "up"/"down" */
       answer: function(){ return game && game.q ? (updown() ? (game.q.up ? 'up' : 'down') : DATA[game.q.idx].n) : null; }
     };
+  })();
+
+  /* ---------- New since your last visit ----------
+     A hand-kept changelog. A reader who has been here before, on a day
+     older than an entry, gets a small card listing what has changed;
+     a first visit only notes the date. */
+  var cvNews = (function(){
+    var KEY = 'cv-last-visit';
+    var CHANGES = [
+      {d: '2026-09-08', sv: 'Aktiespelet har fått läget <b>Upp eller ner?</b>, kompetenserna pekar på sina belägg och sidfoten visar dagens marknad.',
+                        en: 'The stock quiz gained a <b>Higher or lower?</b> mode, skills point at their evidence and the footer shows today\'s market.',
+                        sv_a: 'Prova spelet', en_a: 'Try the game', run: 'quiz-ud'},
+      {d: '2026-09-08', sv: 'Himlen följer solens verkliga höjd över Åre, med månfas och norrsken efter NOAA:s Kp-index.',
+                        en: 'The sky follows the sun\'s real altitude over Åre, with the moon phase and aurora from NOAA\'s Kp index.',
+                        sv_a: 'Till toppen', en_a: 'To the top', href: '#top'},
+      {d: '2026-09-08', sv: 'Elpris- och väderkorten är live och Alpha Satellite-kortet simulerar med Monte Carlo.',
+                        en: 'The power-price and weather cards are live and the Alpha Satellite card simulates with Monte Carlo.',
+                        sv_a: 'Projekt', en_a: 'Projects', href: '#projects'},
+      {d: '2026-09-08', sv: 'Dagens omgång i Gissa bolaget, med delbart resultat.',
+                        en: 'A daily round in Guess the company, with a shareable result.',
+                        sv_a: 'Dagens omgång', en_a: 'Daily round', run: 'quiz-daily'},
+      {d: '2026-09-07', sv: 'Gissa bolaget: ett aktiespel i verktygsraden, och musik som är avstängd tills du sätter på den.',
+                        en: 'Guess the company: a stock game in the toolbar, and music that stays off until you turn it on.',
+                        sv_a: 'Spela', en_a: 'Play', run: 'quiz'}
+    ];
+    var card = null;
+    function en(){ return document.body.classList.contains('lang-en'); }
+    function T(sv, e){ return en() ? e : sv; }
+    function today(){ var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    function items(since){ return since ? CHANGES.filter(function(c){ return c.d > since; }) : []; }
+    function act(it){
+      if(it.run === 'quiz'){ cvQuiz.open(); }
+      else if(it.run === 'quiz-ud'){ cvQuiz.open(); cvQuiz.start(false, 'updown'); }
+      else if(it.run === 'quiz-daily'){ cvQuiz.open(); cvQuiz.start(true); }
+    }
+    function render(list, since){
+      dismiss(false);
+      if(!list.length){ return false; }
+      card = document.createElement('aside'); card.className = 'news-card'; card.setAttribute('role', 'status'); card.setAttribute('aria-label', T('Nytt sedan ditt senaste besök', 'New since your last visit'));
+      card.innerHTML = '<div class="news-head"><span class="news-title">' + T('Nytt sedan ditt senaste besök', 'New since your last visit') + '</span>'
+        + '<button type="button" class="news-close" aria-label="' + T('Stäng', 'Close') + '">×</button></div>'
+        + '<ul class="news-list">' + list.slice(0, 4).map(function(it, i){
+            var link = it.href ? '<a href="' + it.href + '">' + T(it.sv_a, it.en_a) + ' \u2192</a>' : '<a href="#" data-i="' + i + '">' + T(it.sv_a, it.en_a) + ' \u2192</a>';
+            return '<li><time>' + it.d.slice(5) + '</time><span>' + T(it.sv, it.en) + ' ' + link + '</span></li>';
+          }).join('') + '</ul>'
+        + '<div class="news-foot">' + T('Senast här', 'Last here') + ' ' + since + (list.length > 4 ? ' · +' + (list.length - 4) : '') + '</div>';
+      card.querySelector('.news-close').addEventListener('click', function(){ dismiss(true); });
+      card.addEventListener('click', function(e){
+        var a = e.target.closest ? e.target.closest('a') : null; if(!a){ return; }
+        if(a.hasAttribute('data-i')){ e.preventDefault(); act(list[+a.getAttribute('data-i')]); }
+        dismiss(true);
+      });
+      card._since = since;
+      document.body.appendChild(card);
+      return true;
+    }
+    function dismiss(remember){
+      if(card){ card.remove(); card = null; }
+      if(remember){ try { localStorage.setItem(KEY, today()); } catch(e) {} }
+    }
+    /* Show what is newer than `since` (defaults to the stored last visit) */
+    function check(since){
+      if(since === undefined){ try { since = localStorage.getItem(KEY); } catch(e) { since = null; } }
+      var list = items(since);
+      if(!list.length){ try { localStorage.setItem(KEY, today()); } catch(e) {} }
+      return render(list, since);
+    }
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && card){ dismiss(true); } });
+    document.addEventListener('cv:lang', function(){ if(card){ check(card._since); } });
+    function boot(){ setTimeout(function(){ check(); }, 1200); }
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', boot); } else { boot(); }
+    return {check: check, dismiss: function(){ dismiss(true); }, items: items, open: function(){ return !!card; }, changes: function(){ return CHANGES.slice(); }};
   })();
 
   /* ---------- Daily market strip ----------
