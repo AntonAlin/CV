@@ -1058,6 +1058,11 @@
   .quiz-marks i.is-up{background:var(--green);}
   .quiz-marks i.is-down{background:var(--pink);}
   .quiz-final-daily{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:8px;}
+  /* Skimo: an easter egg behind the Konami code or "ski" in the palette */
+  .ski-canvas{
+    display:block;width:100%;height:auto;aspect-ratio:16 / 9;border-radius:12px;
+    background:#070b14;border:1px solid var(--hairline);cursor:pointer;touch-action:manipulation;
+  }
   .quiz-final{text-align:center;padding:26px 0 10px;}
   .quiz-final-score{font-family:'Fraunces',serif;font-size:64px;color:var(--green);line-height:1;}
   .quiz-final-grade{font-size:18px;color:var(--text-hi);margin-top:12px;}
@@ -1329,7 +1334,7 @@
 
     .controlbar, .aurora-layer, .scroll-progress{display:none !important;}
     .hero-sun, .hero-cloud, .career-map, .skip-link, .music, .game-btn, .quiz-scrim, .hero-moon, .sky-line,
-    .live-note, .project-chart.is-live, .mc-wrap{display:none !important;}
+    .live-note, .project-chart.is-live, .mc-wrap, .ski-scrim{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
@@ -2200,6 +2205,23 @@
 
 <div class="grain" aria-hidden="true"></div>
 
+<div class="quiz-scrim ski-scrim" id="ski" role="dialog" aria-modal="true" aria-label="Skimo" hidden>
+  <div class="quiz" tabindex="-1">
+    <div class="quiz-head">
+      <div>
+        <div class="quiz-title"><span class="sv-only">Skimo-loppet</span><span class="en-only">Skimo race</span></div>
+        <div class="quiz-meta">
+          <span><span class="sv-only">Tid</span><span class="en-only">Time</span> <b id="ski-time">0,0 s</b></span>
+          <span><span class="sv-only">Bästa</span><span class="en-only">Best</span> <b id="ski-best">–</b></span>
+        </div>
+      </div>
+      <button type="button" class="quiz-close" onclick="cvSki.close()" aria-label="Stäng / Close">×</button>
+    </div>
+    <canvas class="ski-canvas" id="ski-canvas" width="640" height="360" aria-label="Skimo"></canvas>
+    <p class="quiz-foot"><span class="sv-only">Stavtag med mellanslag, pil upp eller klick, i takt. Uppför tappar du fart utan tag, nedför rullar det på. Först till toppen. Esc stänger.</span><span class="en-only">Pole with Space, arrow up or a click, in rhythm. Uphill you lose speed without strokes, downhill it rolls. First to the summit. Esc closes.</span></p>
+  </div>
+</div>
+
 <div class="quiz-scrim" id="quiz" role="dialog" aria-modal="true" aria-label="Gissa bolaget / Guess the company" hidden>
   <div class="quiz" tabindex="-1">
     <div class="quiz-head">
@@ -2985,6 +3007,136 @@
     return {state: function(){ return state; }};
   })();
 
+  /* ---------- Skimo ----------
+     An uphill race over a ridge, drawn on a canvas. Each stroke adds speed,
+     slopes take it away, a dip gives some back. Hidden behind the Konami
+     code and a palette search for "ski"; the best time is kept locally. */
+  var cvSki = (function(){
+    var BEST_KEY = 'cv-ski-best', KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+    var typed = [], raf = null, last = 0, lastFocus = null;
+    var LEN = 1200, x = 0, v = 0, t0 = 0, elapsed = 0, running = false, done = false, started = false, stars = [], doneAt = 0;
+    function en(){ return document.body.classList.contains('lang-en'); }
+    function T(sv, e){ return en() ? e : sv; }
+    function fmtT(ms){ return (ms / 1000).toLocaleString(en() ? 'en-GB' : 'sv-SE', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' s'; }
+    function terrain(px){ var u = Math.min(1, Math.max(0, px / LEN)); return .12 + .72 * u + .06 * Math.sin(u * 13) + .035 * Math.sin(u * 29 + 1.3); }
+    function slope(px){ return (terrain(px + 3) - terrain(px - 3)) / 6 * 1200; }  /* gradient, about 0.7 on the long climbs, 1.5 on the steepest, negative in the dips */
+    function isOpen(){ var s = document.getElementById('ski'); return s && !s.hasAttribute('hidden'); }
+    function reset(len){
+      LEN = len || 1200; x = 0; v = 0; elapsed = 0; running = false; done = false; started = false;
+      stars = []; for(var i = 0; i < 40; i++){ stars.push([Math.random(), Math.random() * .6, Math.random()]); }
+      hud(); draw();
+    }
+    function hud(){
+      var t = document.getElementById('ski-time'), b = document.getElementById('ski-best');
+      if(t){ t.textContent = fmtT(elapsed); }
+      var best = null; try { best = +localStorage.getItem(BEST_KEY) || null; } catch(e) {}
+      if(b){ b.textContent = best ? fmtT(best) : '–'; }
+    }
+    function draw(){
+      var cv = document.getElementById('ski-canvas'); if(!cv){ return; }
+      var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      ctx.clearRect(0, 0, W, H);
+      var g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0a1424'); g.addColorStop(1, '#070b14');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255,255,255,.7)';
+      stars.forEach(function(s){ ctx.globalAlpha = .3 + .6 * s[2]; ctx.fillRect(s[0] * W, s[1] * H, 1.2, 1.2); });
+      ctx.globalAlpha = 1;
+      var Y = function(px){ return H - 30 - terrain(px) * (H - 90); }, X = function(px){ return 24 + px / LEN * (W - 64); };
+      /* Aurora wash behind the ridge */
+      var a = ctx.createLinearGradient(0, H * .15, 0, H * .7); a.addColorStop(0, 'rgba(61,220,151,.12)'); a.addColorStop(1, 'rgba(61,220,151,0)');
+      ctx.fillStyle = a; ctx.fillRect(0, 0, W, H);
+      /* Ridge */
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for(var px = -40; px <= LEN + 60; px += 8){ ctx.lineTo(X(px), Y(px)); }
+      ctx.lineTo(W, H); ctx.closePath();
+      ctx.fillStyle = '#101a2b'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); for(px = -40; px <= LEN + 60; px += 8){ if(px === -40){ ctx.moveTo(X(px), Y(px)); } else { ctx.lineTo(X(px), Y(px)); } } ctx.stroke();
+      /* Summit flag */
+      ctx.strokeStyle = '#efe9d6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(LEN), Y(LEN)); ctx.lineTo(X(LEN), Y(LEN) - 26); ctx.stroke();
+      ctx.fillStyle = '#3ddc97'; ctx.beginPath(); ctx.moveTo(X(LEN), Y(LEN) - 26); ctx.lineTo(X(LEN) + 14, Y(LEN) - 21); ctx.lineTo(X(LEN), Y(LEN) - 16); ctx.closePath(); ctx.fill();
+      /* Skier */
+      var sx = X(x), sy = Y(x), ang = -Math.atan2(Y(x + 10) - Y(x - 10), X(x + 10) - X(x - 10));
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(-ang);
+      ctx.strokeStyle = '#efe9d6'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();                    /* skis */
+      ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(4, -14); ctx.stroke();                    /* legs+body lean */
+      ctx.beginPath(); ctx.moveTo(4, -14); ctx.lineTo(9, -24); ctx.stroke();
+      var pole = (Math.sin(elapsed / 90) > 0 || !running) ? 1 : -1;
+      ctx.beginPath(); ctx.moveTo(6, -18); ctx.lineTo(6 + 10 * pole, -2); ctx.stroke();          /* pole */
+      ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(11, -28, 3.6, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      /* Messages */
+      ctx.fillStyle = 'rgba(239,233,214,.85)'; ctx.font = '500 13px "JetBrains Mono", monospace'; ctx.textAlign = 'center';
+      if(!started){ ctx.fillText(T('Stavtag: mellanslag eller klick', 'Pole: Space or click'), W / 2, 36); }
+      if(done){
+        ctx.font = '600 26px Fraunces, serif'; ctx.fillStyle = '#3ddc97';
+        ctx.fillText(T('Toppen!', 'Summit!') + ' ' + fmtT(elapsed), W / 2, H * .38);
+        ctx.font = '500 12px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(239,233,214,.8)';
+        ctx.fillText(T('Mellanslag för ett nytt lopp', 'Space for another run'), W / 2, H * .38 + 24);
+      }
+    }
+    function step(ts){
+      raf = null;
+      if(!running){ return; }
+      var dt = Math.min(.05, (ts - last) / 1000); last = ts;
+      elapsed = ts - t0;
+      v *= Math.exp(-1.1 * dt);                 /* friction */
+      v -= slope(x) * 110 * dt;                 /* the hill: a steady rhythm climbs, a lazy one slides */
+      if(v < -40){ v = -40; }
+      x += v * dt;
+      if(x < 0){ x = 0; if(v < 0){ v = 0; } }
+      if(x >= LEN){
+        x = LEN; running = false; done = true; doneAt = performance.now();
+        try { var best = +localStorage.getItem(BEST_KEY) || 0; if(!best || elapsed < best){ localStorage.setItem(BEST_KEY, String(Math.round(elapsed))); } } catch(e) {}
+      }
+      hud(); draw();
+      if(running){ raf = requestAnimationFrame(step); }
+    }
+    function kick(){
+      if(!isOpen()){ return; }
+      /* A finished run holds still for a moment so the last stroke cannot restart it */
+      if(done){ if(performance.now() - doneAt < 900){ return; } reset(LEN); return; }
+      if(!started){ started = true; running = true; t0 = performance.now(); last = t0; raf = requestAnimationFrame(step); }
+      v += 95;
+    }
+    function open(len){
+      if(isOpen()){ return; }
+      lastFocus = document.activeElement;
+      var sw = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden'; if(sw > 0){ document.body.style.paddingRight = sw + 'px'; }
+      document.getElementById('ski').removeAttribute('hidden');
+      reset(len);
+      var panel = document.querySelector('#ski .quiz'); if(panel){ panel.focus(); }
+    }
+    function close(){
+      if(!isOpen()){ return; }
+      running = false; if(raf){ cancelAnimationFrame(raf); raf = null; }
+      document.getElementById('ski').setAttribute('hidden', '');
+      document.body.style.overflow = ''; document.body.style.paddingRight = '';
+      if(lastFocus && lastFocus.focus){ lastFocus.focus(); }
+    }
+    document.addEventListener('keydown', function(e){
+      var tag = (e.target && e.target.tagName) || '';
+      if(tag === 'INPUT' || tag === 'TEXTAREA'){ return; }
+      if(isOpen()){
+        if(e.key === 'Escape'){ e.preventDefault(); close(); return; }
+        if(e.key === ' ' || e.key === 'ArrowUp'){ e.preventDefault(); kick(); }
+        return;
+      }
+      typed.push(e.key); if(typed.length > KONAMI.length){ typed.shift(); }
+      if(typed.join(',') === KONAMI.join(',')){ typed = []; open(); }
+    });
+    document.addEventListener('click', function(e){
+      if(!isOpen()){ return; }
+      if(e.target && e.target.id === 'ski-canvas'){ kick(); }
+      else if(e.target === document.getElementById('ski')){ close(); }
+    });
+    document.addEventListener('cv:lang', function(){ if(isOpen()){ hud(); draw(); } });
+    return {open: open, close: close, kick: kick,
+            state: function(){ return {open: isOpen(), running: running, done: done, x: x, len: LEN, elapsed: elapsed}; }};
+  })();
+
   /* ---------- Guess the company ----------
      Opened from the bar or the palette. Sixteen listed companies, monthly adjusted closes fetched once from
      Alpha Vantage and embedded here, so the game needs no network. Each
@@ -3495,6 +3647,11 @@
         group:'act', icon:'game', keys:'spel game gissa quiz bolag aktie stock chart kurs',
         label: en ? 'Play: Guess the company' : 'Spela: Gissa bolaget',
         run: function(){ setTimeout(cvQuiz.open, 60); }
+      });
+      out.push({
+        group:'act', icon:'game', deep:true, keys:'ski skimo skidor skidalpinism paskagg easter egg',
+        label: en ? 'Skimo race (easter egg)' : 'Skimo-loppet (påskägg)',
+        run: function(){ setTimeout(function(){ cvSki.open(); }, 60); }
       });
       out.push({
         group:'act', icon:'go', keys:'karriar karta career map spela upp replay tidslinje timeline',

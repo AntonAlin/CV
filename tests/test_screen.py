@@ -544,6 +544,37 @@ with sync_playwright() as p:
           and mcc.locator(".project-chart.is-static").evaluate("e=>getComputedStyle(e).display") == "none")
     pg.emulate_media(media="screen")
 
+    # --- Skimo easter egg ---
+    check("the race starts hidden", pg.get_attribute("#ski", "hidden") is not None)
+    for k in ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"]:
+        pg.keyboard.press(k)
+    pg.wait_for_timeout(200)
+    check("the Konami code opens the race", pg.get_attribute("#ski", "hidden") is None
+          and pg.evaluate("cvSki.state().x") == 0 and not pg.evaluate("cvSki.state().running"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+    pg.evaluate("cvSki.open(220)"); pg.wait_for_timeout(100)
+    for _ in range(12):
+        pg.keyboard.press("Space"); pg.wait_for_timeout(60)
+    st = pg.evaluate("cvSki.state()")
+    check("strokes move the skier up the course and start the clock",
+          st["running"] or st["done"], st)
+    for _ in range(40):
+        if pg.evaluate("cvSki.state().done"): break
+        pg.click("#ski-canvas"); pg.wait_for_timeout(60)
+    st = pg.evaluate("cvSki.state()")
+    check("reaching the flag stops the clock and stores a best time",
+          st["done"] and st["x"] == st["len"] and st["elapsed"] > 0
+          and pg.evaluate("+localStorage.getItem('cv-ski-best')") > 0
+          and "s" in pg.locator("#ski-best").inner_text().lower(), st)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+    check("Escape closes the race", pg.get_attribute("#ski", "hidden") is not None
+          and pg.evaluate("document.body.style.overflow") == "")
+    pg.click("#cmdk-hint"); pg.wait_for_timeout(250)
+    check("the egg is not listed until searched", "Skimo-loppet (påskägg)" not in pg.locator(".cmdk-item .cmdk-label").all_inner_texts())
+    pg.fill("#cmdk-input", "ski"); pg.wait_for_timeout(250)
+    check("searching 'ski' finds it", "Skimo-loppet (påskägg)" in pg.locator(".cmdk-item .cmdk-label").all_inner_texts())
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+
     # --- Guess the company ---
     data = pg.evaluate("cvQuiz.data()")
     check("sixteen companies with long, positive, month-complete series",
