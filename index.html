@@ -2218,7 +2218,7 @@
       <button type="button" class="quiz-close" onclick="cvSki.close()" aria-label="Stäng / Close">×</button>
     </div>
     <canvas class="ski-canvas" id="ski-canvas" width="640" height="360" aria-label="Skimo"></canvas>
-    <p class="quiz-foot"><span class="sv-only">Stavtag med mellanslag, pil upp eller klick, i takt. Uppför tappar du fart utan tag, nedför rullar det på. Först till toppen. Esc stänger.</span><span class="en-only">Pole with Space, arrow up or a click, in rhythm. Uphill you lose speed without strokes, downhill it rolls. First to the summit. Esc closes.</span></p>
+    <p class="quiz-foot"><span class="sv-only">Uppför: stavtag i takt med mellanslag, pil upp eller klick, för snabbt räknas inte. Över toppen är det utför till mål: håll knappen för att hoppa ihop och få fart, men över guppen vurpar du om du åker för fort. Esc stänger.</span><span class="en-only">Uphill: pole in rhythm with Space, arrow up or a click; hammering does not count. Over the summit it is downhill to the finish: hold to tuck for speed, but too fast over a bump and you wipe out. Esc closes.</span></p>
   </div>
 </div>
 
@@ -3023,14 +3023,27 @@
     var BEST_KEY = 'cv-ski-best', KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
     var typed = [], raf = null, last = 0, lastFocus = null;
     var LEN = 1200, x = 0, v = 0, t0 = 0, elapsed = 0, running = false, done = false, started = false, stars = [], doneAt = 0;
+    var lastKick = 0, tuck = false, crashedAt = 0, crashes = 0, MAX_BUMP_SPEED = 300;
     function en(){ return document.body.classList.contains('lang-en'); }
     function T(sv, e){ return en() ? e : sv; }
     function fmtT(ms){ return (ms / 1000).toLocaleString(en() ? 'en-GB' : 'sv-SE', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' s'; }
-    function terrain(px){ var u = Math.min(1, Math.max(0, px / LEN)); return .12 + .72 * u + .06 * Math.sin(u * 13) + .035 * Math.sin(u * 29 + 1.3); }
-    function slope(px){ return (terrain(px + 3) - terrain(px - 3)) / 6 * 1200; }  /* gradient, about 0.7 on the long climbs, 1.5 on the steepest, negative in the dips */
+    var SUMMIT = .6;   /* share of the course that is climb; the rest is descent */
+    function terrain(px){
+      var u = Math.min(1, Math.max(0, px / LEN));
+      if(u < SUMMIT){
+        var c = u / SUMMIT, wall = Math.min(1, Math.max(0, (c - .5) / .25));   /* a steep wall halfway up */
+        return .12 + .66 * c + .05 * Math.sin(c * 12) + .1 * wall * wall * (3 - 2 * wall);
+      }
+      var d = (u - SUMMIT) / (1 - SUMMIT);                                       /* down to the finish, two bumps */
+      return .88 - .58 * d + .05 * Math.sin(d * 4 * Math.PI) * Math.sin(d * Math.PI);
+    }
+    function slope(px){ return (terrain(px + 3) - terrain(px - 3)) / 6 * 1200; }
+    function descending(px){ return px / LEN >= SUMMIT; }
+    var BUMPS = [SUMMIT + (1 - SUMMIT) * .25, SUMMIT + (1 - SUMMIT) * .75];    /* crests, as course shares */
     function isOpen(){ var s = document.getElementById('ski'); return s && !s.hasAttribute('hidden'); }
     function reset(len){
       LEN = len || 1200; x = 0; v = 0; elapsed = 0; running = false; done = false; started = false;
+      lastKick = 0; tuck = false; crashedAt = 0; crashes = 0;
       stars = []; for(var i = 0; i < 40; i++){ stars.push([Math.random(), Math.random() * .6, Math.random()]); }
       hud(); draw();
     }
@@ -3060,26 +3073,54 @@
       ctx.fillStyle = '#101a2b'; ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5;
       ctx.beginPath(); for(px = -40; px <= LEN + 60; px += 8){ if(px === -40){ ctx.moveTo(X(px), Y(px)); } else { ctx.lineTo(X(px), Y(px)); } } ctx.stroke();
-      /* Summit flag */
+      /* Finish flag */
       ctx.strokeStyle = '#efe9d6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(LEN), Y(LEN)); ctx.lineTo(X(LEN), Y(LEN) - 26); ctx.stroke();
       ctx.fillStyle = '#3ddc97'; ctx.beginPath(); ctx.moveTo(X(LEN), Y(LEN) - 26); ctx.lineTo(X(LEN) + 14, Y(LEN) - 21); ctx.lineTo(X(LEN), Y(LEN) - 16); ctx.closePath(); ctx.fill();
       /* Skier */
       var sx = X(x), sy = Y(x), ang = -Math.atan2(Y(x + 10) - Y(x - 10), X(x + 10) - X(x - 10));
+      var fallen = crashedAt && performance.now() - crashedAt < 1100, down = descending(x);
       ctx.save(); ctx.translate(sx, sy); ctx.rotate(-ang);
       ctx.strokeStyle = '#efe9d6'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();                    /* skis */
-      ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(4, -14); ctx.stroke();                    /* legs+body lean */
-      ctx.beginPath(); ctx.moveTo(4, -14); ctx.lineTo(9, -24); ctx.stroke();
-      var pole = (Math.sin(elapsed / 90) > 0 || !running) ? 1 : -1;
-      ctx.beginPath(); ctx.moveTo(6, -18); ctx.lineTo(6 + 10 * pole, -2); ctx.stroke();          /* pole */
-      ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(11, -28, 3.6, 0, Math.PI * 2); ctx.fill();
+      if(fallen){
+        ctx.rotate(1.2);
+        ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(12, -8); ctx.stroke();
+        ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(16, -10, 3.6, 0, Math.PI * 2); ctx.fill();
+      } else if(down && tuck){
+        ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();                  /* skis */
+        ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(6, -9); ctx.stroke();                  /* crouched */
+        ctx.beginPath(); ctx.moveTo(6, -9); ctx.lineTo(14, -12); ctx.stroke();
+        ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(17, -15, 3.6, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();                  /* skis */
+        ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(4, -14); ctx.stroke();                  /* legs+body lean */
+        ctx.beginPath(); ctx.moveTo(4, -14); ctx.lineTo(9, -24); ctx.stroke();
+        var pole = (Math.sin(elapsed / 90) > 0 || !running || down) ? 1 : -1;
+        ctx.beginPath(); ctx.moveTo(6, -18); ctx.lineTo(6 + 10 * pole, -2); ctx.stroke();        /* pole */
+        ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(11, -28, 3.6, 0, Math.PI * 2); ctx.fill();
+      }
       ctx.restore();
+      /* Bump warnings on the descent */
+      BUMPS.forEach(function(b){
+        var bx = X(b * LEN), by = Y(b * LEN);
+        ctx.fillStyle = 'rgba(255,111,174,.9)'; ctx.beginPath(); ctx.moveTo(bx, by - 8); ctx.lineTo(bx - 4, by - 2); ctx.lineTo(bx + 4, by - 2); ctx.closePath(); ctx.fill();
+      });
+      /* Speed readout, red when a bump would throw you */
+      if(started && !done){
+        ctx.textAlign = 'left'; ctx.font = '500 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = (down && v > MAX_BUMP_SPEED) ? '#ff6fae' : 'rgba(239,233,214,.7)';
+        ctx.fillText((down ? T('NEDFÖR', 'DOWNHILL') : T('UPPFÖR', 'UPHILL')) + ' · ' + T('fart', 'speed') + ' ' + Math.round(Math.max(0, v)) + (crashes ? ' · ' + T('vurpor', 'falls') + ' ' + crashes : ''), 14, 22);
+      }
       /* Messages */
       ctx.fillStyle = 'rgba(239,233,214,.85)'; ctx.font = '500 13px "JetBrains Mono", monospace'; ctx.textAlign = 'center';
-      if(!started){ ctx.fillText(T('Stavtag: mellanslag eller klick', 'Pole: Space or click'), W / 2, 36); }
+      if(!started){
+        ctx.fillText(T('Uppför: stavtag i takt med mellanslag eller klick', 'Uphill: pole in rhythm with Space or a click'), W / 2, 36);
+        ctx.fillText(T('Nedför: håll för att hoppa ihop, släpp före guppen', 'Downhill: hold to tuck, let go before the bumps'), W / 2, 56);
+      }
+      if(fallen){ ctx.font = '600 22px Fraunces, serif'; ctx.fillStyle = '#ff6fae'; ctx.fillText(T('Vurpa!', 'Wipeout!'), W / 2, H * .38); }
       if(done){
         ctx.font = '600 26px Fraunces, serif'; ctx.fillStyle = '#3ddc97';
-        ctx.fillText(T('Toppen!', 'Summit!') + ' ' + fmtT(elapsed), W / 2, H * .38);
+        ctx.fillText(T('I mål!', 'Finish!') + ' ' + fmtT(elapsed) + (crashes ? ' · ' + crashes + ' ' + T('vurpor', 'falls') : ''), W / 2, H * .38);
         ctx.font = '500 12px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(239,233,214,.8)';
         ctx.fillText(T('Mellanslag för ett nytt lopp', 'Space for another run'), W / 2, H * .38 + 24);
       }
@@ -3089,9 +3130,20 @@
       if(!running){ return; }
       var dt = Math.min(.05, (ts - last) / 1000); last = ts;
       elapsed = ts - t0;
-      v *= Math.exp(-1.1 * dt);                 /* friction */
-      v -= slope(x) * 110 * dt;                 /* the hill: a steady rhythm climbs, a lazy one slides */
-      if(v < -40){ v = -40; }
+      var fallenNow = crashedAt && ts - crashedAt < 1100;
+      if(fallenNow){ v = 0; }
+      else {
+        var down = descending(x);
+        v *= Math.exp(-(down ? .35 : 1.3) * dt);                       /* friction: glide downhill, grind uphill */
+        v -= slope(x) * 110 * dt;                                       /* the hill */
+        v -= (tuck && down ? .0006 : .0013) * v * Math.abs(v) * dt;     /* air: a tuck halves the drag */
+        if(v < -40){ v = -40; }
+        /* Over a bump too fast, and the run ends on the ground for a moment */
+        var u0 = x / LEN, u1 = (x + v * dt) / LEN;
+        if(down && v > MAX_BUMP_SPEED && BUMPS.some(function(b){ return u0 < b && u1 >= b; })){
+          crashedAt = ts; crashes++; v = 0;
+        }
+      }
       x += v * dt;
       if(x < 0){ x = 0; if(v < 0){ v = 0; } }
       if(x >= LEN){
@@ -3106,8 +3158,13 @@
       /* A finished run holds still for a moment so the last stroke cannot restart it */
       if(done){ if(performance.now() - doneAt < 900){ return; } reset(LEN); return; }
       if(!started){ started = true; running = true; t0 = performance.now(); last = t0; raf = requestAnimationFrame(step); }
-      v += 95;
+      var now = performance.now();
+      if(descending(x) || (crashedAt && now - crashedAt < 1100)){ return; }   /* poles do nothing downhill or on the ground */
+      if(now - lastKick < 140){ return; }                                     /* hammering the key is not a rhythm */
+      lastKick = now;
+      v += 90;
     }
+    function setTuck(on){ tuck = !!on; }
     function open(len){
       if(isOpen()){ return; }
       lastFocus = document.activeElement;
@@ -3129,20 +3186,23 @@
       if(tag === 'INPUT' || tag === 'TEXTAREA'){ return; }
       if(isOpen()){
         if(e.key === 'Escape'){ e.preventDefault(); close(); return; }
-        if(e.key === ' ' || e.key === 'ArrowUp'){ e.preventDefault(); kick(); }
+        if(e.key === ' ' || e.key === 'ArrowUp'){ e.preventDefault(); if(!e.repeat){ kick(); } setTuck(true); }
         return;
       }
       typed.push(e.key); if(typed.length > KONAMI.length){ typed.shift(); }
       if(typed.join(',') === KONAMI.join(',')){ typed = []; open(); }
     });
+    document.addEventListener('keyup', function(e){ if(e.key === ' ' || e.key === 'ArrowUp'){ setTuck(false); } });
     document.addEventListener('click', function(e){
       if(!isOpen()){ return; }
       if(e.target && e.target.id === 'ski-canvas'){ kick(); }
       else if(e.target === document.getElementById('ski')){ close(); }
     });
+    ['mousedown', 'touchstart'].forEach(function(ev){ document.addEventListener(ev, function(e){ if(isOpen() && e.target && e.target.id === 'ski-canvas'){ setTuck(true); } }, {passive: true}); });
+    ['mouseup', 'touchend', 'touchcancel'].forEach(function(ev){ document.addEventListener(ev, function(){ setTuck(false); }, {passive: true}); });
     document.addEventListener('cv:lang', function(){ if(isOpen()){ hud(); draw(); } });
     return {open: open, close: close, kick: kick,
-            state: function(){ return {open: isOpen(), running: running, done: done, x: x, len: LEN, elapsed: elapsed}; }};
+            state: function(){ return {open: isOpen(), running: running, done: done, x: x, len: LEN, elapsed: elapsed, phase: descending(x) ? 'descent' : 'climb', tuck: tuck, crashes: crashes, v: v}; }};
   })();
 
   /* ---------- Guess the company ----------
@@ -3662,36 +3722,17 @@
         run: function(){ setTimeout(function(){ cvSki.open(); }, 60); }
       });
       out.push({
-        group:'act', icon:'go', keys:'karriar karta career map spela upp replay tidslinje timeline',
-        label: en ? 'Replay the career map' : 'Spela upp karriärkartan',
-        run: function(){
-          var m = document.getElementById('career-map');
-          if(m){ m.scrollIntoView({behavior: ease(), block: 'center'}); }
-          setTimeout(function(){ if(window.cvCareer){ window.cvCareer.replay(); } }, 500);
-        }
-      });
-      out.push({
         group:'act', icon:'game', keys:'spel game gissa quiz dagens daily bolag',
         label: en ? 'Play: today\'s daily round' : 'Spela: Dagens omgång',
         run: function(){ setTimeout(function(){ cvQuiz.open(); cvQuiz.start(true); }, 60); }
       });
       var ms = cvMusic.state();
-      Object.keys(cvMusic.GENRES).forEach(function(k){
-        var lab = cvMusic.GENRES[k].label;
-        out.push({
-          group:'act', icon:'music', keys:'musik music spela play ' + k + ' ' + lab.toLowerCase(),
-          label: (en ? 'Play: ' : 'Spela: ') + lab,
-          meta: ms.playing && ms.genre === k ? '♪' : '',
-          run: function(){ cvMusic.play(k); }
-        });
+      out.push({
+        group:'act', icon:'music', keys:'musik music spela play ambient lofi synthwave piano stoppa stop',
+        label: en ? 'Music' : 'Musik',
+        meta: ms.playing ? '♪ ' + cvMusic.GENRES[ms.genre].label : (en ? 'off' : 'av'),
+        run: function(){ setTimeout(function(){ cvMusic.toggleMenu(); }, 60); }
       });
-      if(ms.playing){
-        out.push({
-          group:'act', icon:'music', keys:'musik music stoppa stop tyst quiet',
-          label: en ? 'Stop the music' : 'Stoppa musiken',
-          run: cvMusic.stop
-        });
-      }
       out.push({
         group:'act', icon:'down', keys:'pdf ladda ner download hamta cv',
         label: en ? 'Download CV (2 pages)' : 'Ladda ner CV (2 sidor)',

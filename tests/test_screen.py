@@ -444,8 +444,11 @@ with sync_playwright() as p:
     check("Escape closes the menu", pg.get_attribute("#music-menu", "hidden") is not None)
     pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
     labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
-    check("the palette lists the genres and a stop while playing",
-          any(l.startswith("Spela: Piano") for l in labels) and "Stoppa musiken" in labels, labels)
+    check("the palette has one music row that names what is playing",
+          labels.count("Musik") == 1 and not any(l.startswith("Spela: ") and l[7:] in ("Ambient", "Lo-fi", "Synthwave", "Piano") for l in labels)
+          and "Synthwave" in pg.locator(".cmdk-item", has_text="Musik").first.inner_text(), labels)
+    pg.locator(".cmdk-item", has_text="Musik").first.click(); pg.wait_for_timeout(300)
+    check("choosing it opens the music menu", pg.get_attribute("#music-menu", "hidden") is None)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.evaluate("cvMusic.stop()"); pg.wait_for_timeout(200)
     check("stop stops", not pg.evaluate("cvMusic.state().playing")
@@ -569,18 +572,30 @@ with sync_playwright() as p:
     check("the Konami code opens the race", pg.get_attribute("#ski", "hidden") is None
           and pg.evaluate("cvSki.state().x") == 0 and not pg.evaluate("cvSki.state().running"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
-    pg.evaluate("cvSki.open(220)"); pg.wait_for_timeout(100)
-    for _ in range(12):
-        pg.keyboard.press("Space"); pg.wait_for_timeout(60)
+    pg.evaluate("cvSki.open(300)"); pg.wait_for_timeout(100)
+    # Hammering is ignored: ten presses 20 ms apart count as about two strokes
+    for _ in range(10):
+        pg.keyboard.press("Space"); pg.wait_for_timeout(20)
     st = pg.evaluate("cvSki.state()")
-    check("strokes move the skier up the course and start the clock",
-          st["running"] or st["done"], st)
-    for _ in range(40):
-        if pg.evaluate("cvSki.state().done"): break
-        pg.click("#ski-canvas"); pg.wait_for_timeout(60)
+    check("the clock starts on the first stroke and hammering the key barely counts",
+          st["running"] and st["phase"] == "climb" and st["v"] < 250, st)
+    # A rhythm climbs to the summit
+    for _ in range(80):
+        if pg.evaluate("cvSki.state().phase") == "descent": break
+        pg.keyboard.press("Space"); pg.wait_for_timeout(150)
+    check("a steady rhythm reaches the summit", pg.evaluate("cvSki.state().phase") == "descent")
+    # Downhill: holding the key tucks; gravity does the rest
+    pg.keyboard.down("Space"); pg.wait_for_timeout(120)
+    check("holding the key on the descent tucks", pg.evaluate("cvSki.state().tuck") is True)
+    finished = True
+    try:
+        pg.wait_for_function("cvSki.state().done", timeout=12000)
+    except Exception:
+        finished = False
+    pg.keyboard.up("Space")
     st = pg.evaluate("cvSki.state()")
-    check("reaching the flag stops the clock and stores a best time",
-          st["done"] and st["x"] == st["len"] and st["elapsed"] > 0
+    check("the descent ends at the finish flag with the time kept",
+          finished and st["done"] and st["x"] == st["len"] and st["elapsed"] > 0 and st["crashes"] >= 0
           and pg.evaluate("+localStorage.getItem('cv-ski-best')") > 0
           and "s" in pg.locator("#ski-best").inner_text().lower(), st)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
@@ -690,8 +705,8 @@ with sync_playwright() as p:
           and pg.evaluate("document.body.style.overflow") == "")
     pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
     labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
-    check("the palette lists the game, the daily round and the career replay",
-          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela upp karriärkartan" in labels)
+    check("the palette lists the game and the daily round, and leaves the replay to the map",
+          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela upp karriärkartan" not in labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.emulate_media(media="print")
     check("the game button stays off paper and the projects keep their odd-card rule",
