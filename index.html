@@ -578,7 +578,8 @@
     color:var(--text-faint);
   }
   .sky-line[hidden]{display:none;}
-  .sky-line .wx-cap{font-size:9.5px;letter-spacing:.16em;color:var(--text-faint);opacity:.8;}
+  .sky-line .wx-cap{font-size:9.5px;letter-spacing:.14em;color:var(--text-faint);opacity:.85;}
+  .sky-line .wx-src{font-size:9px;letter-spacing:.06em;color:var(--text-faint);opacity:.6;margin-top:1px;}
   .sky-line .wx-main{display:flex;align-items:center;gap:9px;}
   .sky-line .wx-ico{flex:none;width:30px;height:30px;color:var(--text);}
   .sky-line .wx-ico svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
@@ -1957,7 +1958,7 @@
   <div class="hero-deck" aria-hidden="true"></div>
   <div class="hero-flash" aria-hidden="true"></div>
   <div class="wrap hero-content">
-    <div class="sky-line" id="sky-line" role="status" aria-live="off" hidden></div>
+    <div class="sky-line" id="sky-line" role="status" aria-live="off" title="Open-Meteo, modellvärde för Åreskutans topp 1 420 m ö.h. / model estimate for Åreskutan's summit" hidden></div>
     <div class="portrait-frame" id="portrait-frame">
       <div class="portrait-ring">
         <img class="portrait-img is-active" data-idx="0" src="img/portrait-1.jpg" alt="Anton Ålin">
@@ -2527,7 +2528,7 @@
     </p>
     <div class="about-h"><span class="sv-only">Under huven</span><span class="en-only">Under the hood</span></div>
     <ul class="about-grid">
-      <li><b><span class="sv-only">Himlen</span><span class="en-only">The sky</span></b> · <span class="sv-only">Åres väder just nu från Open-Meteo styr moln, snö, regn, dimma och snöstorm; solhöjden över Åre beräknas astronomiskt, månfasen likaså, och norrskenet följer NOAA:s Kp-index</span><span class="en-only">Åre's current weather from Open-Meteo drives cloud, snow, rain, fog and blizzard; the sun's altitude over Åre is computed astronomically, so is the moon phase, and the aurora follows NOAA's Kp index</span></li>
+      <li><b><span class="sv-only">Himlen</span><span class="en-only">The sky</span></b> · <span class="sv-only">Open-Meteos modellskattning för Åreskutans topp (1 420 m) styr moln, snö, regn, dimma och snöstorm; solhöjden över Åre beräknas astronomiskt, månfasen likaså, och norrskenet följer NOAA:s Kp-index</span><span class="en-only">Open-Meteo's model estimate for Åreskutan's summit (1,420 m) drives cloud, snow, rain, fog and blizzard; the sun's altitude over Åre is computed astronomically, so is the moon phase, and the aurora follows NOAA's Kp index</span></li>
       <li><b><span class="sv-only">Live-kort</span><span class="en-only">Live cards</span></b> · <span class="sv-only">SE2-elpris och Årevädret hämtas när sidan öppnas, med statiska kurvor som reserv</span><span class="en-only">SE2 power price and Åre weather fetched on load, with static curves as fallback</span></li>
       <li><b>Monte Carlo</b> · <span class="sv-only">geometrisk brownsk rörelse på canvas, volatiliteten styrs med pekaren</span><span class="en-only">geometric Brownian motion on canvas, volatility driven by the pointer</span></li>
       <li><b><span class="sv-only">Aktiespelen</span><span class="en-only">Stock games</span></b> · <span class="sv-only">månadskurser från Alpha Vantage, uppdaterade varje vecka av en GitHub Action</span><span class="en-only">monthly prices from Alpha Vantage, refreshed weekly by a GitHub Action</span></li>
@@ -2664,7 +2665,7 @@
       if(wx){
         var temp = typeof wx.temp === 'number' && !isNaN(wx.temp)
           ? (Math.round(wx.temp * 10) / 10).toLocaleString(isEn ? 'en-GB' : 'sv-SE').replace('-', '\u2212') + '\u00a0°C' : '';
-        main = '<div class="wx-cap">' + (isEn ? 'Åre now' : 'Åre just nu') + '</div>'
+        main = '<div class="wx-cap">' + (isEn ? 'Åreskutan 1,420 m \u00b7 now' : 'Åreskutan 1\u00a0420 m \u00b7 just nu') + '</div>'
           + '<div class="wx-main"><span class="wx-ico">' + cvWx.icon() + '</span><span><b class="wx-temp">' + temp + '</b>'
           + '<span class="wx-desc">' + cvWx.word(isEn) + (wx.wind >= 5 ? ' \u00b7 ' + Math.round(wx.wind) + '\u00a0m/s' : '') + '</span></span></div>';
       }
@@ -2681,7 +2682,8 @@
         if(tier >= 2 && wx && wx.cloud >= .75){ word += ' \u00b7 ' + (isEn ? 'overcast in Åre right now' : 'mulet i Åre just nu'); }
         parts.push('<span><i class="kp-dot kp-' + tier + '"></i>' + (isEn ? 'Aurora tonight' : 'Norrsken i natt') + ': <b>Kp ' + v.toFixed(v % 1 ? 1 : 0) + '</b> \u00b7 ' + word + '</span>');
       }
-      el.innerHTML = main + (parts.length ? '<div class="wx-sub">' + parts.join('') + '</div>' : '');
+      var src = wx ? '<div class="wx-src">' + (isEn ? 'Model estimate for the summit \u00b7 Open-Meteo' : 'Modellvärde för toppen \u00b7 Open-Meteo') + '</div>' : '';
+      el.innerHTML = main + (parts.length ? '<div class="wx-sub">' + parts.join('') + '</div>' : '') + src;
       if(main || parts.length){ el.removeAttribute('hidden'); } else { el.setAttribute('hidden', ''); }
       /* The badge sits in the hero's top padding; anything taller than that pushes the portrait down */
       document.body.style.setProperty('--badge-shift', Math.max(0, (el.hasAttribute('hidden') ? 0 : el.offsetHeight) - 56) + 'px');
@@ -2729,7 +2731,8 @@
   })();
 
   /* ---------- Åre's weather in the sky ----------
-     The hero shows what Åreskutan's station reports right now: cloud cover
+     The hero shows Open-Meteo's model estimate for Åreskutan's summit
+     (1 420 m) right now, not a station reading: cloud cover
      veils stars, aurora, sun and moon; snow, rain, fog and thunder are drawn;
      a blizzard leans the snow with the wind and whitens the deck. Without a
      report (offline, file://) the sky stays as the hour alone paints it. */
@@ -4052,8 +4055,8 @@
       {d: '2026-09-08', sv: 'Aktiespelet har fått läget <b>Upp eller ner?</b>, kompetenserna pekar på sina belägg och spelet visar dagens marknad.',
                         en: 'The stock quiz gained a <b>Higher or lower?</b> mode, skills point at their evidence and the game shows today\'s market.',
                         sv_a: 'Prova spelet', en_a: 'Try the game', run: 'quiz-ud'},
-      {d: '2026-09-08', sv: 'Himlen visar Åre just nu: solens verkliga höjd, molntäcke, snö, regn, dimma, snöstorm och norrsken efter NOAA:s Kp-index.',
-                        en: 'The sky shows Åre right now: the sun\'s real altitude, cloud cover, snow, rain, fog, blizzard and aurora from NOAA\'s Kp index.',
+      {d: '2026-09-08', sv: 'Himlen visar Åreskutans topp just nu: solens verkliga höjd, molntäcke, snö, regn, dimma, snöstorm och norrsken efter NOAA:s Kp-index.',
+                        en: 'The sky shows Åreskutan\'s summit right now: the sun\'s real altitude, cloud cover, snow, rain, fog, blizzard and aurora from NOAA\'s Kp index.',
                         sv_a: 'Till toppen', en_a: 'To the top', href: '#top'},
       {d: '2026-09-08', sv: 'Elpris- och väderkorten är live och Alpha Satellite-kortet simulerar med Monte Carlo.',
                         en: 'The power-price and weather cards are live and the Alpha Satellite card simulates with Monte Carlo.',

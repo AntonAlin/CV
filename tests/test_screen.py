@@ -554,6 +554,9 @@ with sync_playwright() as p:
           and "84\xa0cm" in pg.locator("#sky-line").inner_text()
           and "snöar nu" in pg.locator("#sky-line").inner_text(), pg.locator("#sky-line").inner_text())
     # --- Åre's weather paints the sky ---
+    # Pin the hour: the deck colours and cloud tints differ by phase, and the
+    # suite runs at all times of day
+    pg.evaluate("document.body.classList.remove('tod-dusk','tod-dawn','tod-night'); document.body.classList.add('tod-day'); document.dispatchEvent(new CustomEvent('cv:tod'))")
     FIX = {"temp": -1.3, "wind": 9.4, "gust": 14.1, "dir": 250, "code": 71, "cloud": 100, "rain": 0, "snowfall": 0.42, "snowDepth": 0.84}
     wx = pg.evaluate("cvWx.state()")
     aur = lambda: float(pg.eval_on_selector(".aurora-layer", "e=>getComputedStyle(e).opacity"))
@@ -567,7 +570,7 @@ with sync_playwright() as p:
           aur() < 0.05 and deck() > 0.95
           and float(pg.eval_on_selector(".stars-far", "e=>getComputedStyle(e).opacity")) < 0.2, (aur(), deck()))
     check("the sky line opens with Åre right now: temperature, snowfall and wind",
-          all(w in pg.locator("#sky-line").inner_text() for w in ("Åre just nu", "\u22121,3\xa0°C", "snöfall", "9\xa0m/s")),
+          all(w in pg.locator("#sky-line").inner_text() for w in ("Åreskutan 1\xa0420 m", "just nu", "\u22121,3\xa0°C", "snöfall", "9\xa0m/s", "Modellvärde", "Open-Meteo")),
           pg.locator("#sky-line").inner_text())
     pg.evaluate("cvWx.apply({temp: 11.2, wind: 2, gust: 3, dir: 90, code: 0, cloud: 4, rain: 0, snowfall: 0})"); pg.wait_for_timeout(2900)
     check("a clear sky brings the aurora and stars back and removes the snow",
@@ -612,7 +615,8 @@ with sync_playwright() as p:
     check("the badge carries an icon, a big temperature and a caption",
           pg.locator("#sky-line .wx-ico svg").count() == 1 and pg.locator("#sky-line .wx-temp").count() == 1
           and float(pg.eval_on_selector("#sky-line .wx-temp", "e=>parseFloat(getComputedStyle(e).fontSize)")) >= 18
-          and pg.locator("#sky-line .wx-cap").inner_text() == "Åre just nu")
+          and pg.locator("#sky-line .wx-cap").inner_text() == "Åreskutan 1\xa0420 m · just nu"
+          and pg.locator("#sky-line .wx-src").count() == 1)
     sunpos = pg.evaluate("[getComputedStyle(document.body).getPropertyValue('--sun-x').trim(), getComputedStyle(document.body).getPropertyValue('--sun-y').trim(), cvTod.sun(new Date('2026-06-21T02:00:00Z')).az, cvTod.sun(new Date('2026-06-21T11:08:00Z')).az, cvTod.sun(new Date('2026-06-21T19:00:00Z')).az]")
     check("the sun is placed by Åre's real azimuth: east in the morning, south at noon, west in the evening",
           sunpos[0].endswith("%") and sunpos[1].endswith("%") and 25 < sunpos[2] < 100 and 170 < sunpos[3] < 190 and 260 < sunpos[4] < 330, sunpos)
