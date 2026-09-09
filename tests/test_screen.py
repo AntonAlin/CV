@@ -704,7 +704,7 @@ with sync_playwright() as p:
           [(d["t"], len(d["p"])) for d in data])
     check("the game lives in the bar beside the music, not among the projects",
           pg.locator(".controls #quiz-btn").count() == 1
-          and pg.locator(".projects-grid > .project-card").count() == 5
+          and pg.locator(".projects-grid > .project-card").count() == 6
           and pg.eval_on_selector("#quiz-btn", "e=>e.previousElementSibling.id") == "music")
     check("the quiz starts closed", pg.get_attribute("#quiz", "hidden") is not None)
     pg.click("#quiz-btn"); pg.wait_for_timeout(300)
@@ -839,10 +839,22 @@ with sync_playwright() as p:
           "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela: Upp eller ner?" in labels and "Om den här sidan" in labels and "Spela upp karriärkartan" not in labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.emulate_media(media="print")
-    check("the game button stays off paper and the projects keep their odd-card rule",
+    # An even count leaves the last card in its own column; drop one and the
+    # lone card must still stretch across the row rather than sit half-width.
+    span = pg.eval_on_selector(".projects-grid > .project-card:last-child",
+                               "e=>getComputedStyle(e).gridColumnStart+'/'+getComputedStyle(e).gridColumnEnd")
+    odd_span = pg.evaluate("""(() => {
+        const g = document.querySelector('.projects-grid');
+        const last = g.lastElementChild, clone = last.cloneNode(true);
+        last.remove();
+        const s = getComputedStyle(g.lastElementChild);
+        const out = s.gridColumnStart + '/' + s.gridColumnEnd;
+        g.appendChild(clone);
+        return out;
+    })()""")
+    check("the game button stays off paper and a lone last card still spans the row",
           pg.eval_on_selector("#quiz-btn", "e=>getComputedStyle(e).display") == "none"
-          and pg.eval_on_selector(".projects-grid > .project-card:last-child",
-                                  "e=>getComputedStyle(e).gridColumnStart+'/'+getComputedStyle(e).gridColumnEnd") == "1/-1")
+          and span == "auto/auto" and odd_span == "1/-1", (span, odd_span))
     pg.emulate_media(media="screen")
 
     check("no JS errors overall", not errors, errors)

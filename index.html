@@ -2227,6 +2227,25 @@
         <span class="project-open-link" data-print="antonalin.github.io/options-lab"><span class="sv-only">Öppna verktyget</span><span class="en-only">Open the tool</span> →</span>
       </a>
       <div class="project-card">
+        <div class="project-title">Portfolio Allocator</div>
+        <div class="tag-row"><span class="tag">Walk-forward ML</span><span class="tag">Ledoit-Wolf</span><span class="tag">Deflated Sharpe</span></div>
+        <p class="project-desc sv-only">Lägg till en ticker, modellen sätter vikten. Sex volatilitetsskattare och en walk-forward-validerad ML-modell vägs samman med NNLS, kovariansen krymps enligt Ledoit-Wolf och boken optimeras long-only mot riskparitet, HRP eller minsta varians. Avkastningstilten släpps på först när rank-IC klarar en Newey-West-t över 2, vilket den sällan gör.</p>
+        <p class="project-desc en-only">Add a ticker and the model sizes it. Six volatility estimators and a walk-forward ML model are blended by NNLS, the covariance is Ledoit-Wolf shrunk, and the book is optimised long-only against risk parity, HRP or minimum variance. The return tilt only switches on once rank IC clears a Newey-West t above 2, which it rarely does.</p>
+        <svg class="project-chart" viewBox="0 0 200 34" fill="none" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          <line x1="0" y1="32" x2="200" y2="32" stroke="var(--hairline-strong)" stroke-width="1"/>
+          <circle cx="34" cy="21" r="1.6" fill="var(--teal)" opacity=".45"/>
+          <circle cx="52" cy="14" r="1.6" fill="var(--teal)" opacity=".45"/>
+          <circle cx="70" cy="16" r="1.6" fill="var(--teal)" opacity=".4"/>
+          <circle cx="96" cy="10" r="1.6" fill="var(--teal)" opacity=".45"/>
+          <circle cx="118" cy="13" r="1.6" fill="var(--teal)" opacity=".4"/>
+          <circle cx="140" cy="9" r="1.6" fill="var(--teal)" opacity=".45"/>
+          <circle cx="166" cy="12" r="1.6" fill="var(--teal)" opacity=".4"/>
+          <circle cx="184" cy="8" r="1.6" fill="var(--teal)" opacity=".35"/>
+          <path d="M8 28 C 44 14, 96 7, 194 5" stroke="var(--green)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="86" cy="11.4" r="3" fill="var(--green)"/>
+        </svg>
+      </div>
+      <div class="project-card">
         <div class="project-title"><span class="sv-only">Modell för svenska börsnoterade fastighetsbolag</span><span class="en-only">Swedish Listed Real Estate Model</span></div>
         <div class="tag-row"><span class="tag">LightGBM</span><span class="tag">Python</span><span class="tag">Automation</span></div>
         <p class="project-desc sv-only">EPRA NRV/CEPS-rankning av 11–14 bolag: ML-lager och sammansatt poängsättning på verifierade fundamenta (Q1/Q2 2026). Veckoutskick; följs upp mot utfall, resultat på begäran.</p>
@@ -4052,6 +4071,9 @@
   var cvNews = (function(){
     var KEY = 'cv-last-visit';
     var CHANGES = [
+      {d: '2026-09-09', sv: 'Nytt projektkort: <b>Portfolio Allocator</b>, som storleksbestämmer en bok på volatilitetsprognos i stället för på avkastningsgissningar.',
+                        en: 'New project card: <b>Portfolio Allocator</b>, which sizes a book on a volatility forecast rather than on return guesses.',
+                        sv_a: 'Till projekten', en_a: 'To the projects', href: '#projects'},
       {d: '2026-09-08', sv: 'Aktiespelet har fått läget <b>Upp eller ner?</b>, kompetenserna pekar på sina belägg och spelet visar dagens marknad.',
                         en: 'The stock quiz gained a <b>Higher or lower?</b> mode, skills point at their evidence and the game shows today\'s market.',
                         sv_a: 'Prova spelet', en_a: 'Try the game', run: 'quiz-ud'},
