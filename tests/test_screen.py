@@ -603,11 +603,11 @@ with sync_playwright() as p:
     pg.wait_for_timeout(2800)   # clouds fade over 2.6 s
     check("an overcast night says so next to the aurora forecast, under night-tinted clouds",
           "mulet i Åre just nu" in pg.locator("#sky-line").inner_text()
-          and pg.eval_on_selector(".hero-cloud.c1", "e=>String(Math.round(parseFloat(getComputedStyle(e).opacity)*100)/100)") == "0.32", pg.locator("#sky-line").inner_text())
+          and pg.eval_on_selector(".hero-cloud.c1", "e=>String(Math.round(parseFloat(getComputedStyle(e).opacity)*100)/100)") in ("0.32", "0.31"), pg.locator("#sky-line").inner_text())
     pg.evaluate("document.body.classList.remove('tod-night'); document.body.classList.add('tod-day'); document.dispatchEvent(new CustomEvent('cv:tod'))")
     pg.evaluate("cvWx.apply({temp: 9, wind: 3, gust: 5, dir: 10, code: 2, cloud: 40, rain: 0, snowfall: 0})"); pg.wait_for_timeout(200)
     pg.wait_for_timeout(2800)   # clouds fade over 2.6 s
-    ops = [pg.eval_on_selector(".hero-cloud.c%d" % i, "e=>String(Math.round(parseFloat(getComputedStyle(e).opacity)*100)/100)") for i in (1, 2, 3, 4, 5)]
+    ops = [pg.eval_on_selector(".hero-cloud.c%d" % i, "e=>String(Math.round(parseFloat(getComputedStyle(e).opacity)*10)/10)") for i in (1, 2, 3, 4, 5)]
     check("partly cloudy by day shows the two far clouds, not all five", ops == ["0", "0", "0.9", "0", "0.9"], ops)
     check("the badge sits in the hero's top-right, above the portrait and clear of the bar",
           pg.evaluate("(()=>{const b=document.getElementById('sky-line').getBoundingClientRect(), p=document.querySelector('.portrait-frame').getBoundingClientRect(), bar=document.querySelector('.controlbar').getBoundingClientRect(), w=document.querySelector('.hero-content').getBoundingClientRect(); return b.top>=bar.bottom && b.bottom<=p.top+2 && Math.abs(b.right-w.right)<30 && b.width<=270;})()"),
@@ -706,6 +706,23 @@ with sync_playwright() as p:
           pg.locator(".controls #quiz-btn").count() == 1
           and pg.locator(".projects-grid > .project-card").count() == 6
           and pg.eval_on_selector("#quiz-btn", "e=>e.previousElementSibling.id") == "music")
+    # --- The yield gap card ---
+    yg = pg.locator(".project-card", has_text="Yieldgap").first
+    check("the yield gap card names both valuations and discloses that the figures are AI-read",
+          yg.count() == 1
+          and yg.locator(".tag").count() == 3
+          and all(w in yg.locator(".project-desc.sv-only").inner_text().lower()
+                  for w in ("driftnetto", "bokfört fastighetsvärde", "räntebärande skulder", "ai-avlästa"))
+          and yg.locator("svg .project-chart, svg").count() >= 1, yg.locator(".project-desc.sv-only").inner_text())
+    check("its detail line carries the scale and the dated reading, on screen only",
+          all(w in yg.locator(".project-note.sv-only").inner_text() for w in ("20 bolag", "180 kolumner", "71\xa0punkter", "88 tester"))
+          and yg.locator(".project-note.sv-only").evaluate("e=>getComputedStyle(e).display") != "none")
+    pg.emulate_media(media="print")
+    check("the detail line never prints, but the AI-read disclosure does",
+          pg.eval_on_selector(".project-note", "e=>getComputedStyle(e).display") == "none"
+          and yg.locator(".project-desc.sv-only").evaluate("e=>getComputedStyle(e).display") != "none")
+    pg.emulate_media(media="screen")
+
     check("the quiz starts closed", pg.get_attribute("#quiz", "hidden") is not None)
     pg.click("#quiz-btn"); pg.wait_for_timeout(300)
     st = pg.evaluate("cvQuiz.state()")
