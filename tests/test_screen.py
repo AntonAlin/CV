@@ -653,32 +653,81 @@ with sync_playwright() as p:
           and mcc.locator(".project-chart.is-static").evaluate("e=>getComputedStyle(e).display") == "none")
     pg.emulate_media(media="screen")
 
-    # --- Skimo easter egg ---
+    # --- Skimo easter egg: four disciplines, each with its own input ---
     check("the race starts hidden", pg.get_attribute("#ski", "hidden") is not None)
     for k in ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"]:
         pg.keyboard.press(k)
     pg.wait_for_timeout(200)
-    check("the Konami code opens the race", pg.get_attribute("#ski", "hidden") is None
-          and pg.evaluate("cvSki.state().x") == 0 and not pg.evaluate("cvSki.state().running"))
+    check("the Konami code opens the race on the skin track", pg.get_attribute("#ski", "hidden") is None
+          and pg.evaluate("cvSki.state().x") == 0 and pg.evaluate("cvSki.state().phase") == "skin"
+          and not pg.evaluate("cvSki.state().running"))
+    check("the five phases are written out in both languages, not only on the canvas",
+          pg.locator("ol.ski-steps").count() == 2
+          and pg.locator("ol.ski-steps.sv-only li").count() == 5
+          and pg.locator("ol.ski-steps.en-only li").count() == 5)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
     pg.evaluate("cvSki.open(300)"); pg.wait_for_timeout(100)
-    # Hammering is ignored: ten presses 20 ms apart count as about two strokes
+
+    # 1 — skinning. Hammering is ignored: ten presses 20 ms apart are about two strokes.
     for _ in range(10):
         pg.keyboard.press("Space"); pg.wait_for_timeout(20)
     st = pg.evaluate("cvSki.state()")
     check("the clock starts on the first stroke and hammering the key barely counts",
-          st["running"] and st["phase"] == "climb" and st["v"] < 250, st)
-    # A rhythm climbs to the summit
-    for _ in range(80):
-        if pg.evaluate("cvSki.state().phase") == "descent": break
+          st["running"] and st["phase"] == "skin" and st["v"] < 45, st)
+    for _ in range(140):
+        if pg.evaluate("cvSki.state().phase") != "skin": break
         pg.keyboard.press("Space"); pg.wait_for_timeout(150)
-    check("a steady rhythm reaches the summit", pg.evaluate("cvSki.state().phase") == "descent")
-    # Downhill: holding the key tucks; gravity does the rest
-    pg.keyboard.down("Space"); pg.wait_for_timeout(120)
+    st = pg.evaluate("cvSki.state()")
+    check("a steady rhythm reaches the first transition and stops there",
+          st["phase"] == "strip" and abs(st["x"] / st["len"] - .32) < .01 and st["v"] == 0, st)
+
+    # 2 — transition. The hold has to be held; let go and the work comes undone.
+    pg.keyboard.down("Space"); pg.wait_for_timeout(300); pg.keyboard.up("Space")
+    held = pg.evaluate("cvSki.state().hold"); pg.wait_for_timeout(500)
+    check("letting go mid-transition undoes the work",
+          held > 0 and pg.evaluate("cvSki.state().hold") < held
+          and pg.evaluate("cvSki.state().phase") == "strip", held)
+    pg.keyboard.down("Space")
+    stripped = True
+    try:
+        pg.wait_for_function("cvSki.state().phase==='boot'", timeout=8000)
+    except Exception:
+        stripped = False
+    pg.keyboard.up("Space")
+    check("holding the key takes the skis off and starts the boot-pack", stripped)
+
+    # 3 — running. Poles are on your back now, and you cannot run on one leg.
+    for _ in range(4):
+        pg.keyboard.press("Space"); pg.wait_for_timeout(40)
+    check("poling does nothing on foot", pg.evaluate("cvSki.state().v") < 1,
+          pg.evaluate("cvSki.state().v"))
+    for _ in range(5):
+        pg.keyboard.press("ArrowRight"); pg.wait_for_timeout(120)
+    check("the same foot twice is not a stride", pg.evaluate("cvSki.state().v") < 22,
+          pg.evaluate("cvSki.state().v"))
+    side = -1
+    for _ in range(240):
+        if pg.evaluate("cvSki.state().phase") != "boot": break
+        pg.keyboard.press("ArrowLeft" if side < 0 else "ArrowRight"); side = -side
+        pg.wait_for_timeout(110)
+    st = pg.evaluate("cvSki.state()")
+    check("alternating feet carries the boot-pack to the summit",
+          st["phase"] == "mount" and abs(st["x"] / st["len"] - .60) < .01, st)
+
+    # 4 — back into the bindings, and 5 — down to the finish, tucked the whole way.
+    pg.keyboard.down("Space")
+    mounted = True
+    try:
+        pg.wait_for_function("cvSki.state().phase==='descent'", timeout=8000)
+    except Exception:
+        mounted = False
+    check("holding the key puts the skis back on and releases the descent",
+          mounted and pg.evaluate("cvSki.state().v") > 0)
+    pg.wait_for_timeout(200)
     check("holding the key on the descent tucks", pg.evaluate("cvSki.state().tuck") is True)
     finished = True
     try:
-        pg.wait_for_function("cvSki.state().done", timeout=12000)
+        pg.wait_for_function("cvSki.state().done", timeout=40000)
     except Exception:
         finished = False
     pg.keyboard.up("Space")
@@ -687,6 +736,7 @@ with sync_playwright() as p:
           finished and st["done"] and st["x"] == st["len"] and st["elapsed"] > 0 and st["crashes"] >= 0
           and pg.evaluate("+localStorage.getItem('cv-ski-best')") > 0
           and "s" in pg.locator("#ski-best").inner_text().lower(), st)
+    check("the phase readout ends on the finish", pg.locator("#ski-phase").inner_text().strip() != "-")
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
     check("Escape closes the race", pg.get_attribute("#ski", "hidden") is not None
           and pg.evaluate("document.body.style.overflow") == "")

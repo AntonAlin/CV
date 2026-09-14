@@ -1308,6 +1308,21 @@
     display:block;width:100%;height:auto;aspect-ratio:16 / 9;border-radius:12px;
     background:#070b14;border:1px solid var(--hairline);cursor:pointer;touch-action:manipulation;
   }
+  /* The rules of the race in text as well as on the canvas — the canvas prompt
+     is for the run in progress, this is for reading before you start. */
+  ol.ski-steps{
+    margin:14px 0 0;padding:0 0 0 18px;
+    font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.65;
+    color:var(--text-faint);letter-spacing:.01em;
+  }
+  ol.ski-steps li{margin:0 0 4px;}
+  ol.ski-steps li::marker{color:var(--teal);}
+  ol.ski-steps b{color:var(--text-lo);font-weight:500;}
+  ol.ski-steps kbd{
+    font-family:inherit;font-size:10px;padding:1px 5px;border-radius:4px;
+    border:1px solid var(--hairline-strong);color:var(--text-lo);white-space:nowrap;
+  }
+  @media (max-width:520px){ ol.ski-steps{font-size:10.5px;} }
   .quiz-final{text-align:center;padding:26px 0 10px;}
   .quiz-final-score{font-family:'Fraunces',serif;font-size:64px;color:var(--green);line-height:1;}
   .quiz-final-grade{font-size:18px;color:var(--text-hi);margin-top:12px;}
@@ -2498,14 +2513,29 @@
       <div>
         <div class="quiz-title"><span class="sv-only">Skimo-loppet</span><span class="en-only">Skimo race</span></div>
         <div class="quiz-meta">
+          <span><span class="sv-only">Moment</span><span class="en-only">Phase</span> <b id="ski-phase">–</b></span>
           <span><span class="sv-only">Tid</span><span class="en-only">Time</span> <b id="ski-time">0,0 s</b></span>
           <span><span class="sv-only">Bästa</span><span class="en-only">Best</span> <b id="ski-best">–</b></span>
         </div>
       </div>
       <button type="button" class="quiz-close" onclick="cvSki.close()" aria-label="Stäng / Close">×</button>
     </div>
-    <canvas class="ski-canvas" id="ski-canvas" width="640" height="360" aria-label="Skimo"></canvas>
-    <p class="quiz-foot"><span class="sv-only">Uppför: stavtag i takt med mellanslag, pil upp eller klick, för snabbt räknas inte. Över toppen är det utför till mål: håll knappen för att hoppa ihop och få fart, men över guppen vurpar du om du åker för fort. Esc stänger.</span><span class="en-only">Uphill: pole in rhythm with Space, arrow up or a click; hammering does not count. Over the summit it is downhill to the finish: hold to tuck for speed, but too fast over a bump and you wipe out. Esc closes.</span></p>
+    <canvas class="ski-canvas" id="ski-canvas" width="960" height="540" aria-label="Skimo"></canvas>
+    <ol class="ski-steps sv-only">
+      <li><b>Stigning</b> — tryck <kbd>Mellanslag</kbd> (eller <kbd>↑</kbd> / klick) i takt. Ett stavtag per tryck; hamrar du på knappen räknas bara vartannat.</li>
+      <li><b>Växling</b> — <b>håll</b> <kbd>Mellanslag</kbd> tills mätaren är full: skidorna av och upp på ryggen.</li>
+      <li><b>Löpning</b> — växla <kbd>←</kbd> och <kbd>→</kbd>, ett steg per tryck, uppför branten. Samma fot två gånger ger inget steg. Utan tangentbord: varva vänster och höger halva av banan.</li>
+      <li><b>Växling</b> — <b>håll</b> <kbd>Mellanslag</kbd> igen: skidorna på.</li>
+      <li><b>Utför</b> — <b>håll</b> för att hoppa ihop och hämta fart, <b>släpp</b> för att skära av den. De rosa guppen tål bara fart upp till strecket i mätaren — över det blir det vurpa, och klockan går vidare.</li>
+    </ol>
+    <ol class="ski-steps en-only">
+      <li><b>Skinning</b> — tap <kbd>Space</kbd> (or <kbd>↑</kbd> / a click) in rhythm. One pole stroke per tap; hammer the key and only every other one counts.</li>
+      <li><b>Transition</b> — <b>hold</b> <kbd>Space</kbd> until the bar fills: skis off and onto your back.</li>
+      <li><b>Bootpack</b> — alternate <kbd>←</kbd> and <kbd>→</kbd>, one step per press, up the wall. The same foot twice gets you nowhere. No keyboard: alternate the left and right halves of the canvas.</li>
+      <li><b>Transition</b> — <b>hold</b> <kbd>Space</kbd> again: skis back on.</li>
+      <li><b>Descent</b> — <b>hold</b> to tuck and build speed, <b>release</b> to carve it off. The pink compressions only take speed up to the mark on the gauge — past it you wipe out, and the clock keeps running.</li>
+    </ol>
+    <p class="quiz-foot"><span class="sv-only">Esc stänger. Bästa tiden sparas lokalt i webbläsaren.</span><span class="en-only">Esc closes. Your best time is kept locally in the browser.</span></p>
   </div>
 </div>
 
@@ -3538,155 +3568,342 @@
   })();
 
   /* ---------- Skimo ----------
-     An uphill race over a ridge, drawn on a canvas. Each stroke adds speed,
-     slopes take it away, a dip gives some back. Hidden behind the Konami
-     code and a palette search for "ski"; the best time is kept locally. */
+     A skimo race is four different sports in a row, so the game is too: skin
+     up on skis, rip them off at the transition, boot-pack the steep bit on
+     foot, click back in at the summit and ski the thing back down. Each phase
+     has its own input and says on screen exactly what that input is — the
+     canvas is the instruction manual. Hidden behind the Konami code and a
+     palette search for "ski"; the best time is kept locally. */
   var cvSki = (function(){
     var BEST_KEY = 'cv-ski-best', KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
     var typed = [], raf = null, last = 0, lastFocus = null;
-    var LEN = 1200, x = 0, v = 0, t0 = 0, elapsed = 0, running = false, done = false, started = false, stars = [], doneAt = 0;
-    var lastKick = 0, tuck = false, crashedAt = 0, crashes = 0, MAX_BUMP_SPEED = 300;
+    /* Course layout, as shares of the whole: skin, bench, boot-pack, summit, descent. */
+    var T1A = .32, T1B = .36, T2A = .60, T2B = .64;
+    var H0 = .10, H1 = .46, H2 = .86, H3 = .16;          /* heights at the segment joins */
+    var BUMPS = [.735, .879];                            /* the two compressions on the way down */
+    var G = 34;                                          /* gravity along the slope */
+    var POLE = 14, POLE_MS = 150;                        /* one pole stroke, and the fastest one that counts */
+    var STRIDE = 12, STRIDE_MS = 105;                    /* one stride, ditto */
+    var K_SKIN = 1.35, K_BOOT = 1.25, K_DESC = .22;      /* friction: skins grip, boots grip more, bases barely */
+    var DRAG_TUCK = .013, DRAG_CARVE = .030, CARVE = 16; /* air in a tuck, air on edge, and the edge itself */
+    var LAUNCH = 22, MAX_BUMP_SPEED = 40;                /* push-off at the summit; what a compression forgives */
+    var HOLD_OFF = 800, HOLD_ON = 900;                   /* how long each transition takes */
+    var CRASH_MS = 1600, AIR_MS = 320;                   /* a wipeout has to cost more than the speed it saved */
+    /* Run state */
+    var LEN = 1200, x = 0, v = 0, elapsed = 0, running = false, done = false, started = false;
+    var stars = [], doneAt = 0, phase = 'skin', hold = 0, holding = false;
+    var lastKick = 0, foot = 0, tuck = false, held = false, crashedAt = 0, crashes = 0, airAt = 0, wrongFootAt = 0;
+
     function en(){ return document.body.classList.contains('lang-en'); }
     function T(sv, e){ return en() ? e : sv; }
     function fmtT(ms){ return (ms / 1000).toLocaleString(en() ? 'en-GB' : 'sv-SE', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' s'; }
-    var SUMMIT = .6;   /* share of the course that is climb; the rest is descent */
+    function clamp(a, lo, hi){ return a < lo ? lo : a > hi ? hi : a; }
+
+    /* The hill. One height per point of the course, in canvas shares. */
     function terrain(px){
-      var u = Math.min(1, Math.max(0, px / LEN));
-      if(u < SUMMIT){
-        var c = u / SUMMIT, wall = Math.min(1, Math.max(0, (c - .5) / .25));   /* a steep wall halfway up */
-        return .12 + .66 * c + .05 * Math.sin(c * 12) + .1 * wall * wall * (3 - 2 * wall);
+      var u = clamp(px / LEN, 0, 1);
+      if(u < T1A){                                                   /* the skin track, with a few rolls in it */
+        return H0 + (H1 - H0) * (u / T1A) + .018 * Math.sin(Math.PI * u / T1A) * Math.sin(u * 34);
       }
-      var d = (u - SUMMIT) / (1 - SUMMIT);                                       /* down to the finish, two bumps */
-      return .88 - .58 * d + .05 * Math.sin(d * 4 * Math.PI) * Math.sin(d * Math.PI);
+      if(u < T1B){ return H1; }                                      /* the bench you transition on */
+      if(u < T2A){ return H1 + (H2 - H1) * ((u - T1B) / (T2A - T1B)); }   /* the wall you walk up */
+      if(u < T2B){ return H2 - .03 * ((u - T2A) / (T2B - T2A)); }     /* the summit, tipped just enough to roll off */
+      var d = (u - T2B) / (1 - T2B), b = H2 - .03;
+      return b - (b - H3) * d + .035 * (Math.exp(-Math.pow((d - .30) / .05, 2)) + Math.exp(-Math.pow((d - .70) / .05, 2)));
     }
-    function slope(px){ return (terrain(px + 3) - terrain(px - 3)) / 6 * LEN; }   /* dh/du: the same steepness whatever the course length */
-    function descending(px){ return px / LEN >= SUMMIT; }
-    var BUMPS = [SUMMIT + (1 - SUMMIT) * .25, SUMMIT + (1 - SUMMIT) * .75];    /* crests, as course shares */
+    /* dh/du, so the steepness is the same whatever the course length */
+    function slope(px){ return (terrain(px + 3) - terrain(px - 3)) / 6 * LEN; }
+    function gateAt(){ return phase === 'skin' ? T1A * LEN : phase === 'boot' ? T2A * LEN : LEN; }
+    function onSkis(){ return phase === 'skin' || phase === 'mount' || phase === 'descent' || done; }
+    function inTransition(){ return phase === 'strip' || phase === 'mount'; }
+    function holdTarget(){ return phase === 'strip' ? HOLD_OFF : HOLD_ON; }
+    function nextBump(){ for(var i = 0; i < BUMPS.length; i++){ if(BUMPS[i] * LEN > x + 1){ return BUMPS[i] * LEN; } } return null; }
     function isOpen(){ var s = document.getElementById('ski'); return s && !s.hasAttribute('hidden'); }
+
+    function phaseName(){
+      return {skin: T('STIGNING', 'SKINNING'), strip: T('VÄXLING', 'TRANSITION'), boot: T('LÖPNING', 'BOOTPACK'),
+              mount: T('VÄXLING', 'TRANSITION'), descent: T('UTFÖR', 'DESCENT')}[phase] || '–';
+    }
+    function phaseHint(){
+      if(phase === 'skin'){ return T('MELLANSLAG i takt — stavtag uppför', 'SPACE in rhythm — pole uphill'); }
+      if(phase === 'strip'){ return T('HÅLL MELLANSLAG — av med skidorna', 'HOLD SPACE — skis off'); }
+      if(phase === 'boot'){ return T('VÄXLA ← och → — spring uppför', 'ALTERNATE ← and → — run uphill'); }
+      if(phase === 'mount'){ return T('HÅLL MELLANSLAG — på med skidorna', 'HOLD SPACE — skis on'); }
+      return T('HÅLL = hoppa ihop · SLÄPP = skär ner farten', 'HOLD = tuck · RELEASE = carve it off');
+    }
+
     function reset(len){
       LEN = len || 1200; x = 0; v = 0; elapsed = 0; running = false; done = false; started = false;
-      lastKick = 0; tuck = false; crashedAt = 0; crashes = 0;
+      phase = 'skin'; hold = 0; holding = false; held = false; lastKick = 0; foot = 0; tuck = false;
+      crashedAt = 0; crashes = 0; airAt = 0; wrongFootAt = 0;
       stars = []; for(var i = 0; i < 40; i++){ stars.push([Math.random(), Math.random() * .6, Math.random()]); }
       hud(); draw();
     }
     function hud(){
-      var t = document.getElementById('ski-time'), b = document.getElementById('ski-best');
+      var t = document.getElementById('ski-time'), b = document.getElementById('ski-best'), p = document.getElementById('ski-phase');
       if(t){ t.textContent = fmtT(elapsed); }
+      if(p){ p.textContent = done ? T('I MÅL', 'FINISH') : started ? phaseName() : T('KLAR ATT STARTA', 'READY'); }
       var best = null; try { best = +localStorage.getItem(BEST_KEY) || null; } catch(e) {}
       if(b){ b.textContent = best ? fmtT(best) : '–'; }
     }
+
+    /* ---- drawing. Everything below works in a 640x360 grid; the canvas may be
+       backed by more pixels than that, and the transform hides the difference. ---- */
     function draw(){
       var cv = document.getElementById('ski-canvas'); if(!cv){ return; }
-      var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      var ctx = cv.getContext('2d'), W = 640, H = 360, now = performance.now();
+      var fallen = !!crashedAt && elapsed - crashedAt < CRASH_MS, air = !!airAt && elapsed - airAt < AIR_MS;
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
       ctx.clearRect(0, 0, W, H);
       var g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0a1424'); g.addColorStop(1, '#070b14');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = 'rgba(255,255,255,.7)';
       stars.forEach(function(s){ ctx.globalAlpha = .3 + .6 * s[2]; ctx.fillRect(s[0] * W, s[1] * H, 1.2, 1.2); });
       ctx.globalAlpha = 1;
-      var Y = function(px){ return H - 30 - terrain(px) * (H - 90); }, X = function(px){ return 24 + px / LEN * (W - 64); };
-      /* Aurora wash behind the ridge */
+      var Y = function(px){ return H - 28 - terrain(px) * (H - 108); }, X = function(px){ return 24 + px / LEN * (W - 64); };
       var a = ctx.createLinearGradient(0, H * .15, 0, H * .7); a.addColorStop(0, 'rgba(61,220,151,.12)'); a.addColorStop(1, 'rgba(61,220,151,0)');
       ctx.fillStyle = a; ctx.fillRect(0, 0, W, H);
-      /* Ridge */
+      /* The hill itself */
+      var px;
       ctx.beginPath(); ctx.moveTo(0, H);
-      for(var px = -40; px <= LEN + 60; px += 8){ ctx.lineTo(X(px), Y(px)); }
-      ctx.lineTo(W, H); ctx.closePath();
-      ctx.fillStyle = '#101a2b'; ctx.fill();
+      for(px = -40; px <= LEN + 140; px += 6){ ctx.lineTo(X(px), Y(px)); }
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fillStyle = '#101a2b'; ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); for(px = -40; px <= LEN + 60; px += 8){ if(px === -40){ ctx.moveTo(X(px), Y(px)); } else { ctx.lineTo(X(px), Y(px)); } } ctx.stroke();
-      /* Finish flag */
-      ctx.strokeStyle = '#efe9d6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(LEN), Y(LEN)); ctx.lineTo(X(LEN), Y(LEN) - 26); ctx.stroke();
-      ctx.fillStyle = '#3ddc97'; ctx.beginPath(); ctx.moveTo(X(LEN), Y(LEN) - 26); ctx.lineTo(X(LEN) + 14, Y(LEN) - 21); ctx.lineTo(X(LEN), Y(LEN) - 16); ctx.closePath(); ctx.fill();
-      /* Skier */
-      var sx = X(x), sy = Y(x), ang = -Math.atan2(Y(x + 10) - Y(x - 10), X(x + 10) - X(x - 10));
-      var fallen = crashedAt && performance.now() - crashedAt < 1100, down = descending(x);
+      ctx.beginPath();
+      for(px = -40; px <= LEN + 140; px += 6){ if(px === -40){ ctx.moveTo(X(px), Y(px)); } else { ctx.lineTo(X(px), Y(px)); } }
+      ctx.stroke();
+      /* The two transition benches, called out so you can see them coming */
+      [[T1A, T1B, T('VÄXLING 1', 'TRANSITION 1')], [T2A, T2B, T('VÄXLING 2', 'TRANSITION 2')]].forEach(function(z){
+        var xa = X(z[0] * LEN), xb = X(z[1] * LEN), yt = Y(z[0] * LEN);
+        ctx.fillStyle = 'rgba(255,209,102,.16)'; ctx.fillRect(xa, yt - 30, xb - xa, 30);
+        ctx.strokeStyle = 'rgba(255,209,102,.75)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(xa, yt - 30); ctx.lineTo(xa, yt); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,209,102,.9)'; ctx.font = '500 8px "JetBrains Mono", monospace'; ctx.textAlign = 'left';
+        ctx.fillText(z[2], xa + 2, yt - 34);
+      });
+      /* Compressions on the descent — the places that punish speed */
+      BUMPS.forEach(function(b){
+        var bx = X(b * LEN), by = Y(b * LEN);
+        ctx.fillStyle = 'rgba(255,111,174,.9)';
+        ctx.beginPath(); ctx.moveTo(bx, by - 9); ctx.lineTo(bx - 4.5, by - 2); ctx.lineTo(bx + 4.5, by - 2); ctx.closePath(); ctx.fill();
+      });
+      /* Finish */
+      ctx.strokeStyle = '#efe9d6'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(X(LEN), Y(LEN)); ctx.lineTo(X(LEN), Y(LEN) - 26); ctx.stroke();
+      ctx.fillStyle = '#3ddc97'; ctx.beginPath();
+      ctx.moveTo(X(LEN), Y(LEN) - 26); ctx.lineTo(X(LEN) + 14, Y(LEN) - 21); ctx.lineTo(X(LEN), Y(LEN) - 16); ctx.closePath(); ctx.fill();
+      /* The skier, in whichever of the four shapes the current phase calls for */
+      var sx = X(x), sy = Y(x) - (air ? 7 * Math.sin(Math.PI * (elapsed - airAt) / AIR_MS) : 0);
+      var ang = -Math.atan2(Y(x + 10) - Y(x - 10), X(x + 10) - X(x - 10));
       ctx.save(); ctx.translate(sx, sy); ctx.rotate(-ang);
       ctx.strokeStyle = '#efe9d6'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-      if(fallen){
+      if(fallen){                                                     /* on the ground, skis somewhere else */
         ctx.rotate(1.2);
         ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(12, -8); ctx.stroke();
         ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(16, -10, 3.6, 0, Math.PI * 2); ctx.fill();
-      } else if(down && tuck){
-        ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();                  /* skis */
-        ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(6, -9); ctx.stroke();                  /* crouched */
+      } else if(phase === 'boot'){                                    /* running, skis strapped to the pack */
+        var gait = Math.sin(elapsed / 55);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-5 * gait, -11); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(5 * gait, -11); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(4, -23); ctx.stroke();
+        ctx.strokeStyle = '#3ddc97';                                   /* the skis, riding on the back */
+        ctx.beginPath(); ctx.moveTo(-6, -24); ctx.lineTo(6, -8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-3, -26); ctx.lineTo(9, -10); ctx.stroke();
+        ctx.strokeStyle = '#efe9d6';
+        ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(7, -27, 3.6, 0, Math.PI * 2); ctx.fill();
+      } else if(inTransition()){                                      /* stopped, working on the bindings */
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -11); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(5, -20); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(5, -20); ctx.lineTo(9, -11); ctx.stroke();          /* bent over the boot */
+        ctx.strokeStyle = '#ffd166';
+        ctx.beginPath(); ctx.moveTo(-10, -1); ctx.lineTo(10, -1); ctx.stroke();          /* skis on the snow beside */
+        ctx.strokeStyle = '#efe9d6';
+        ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(11, -8, 3.6, 0, Math.PI * 2); ctx.fill();
+      } else if(phase === 'descent' && tuck && !done){                /* tucked */
+        ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(6, -9); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(6, -9); ctx.lineTo(14, -12); ctx.stroke();
         ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(17, -15, 3.6, 0, Math.PI * 2); ctx.fill();
-      } else {
-        ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();                  /* skis */
-        ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(4, -14); ctx.stroke();                  /* legs+body lean */
+      } else if(phase === 'descent' && !done){                        /* up on edge, scrubbing speed */
+        ctx.beginPath(); ctx.moveTo(-12, 3); ctx.lineTo(12, -3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(-3, -14); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-3, -14); ctx.lineTo(3, -23); ctx.stroke();
+        ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(5, -27, 3.6, 0, Math.PI * 2); ctx.fill();
+      } else {                                                        /* skinning, or standing at the finish */
+        ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(4, -14); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(4, -14); ctx.lineTo(9, -24); ctx.stroke();
-        var pole = (Math.sin(elapsed / 90) > 0 || !running || down) ? 1 : -1;
-        ctx.beginPath(); ctx.moveTo(6, -18); ctx.lineTo(6 + 10 * pole, -2); ctx.stroke();        /* pole */
+        var pole = (running && phase === 'skin' && Math.sin(elapsed / 90) > 0) ? -1 : 1;
+        ctx.beginPath(); ctx.moveTo(6, -18); ctx.lineTo(6 + 10 * pole, -2); ctx.stroke();
         ctx.fillStyle = '#efe9d6'; ctx.beginPath(); ctx.arc(11, -28, 3.6, 0, Math.PI * 2); ctx.fill();
       }
       ctx.restore();
-      /* Bump warnings on the descent */
-      BUMPS.forEach(function(b){
-        var bx = X(b * LEN), by = Y(b * LEN);
-        ctx.fillStyle = 'rgba(255,111,174,.9)'; ctx.beginPath(); ctx.moveTo(bx, by - 8); ctx.lineTo(bx - 4, by - 2); ctx.lineTo(bx + 4, by - 2); ctx.closePath(); ctx.fill();
-      });
-      /* Speed readout, red when a bump would throw you */
+      /* Transition progress. Kept at the top of the canvas rather than over the
+         skier, where it would sit on the label for the zone being worked in. */
+      if(inTransition() && started){
+        var pw = 150, pxx = (W - pw) / 2, pyy = 32;
+        ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(pxx, pyy, pw, 7);
+        ctx.fillStyle = '#ffd166'; ctx.fillRect(pxx, pyy, pw * clamp(hold / holdTarget(), 0, 1), 7);
+        ctx.strokeStyle = 'rgba(255,209,102,.8)'; ctx.lineWidth = 1; ctx.strokeRect(pxx - .5, pyy - .5, pw + 1, 8);
+      }
+      /* Top-left: what phase you are in and, downhill, how fast you are going */
       if(started && !done){
         ctx.textAlign = 'left'; ctx.font = '500 11px "JetBrains Mono", monospace';
-        ctx.fillStyle = (down && v > MAX_BUMP_SPEED) ? '#ff6fae' : 'rgba(239,233,214,.7)';
-        ctx.fillText((down ? T('NEDFÖR', 'DOWNHILL') : T('UPPFÖR', 'UPHILL')) + ' · ' + T('fart', 'speed') + ' ' + Math.round(Math.max(0, v)) + (crashes ? ' · ' + T('vurpor', 'falls') + ' ' + crashes : ''), 14, 22);
+        ctx.fillStyle = 'rgba(239,233,214,.75)';
+        ctx.fillText(phaseName() + (crashes ? '  ·  ' + T('vurpor', 'falls') + ' ' + crashes : ''), 14, 20);
+        if(phase === 'descent'){
+          var bw = 96, bx0 = 14, by0 = 28, frac = clamp(v / (MAX_BUMP_SPEED * 1.6), 0, 1), lim = MAX_BUMP_SPEED / (MAX_BUMP_SPEED * 1.6);
+          ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.fillRect(bx0, by0, bw, 5);
+          ctx.fillStyle = v > MAX_BUMP_SPEED ? '#ff6fae' : '#3ddc97'; ctx.fillRect(bx0, by0, bw * frac, 5);
+          ctx.fillStyle = 'rgba(255,111,174,.9)'; ctx.fillRect(bx0 + bw * lim, by0 - 2, 1.5, 9);
+          ctx.font = '500 9px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(239,233,214,.6)';
+          ctx.fillText(T('FART', 'SPEED'), bx0 + bw + 7, by0 + 5);
+        }
       }
-      /* Messages */
-      ctx.fillStyle = 'rgba(239,233,214,.85)'; ctx.font = '500 13px "JetBrains Mono", monospace'; ctx.textAlign = 'center';
+      /* Top-centre: the one instruction that applies right now */
+      ctx.textAlign = 'center';
+      if(started && !done && !fallen){
+        ctx.font = '500 12px "JetBrains Mono", monospace';
+        ctx.fillStyle = inTransition() ? '#ffd166' : 'rgba(239,233,214,.92)';
+        ctx.fillText(phaseHint(), W / 2, 20);
+        if(phase === 'boot' && wrongFootAt && now - wrongFootAt < 600){
+          ctx.fillStyle = '#ff6fae'; ctx.font = '500 10px "JetBrains Mono", monospace';
+          ctx.fillText(T('samma fot två gånger — växla!', 'same foot twice — alternate!'), W / 2, 34);
+        }
+        if(phase === 'descent'){
+          var nb = nextBump();
+          if(nb !== null && nb - x < LEN * .13){
+            ctx.fillStyle = v > MAX_BUMP_SPEED ? '#ff6fae' : 'rgba(255,209,102,.9)';
+            ctx.font = '600 11px "JetBrains Mono", monospace';
+            ctx.fillText(v > MAX_BUMP_SPEED ? T('GUPP — FÖR FORT, SLÄPP!', 'COMPRESSION — TOO FAST, RELEASE!') : T('gupp strax', 'compression ahead'), W / 2, 36);
+          }
+        }
+      }
+      /* The whole race, laid out before anyone has touched a key */
       if(!started){
-        ctx.fillText(T('Uppför: stavtag i takt med mellanslag eller klick', 'Uphill: pole in rhythm with Space or a click'), W / 2, 36);
-        ctx.fillText(T('Nedför: håll för att hoppa ihop, släpp före guppen', 'Downhill: hold to tuck, let go before the bumps'), W / 2, 56);
+        ctx.fillStyle = 'rgba(7,11,20,.9)'; ctx.fillRect(38, 24, W - 76, 182);
+        ctx.strokeStyle = 'rgba(61,220,151,.28)'; ctx.lineWidth = 1; ctx.strokeRect(38.5, 24.5, W - 77, 181);
+        ctx.fillStyle = 'rgba(239,233,214,.92)'; ctx.font = '600 17px Fraunces, serif';
+        ctx.fillText(T('Skimo-loppet', 'The skimo race'), W / 2, 44);
+        ctx.font = '500 10.5px "JetBrains Mono", monospace';
+        var steps = [
+          T('1 · STIGNING — tryck MELLANSLAG i takt, ett stavtag i taget', '1 · SKINNING — tap SPACE in rhythm, one pole stroke at a time'),
+          T('2 · VÄXLING — HÅLL MELLANSLAG tills skidorna är av', '2 · TRANSITION — HOLD SPACE until the skis are off'),
+          T('3 · LÖPNING — växla ← och → för varje steg uppför branten', '3 · BOOTPACK — alternate ← and → for every step up the wall'),
+          T('4 · VÄXLING — HÅLL MELLANSLAG tills skidorna är på igen', '4 · TRANSITION — HOLD SPACE until the skis are back on'),
+          T('5 · UTFÖR — HÅLL för fart, SLÄPP för att skära av den', '5 · DESCENT — HOLD to tuck, RELEASE to carve it off'),
+          T('     rosa gupp tål bara så mycket fart — annars vurpa', '     the pink compressions only forgive so much speed')
+        ];
+        ctx.fillStyle = 'rgba(239,233,214,.8)'; ctx.textAlign = 'left';
+        steps.forEach(function(s, i){ ctx.fillText(s, 62, 72 + i * 17); });
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#3ddc97'; ctx.font = '500 11.5px "JetBrains Mono", monospace';
+        ctx.fillText(T('Mellanslag, pil upp eller klick startar loppet · Esc stänger', 'Space, arrow up or a click starts the race · Esc closes'), W / 2, 190);
       }
-      if(fallen){ ctx.font = '600 22px Fraunces, serif'; ctx.fillStyle = '#ff6fae'; ctx.fillText(T('Vurpa!', 'Wipeout!'), W / 2, H * .38); }
+      if(fallen){
+        ctx.font = '600 22px Fraunces, serif'; ctx.fillStyle = '#ff6fae';
+        ctx.fillText(T('Vurpa!', 'Wipeout!'), W / 2, H * .34);
+        ctx.font = '500 11px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(239,233,214,.8)';
+        ctx.fillText(T('för fort över guppet — klockan går', 'too fast over the compression — the clock runs'), W / 2, H * .34 + 20);
+      }
       if(done){
         ctx.font = '600 26px Fraunces, serif'; ctx.fillStyle = '#3ddc97';
-        ctx.fillText(T('I mål!', 'Finish!') + ' ' + fmtT(elapsed) + (crashes ? ' · ' + crashes + ' ' + T('vurpor', 'falls') : ''), W / 2, H * .38);
+        ctx.fillText(T('I mål!', 'Finish!') + ' ' + fmtT(elapsed) + (crashes ? ' · ' + crashes + ' ' + T('vurpor', 'falls') : ''), W / 2, H * .36);
         ctx.font = '500 12px "JetBrains Mono", monospace'; ctx.fillStyle = 'rgba(239,233,214,.8)';
-        ctx.fillText(T('Mellanslag för ett nytt lopp', 'Space for another run'), W / 2, H * .38 + 24);
+        ctx.fillText(T('Mellanslag för ett nytt lopp', 'Space for another run'), W / 2, H * .36 + 24);
       }
     }
+
+    /* ---- physics ---- */
     function step(ts){
       raf = null;
       if(!running){ return; }
-      var dt = Math.min(.05, (ts - last) / 1000); last = ts;
-      elapsed = ts - t0;
-      var fallenNow = crashedAt && ts - crashedAt < 1100;
-      if(fallenNow){ v = 0; }
-      else {
-        var down = descending(x);
-        v *= Math.exp(-(down ? .35 : 1.3) * dt);                       /* friction: glide downhill, grind uphill */
-        v -= slope(x) * 110 * dt;                                       /* the hill */
-        v -= (tuck && down ? .0006 : .0013) * v * Math.abs(v) * dt;     /* air: a tuck halves the drag */
-        if(v < -40){ v = -40; }
-        /* Over a bump too fast, and the run ends on the ground for a moment */
-        var u0 = x / LEN, u1 = (x + v * dt) / LEN;
-        if(down && v > MAX_BUMP_SPEED && BUMPS.some(function(b){ return u0 < b && u1 >= b; })){
-          crashedAt = ts; crashes++; v = 0;
+      var dt = Math.min(.1, (ts - last) / 1000); last = ts;
+      elapsed += dt * 1000;                                            /* the clock counts simulated time, so a slow
+                                                                          machine skis slowly rather than expensively */
+      if(crashedAt && elapsed - crashedAt < CRASH_MS){
+        v = 0;                                                        /* down is down; the clock does not care */
+      } else if(inTransition()){
+        if(crashedAt){ crashedAt = 0; }
+        holding = held;
+        hold = clamp(hold + (holding ? dt * 1000 : -dt * 1600), 0, holdTarget());  /* let go and the work unravels */
+        v = 0;
+        if(hold >= holdTarget()){
+          if(phase === 'strip'){ phase = 'boot'; foot = 0; lastKick = 0; }
+          else { phase = 'descent'; v = LAUNCH; }
+          hold = 0;
         }
-      }
-      x += v * dt;
-      if(x < 0){ x = 0; if(v < 0){ v = 0; } }
-      if(x >= LEN){
-        x = LEN; running = false; done = true; doneAt = performance.now();
-        try { var best = +localStorage.getItem(BEST_KEY) || 0; if(!best || elapsed < best){ localStorage.setItem(BEST_KEY, String(Math.round(elapsed))); } } catch(e) {}
+      } else {
+        if(crashedAt){ crashedAt = 0; v = LAUNCH * .6; }               /* up, skis pointed downhill again, push off */
+        var down = phase === 'descent';
+        if(down){ tuck = held; }
+        v *= Math.exp(-(down ? K_DESC : phase === 'boot' ? K_BOOT : K_SKIN) * dt);
+        v -= slope(x) * G * dt;
+        if(down){
+          v -= (tuck ? DRAG_TUCK : DRAG_CARVE) * v * Math.abs(v) * dt;
+          if(!tuck){ v -= CARVE * dt; }                                /* an edge scrubs speed the way a tuck never gives it back */
+        }
+        if(v < 0){ v = 0; }                                            /* nobody slides backwards up a skin track */
+        var u0 = x / LEN; x += v * dt; var u1 = x / LEN;
+        if(down){
+          BUMPS.forEach(function(b){
+            if(u0 < b && u1 >= b){
+              if(v > MAX_BUMP_SPEED){ crashedAt = elapsed; crashes++; v = 0; }
+              else { airAt = elapsed; }
+            }
+          });
+        }
+        var gate = gateAt();
+        if(x >= gate && phase !== 'descent'){
+          x = gate; v = 0; hold = 0;
+          phase = phase === 'skin' ? 'strip' : 'mount';
+        }
+        if(x >= LEN){
+          x = LEN; running = false; done = true; phase = 'descent'; doneAt = performance.now(); airAt = 0; crashedAt = 0;
+          try { var best = +localStorage.getItem(BEST_KEY) || 0; if(!best || elapsed < best){ localStorage.setItem(BEST_KEY, String(Math.round(elapsed))); } } catch(e) {}
+        }
       }
       hud(); draw();
       if(running){ raf = requestAnimationFrame(step); }
     }
-    function kick(){
-      if(!isOpen()){ return; }
-      /* A finished run holds still for a moment so the last stroke cannot restart it */
-      if(done){ if(performance.now() - doneAt < 900){ return; } reset(LEN); return; }
-      if(!started){ started = true; running = true; t0 = performance.now(); last = t0; raf = requestAnimationFrame(step); }
-      var now = performance.now();
-      if(descending(x) || (crashedAt && now - crashedAt < 1100)){ return; }   /* poles do nothing downhill or on the ground */
-      if(now - lastKick < 140){ return; }                                     /* hammering the key is not a rhythm */
-      lastKick = now;
-      v += 90;
+
+    /* ---- input. One "primary" button does the poling, the holding and the
+       tucking; the arrows do the running. What it means right now is written
+       across the top of the canvas, so nobody has to guess. ---- */
+    function begin(){
+      if(started){ return false; }
+      started = true; running = true; last = performance.now();
+      raf = requestAnimationFrame(step); return true;
     }
-    function setTuck(on){ tuck = !!on; }
+    function restartable(){ return done && performance.now() - doneAt > 900; }
+    function primaryDown(){
+      if(!isOpen()){ return; }
+      if(done){ if(restartable()){ held = false; reset(LEN); } return; }
+      held = true;                                                     /* held straight through a phase change, so a hold that
+                                                                          starts uphill already counts at the transition */
+      begin();
+      if(crashedAt){ return; }
+      if(phase === 'skin'){
+        var now = performance.now();
+        if(now - lastKick < POLE_MS){ return; }                        /* hammering the key is not a rhythm */
+        lastKick = now; v += POLE;
+      } else if(inTransition()){ holding = true; }
+      else if(phase === 'descent'){ tuck = true; }
+      hud(); draw();
+    }
+    function primaryUp(){ held = false; holding = false; tuck = false; }
+    function stride(side){
+      if(!isOpen() || done || !started){ return; }
+      if(phase !== 'boot'){ return; }
+      if(crashedAt){ return; }
+      var now = performance.now();
+      if(side === foot){ wrongFootAt = now; draw(); return; }          /* you cannot run on one leg */
+      if(now - lastKick < STRIDE_MS){ return; }
+      foot = side; lastKick = now; v += STRIDE;
+      hud(); draw();
+    }
+
     function open(len){
       if(isOpen()){ return; }
       lastFocus = document.activeElement;
@@ -3703,28 +3920,47 @@
       document.body.style.overflow = ''; document.body.style.paddingRight = '';
       if(lastFocus && lastFocus.focus){ lastFocus.focus(); }
     }
+
     document.addEventListener('keydown', function(e){
       var tag = (e.target && e.target.tagName) || '';
       if(tag === 'INPUT' || tag === 'TEXTAREA'){ return; }
       if(isOpen()){
         if(e.key === 'Escape'){ e.preventDefault(); close(); return; }
-        if(e.key === ' ' || e.key === 'ArrowUp'){ e.preventDefault(); if(!e.repeat){ kick(); } setTuck(true); }
+        if(e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowUp'){
+          e.preventDefault(); if(!e.repeat){ primaryDown(); }
+          return;
+        }
+        if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A'){ e.preventDefault(); if(!e.repeat){ stride(-1); } return; }
+        if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D'){ e.preventDefault(); if(!e.repeat){ stride(1); } return; }
         return;
       }
       typed.push(e.key); if(typed.length > KONAMI.length){ typed.shift(); }
       if(typed.join(',') === KONAMI.join(',')){ typed = []; open(); }
     });
-    document.addEventListener('keyup', function(e){ if(e.key === ' ' || e.key === 'ArrowUp'){ setTuck(false); } });
+    document.addEventListener('keyup', function(e){
+      if(e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowUp'){ primaryUp(); }
+    });
+    /* Pointer and touch: the running phase splits the canvas into a left and a
+       right half so the alternating stride works without a keyboard. */
+    function canvasSide(e){
+      var cv = document.getElementById('ski-canvas'); if(!cv){ return 1; }
+      var r = cv.getBoundingClientRect(), cx = (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX);
+      return (cx - r.left) < r.width / 2 ? -1 : 1;
+    }
+    function pointerDown(e){
+      if(!isOpen() || !e.target || e.target.id !== 'ski-canvas'){ return; }
+      if(started && !done && phase === 'boot'){ held = true; stride(canvasSide(e)); } else { primaryDown(); }
+    }
+    ['mousedown', 'touchstart'].forEach(function(ev){ document.addEventListener(ev, pointerDown, {passive: true}); });
+    ['mouseup', 'touchend', 'touchcancel'].forEach(function(ev){ document.addEventListener(ev, function(){ primaryUp(); }, {passive: true}); });
     document.addEventListener('click', function(e){
       if(!isOpen()){ return; }
-      if(e.target && e.target.id === 'ski-canvas'){ kick(); }
-      else if(e.target === document.getElementById('ski')){ close(); }
+      if(e.target === document.getElementById('ski')){ close(); }
     });
-    ['mousedown', 'touchstart'].forEach(function(ev){ document.addEventListener(ev, function(e){ if(isOpen() && e.target && e.target.id === 'ski-canvas'){ setTuck(true); } }, {passive: true}); });
-    ['mouseup', 'touchend', 'touchcancel'].forEach(function(ev){ document.addEventListener(ev, function(){ setTuck(false); }, {passive: true}); });
     document.addEventListener('cv:lang', function(){ if(isOpen()){ hud(); draw(); } });
-    return {open: open, close: close, kick: kick,
-            state: function(){ return {open: isOpen(), running: running, done: done, x: x, len: LEN, elapsed: elapsed, phase: descending(x) ? 'descent' : 'climb', tuck: tuck, crashes: crashes, v: v}; }};
+    return {open: open, close: close, kick: primaryDown, stride: stride,
+            state: function(){ return {open: isOpen(), running: running, done: done, x: x, len: LEN, elapsed: elapsed,
+                                       phase: phase, hold: hold, holding: held, tuck: tuck, crashes: crashes, v: v}; }};
   })();
 
   /* ---------- Guess the company ----------
