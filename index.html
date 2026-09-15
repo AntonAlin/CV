@@ -1620,6 +1620,8 @@
     .live-note, .project-note, .project-chart.is-live, .mc-wrap, .ski-scrim, .hero-snow, .market-strip,
     .hero-rain, .hero-fog, .hero-deck, .hero-flash, .hero-bolt, .hero-gust{display:none !important;}
     .verify-trigger, .verify-popover, .vcard-btn{display:none !important;}
+    /* Strava is a personality touch for the screen; a bare numeric URL adds nothing on paper */
+    .screen-only{display:none !important;}
 
     /* Scroll-reveal must never hide content on paper */
     .reveal{opacity:1 !important;transform:none !important;transition:none !important;}
@@ -2026,6 +2028,8 @@
       </span>
       <span class="dot">·</span>
       <a href="https://github.com/AntonAlin/" target="_blank" rel="noopener">github.com/AntonAlin</a>
+      <span class="dot screen-only">·</span>
+      <a class="screen-only" href="https://www.strava.com/athletes/32626590" target="_blank" rel="noopener">strava.com/athletes/32626590</a>
     </div>
 
 
@@ -3057,6 +3061,7 @@
       'TEL;TYPE=CELL:' + revealedPhone,
       'EMAIL:' + revealedEmail,
       'URL:https://github.com/AntonAlin/',
+      'URL:https://www.strava.com/athletes/32626590',
       'END:VCARD',
       ''
     ];
@@ -4775,6 +4780,11 @@
         group:'link', icon:'out', keys:'github kod code repo',
         label: 'github.com/AntonAlin',
         run: function(){ window.open('https://github.com/AntonAlin/', '_blank', 'noopener'); }
+      });
+      out.push({
+        group:'link', icon:'out', keys:'strava träning traning skidor skiing löpning running cykel bike',
+        label: 'strava.com/athletes/32626590',
+        run: function(){ window.open('https://www.strava.com/athletes/32626590', '_blank', 'noopener'); }
       });
       out.push({
         group:'link', icon:'out', keys:'options optioner black scholes verktyg tool',
