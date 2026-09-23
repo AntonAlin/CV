@@ -76,7 +76,7 @@ for lang, other_words, own_words in [
     check(f"[{lang}] page 2 is numbered 2 / 2", "2 / 2" in p2, repr(p2[-60:]))
 
     # Screen-only chrome must never reach paper.
-    for word in ["Sök", "Search", "ESC", "Skriv ut", "Visa e-post", "Show email"]:
+    for word in ["Sök", "Search", "ESC", "Skriv ut", "Visa kontaktuppgifter", "Show contact details"]:
         check(f"[{lang}] screen chrome absent: {word!r}", word not in text)
 
     # Contact belongs in the header, once — not repeated in the closing line.

@@ -46,8 +46,7 @@
     "Data Strategy", "Business Intelligence", "Microsoft Fabric", "Power BI",
     "Data Governance", "Predictive Analytics", "Financial Data", "Quantitative Modelling"
   ],
-  "knowsLanguage": ["sv", "en"],
-  "sameAs": ["https://github.com/AntonAlin"]
+  "knowsLanguage": ["sv", "en"]
 }
 </script>
 
@@ -2004,7 +2003,7 @@
       <span class="contact-block">
         <button type="button" class="verify-trigger" id="verify-trigger" onclick="toggleVerify()" aria-expanded="false" aria-controls="verify-popover">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <span class="sv-only">Visa e-post &amp; telefon</span><span class="en-only">Show email &amp; phone</span>
+          <span class="sv-only">Visa kontaktuppgifter</span><span class="en-only">Show contact details</span>
         </button>
         <a href="#" id="contact-email" hidden></a>
         <span class="dot" id="contact-dot" hidden>·</span>
@@ -2026,10 +2025,7 @@
           <p id="verify-error" class="verify-error" hidden><span class="sv-only">Fel svar, försök igen.</span><span class="en-only">Wrong answer, try again.</span></p>
         </div>
       </span>
-      <span class="dot">·</span>
-      <a href="https://github.com/AntonAlin/" target="_blank" rel="noopener">github.com/AntonAlin</a>
-      <span class="dot screen-only">·</span>
-      <a class="screen-only" href="https://www.strava.com/athletes/32626590" target="_blank" rel="noopener">strava.com/athletes/32626590</a>
+      <span class="contact-social" id="contact-social" hidden></span>
     </div>
 
 
@@ -2977,6 +2973,17 @@
   })();
 
   /* ---------- Contact verification gate ---------- */
+  /* Profiles are gated like the email: encoded here, written into the page on reveal.
+     Labels come from the decoded URL so the readable form never sits in the source.
+     `screen` marks the ones that stay off paper. */
+  var CONTACT_LINKS = [
+    {b64:'aHR0cHM6Ly93d3cubGlua2VkaW4uY29tL2luL2FudG9uLSVDMyVBNWxpbi04MDhiMGEzYTMv', keys:'linkedin nätverk natverk network profil profile'},
+    {b64:'aHR0cHM6Ly9naXRodWIuY29tL0FudG9uQWxpbi8=', keys:'github kod code repo'},
+    {b64:'aHR0cHM6Ly93d3cuc3RyYXZhLmNvbS9hdGhsZXRlcy8zMjYyNjU5MA==', keys:'strava träning traning skidor skiing löpning running cykel bike', screen:true}
+  ];
+  function linkLabel(l){
+    return decodeURI(atob(l.b64)).replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '');
+  }
   var CONTACT_EMAIL_B64 = 'MDczNzI0OTY4N0Bwcm90b24ubWU=';
   var CONTACT_PHONE_B64 = 'KzQ2NzM3MjQ5Njg3';
   var verifyAnswer = null;
@@ -3028,6 +3035,7 @@
   function revealContact(){
     var email = atob(CONTACT_EMAIL_B64);
     var phone = atob(CONTACT_PHONE_B64);
+    var phonePretty = phone.replace(/^(\+\d{2})(\d{2})(\d{3})(\d{2})(\d{2})$/, '$1 $2 $3 $4 $5');
     revealedEmail = email;
     revealedPhone = phone;
     var emailEl = document.getElementById('contact-email');
@@ -3035,15 +3043,33 @@
     emailEl.href = 'mailto:' + email;
     emailEl.textContent = email;
     phoneEl.href = 'tel:' + phone;
-    phoneEl.textContent = '+46 73 724 96 87';
+    phoneEl.textContent = phonePretty;
     emailEl.removeAttribute('hidden');
     phoneEl.removeAttribute('hidden');
     document.getElementById('contact-dot').removeAttribute('hidden');
     document.getElementById('verify-trigger').setAttribute('hidden', '');
     document.getElementById('vcard-btn').removeAttribute('hidden');
 
+    var social = document.getElementById('contact-social');
+    if(!social.childNodes.length){
+      CONTACT_LINKS.forEach(function(l){
+        var dot = document.createElement('span');
+        dot.className = 'dot' + (l.screen ? ' screen-only' : '');
+        dot.textContent = '·';
+        var a = document.createElement('a');
+        a.href = atob(l.b64);
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = linkLabel(l);
+        if(l.screen){ a.className = 'screen-only'; }
+        social.appendChild(dot);
+        social.appendChild(a);
+      });
+    }
+    social.removeAttribute('hidden');
+
     /* The footer line is the contact block on paper, where the gate can't be solved */
-    document.getElementById('footer-contact').textContent = email + '  ·  +46 73 724 96 87';
+    document.getElementById('footer-contact').textContent = email + '  ·  ' + phonePretty;
     document.getElementById('footer-contact-link').setAttribute('hidden', '');
 
     try { sessionStorage.setItem('cv-verified', '1'); } catch(e) {}
@@ -3060,11 +3086,10 @@
       'TITLE:Data & BI Lead',
       'TEL;TYPE=CELL:' + revealedPhone,
       'EMAIL:' + revealedEmail,
-      'URL:https://github.com/AntonAlin/',
-      'URL:https://www.strava.com/athletes/32626590',
+    ].concat(CONTACT_LINKS.map(function(l){ return 'URL:' + atob(l.b64); })).concat([
       'END:VCARD',
       ''
-    ];
+    ]);
     var blob = new Blob([lines.join('\r\n')], {type:'text/vcard;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -4763,8 +4788,8 @@
         });
       } else {
         out.push({
-          group:'act', icon:'lock', keys:'kontakt contact email telefon phone',
-          label: en ? 'Show email & phone' : 'Visa e-post & telefon',
+          group:'act', icon:'lock', keys:'kontakt contact email telefon phone linkedin github strava',
+          label: en ? 'Show contact details' : 'Visa kontaktuppgifter',
           run: function(){
             window.scrollTo({top: 0, behavior: ease()});
             /* Let the scroll settle before the popover steals focus */
@@ -4776,16 +4801,14 @@
         });
       }
 
-      out.push({
-        group:'link', icon:'out', keys:'github kod code repo',
-        label: 'github.com/AntonAlin',
-        run: function(){ window.open('https://github.com/AntonAlin/', '_blank', 'noopener'); }
-      });
-      out.push({
-        group:'link', icon:'out', keys:'strava träning traning skidor skiing löpning running cykel bike',
-        label: 'strava.com/athletes/32626590',
-        run: function(){ window.open('https://www.strava.com/athletes/32626590', '_blank', 'noopener'); }
-      });
+      if(revealedEmail){
+        CONTACT_LINKS.forEach(function(l){
+          out.push({
+            group:'link', icon:'out', keys:l.keys, label:linkLabel(l),
+            run: function(){ window.open(atob(l.b64), '_blank', 'noopener'); }
+          });
+        });
+      }
       out.push({
         group:'link', icon:'out', keys:'options optioner black scholes verktyg tool',
         label: 'Nexus Options Lab',

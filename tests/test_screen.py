@@ -151,16 +151,27 @@ with sync_playwright() as p:
     labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
     check("vCard hidden before verification",
           not any("kontaktkort" in l.lower() for l in labels), labels)
+    check("profile links hidden before verification",
+          not any(k in l for l in labels for k in ("linkedin", "github.com/AntonAlin", "strava")), labels)
+    check("profile URLs absent from the markup before verification",
+          not any(k in pg.content() for k in ("linkedin.com/in", "github.com/AntonAlin/'", "strava.com/athletes", "724 96 87")))
     check("'show contact' offered before verification",
-          any("e-post" in l.lower() for l in labels), labels)
+          any("kontaktuppgifter" in l.lower() for l in labels), labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
 
     # verify contact, then re-check palette
     pg.evaluate("revealContact()"); pg.wait_for_timeout(300)
+    check("phone formatted on reveal", pg.locator("#contact-phone").text_content() == "+46 73 724 96 87",
+          pg.locator("#contact-phone").text_content())
+    check("profile links revealed with readable labels",
+          pg.eval_on_selector_all("#contact-social a", "els=>els.map(e=>e.textContent)")
+          == ["linkedin.com/in/anton-ålin-808b0a3a3", "github.com/AntonAlin", "strava.com/athletes/32626590"])
     pg.keyboard.press("Control+k"); pg.wait_for_timeout(300)
     labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
     check("vCard offered after verification",
           any("kontaktkort" in l.lower() for l in labels), labels)
+    check("profile links offered after verification",
+          all(any(k in l for l in labels) for k in ("linkedin.com", "github.com/AntonAlin", "strava.com")), labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
 
 
