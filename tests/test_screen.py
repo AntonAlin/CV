@@ -425,63 +425,10 @@ with sync_playwright() as p:
           pg.eval_on_selector("body", "b=>b.classList.contains('lang-en')"))
     pg.evaluate("setLang('sv')"); pg.wait_for_timeout(300)
 
-    # --- Music: generated, off by default, never autoplays ---
-    st = pg.evaluate("cvMusic.state()")
-    check("music is off on load and no audio context exists yet",
-          st["playing"] is False and st["started"] is False, st)
-    check("the music menu starts closed",
-          pg.get_attribute("#music-menu", "hidden") is not None
-          and pg.get_attribute("#music-btn", "aria-expanded") == "false")
-    pg.click("#music-btn"); pg.wait_for_timeout(200)
-    check("the note button opens a menu with four genres",
-          pg.get_attribute("#music-menu", "hidden") is None
-          and pg.locator("#music-menu [data-genre]").count() == 4)
-    check("genre descriptions render in one language only",
-          "Slow pads" not in pg.locator("#music-menu").inner_text()
-          and "Långsamma pads" in pg.locator("#music-menu").inner_text())
-    pg.click("#music-menu [data-genre='lofi']"); pg.wait_for_timeout(400)
-    st = pg.evaluate("cvMusic.state()")
-    check("choosing Lo-fi starts it", st["playing"] and st["genre"] == "lofi" and st["started"], st)
-    check("the bar shows it is playing and the genre is marked",
-          pg.eval_on_selector("#music", "e=>e.classList.contains('is-playing')")
-          and pg.get_attribute("#music-menu [data-genre='lofi']", "aria-pressed") == "true"
-          and not pg.eval_on_selector("#music-stop", "e=>e.disabled"))
-    pg.click("#music-menu [data-genre='synthwave']"); pg.wait_for_timeout(300)
-    st = pg.evaluate("cvMusic.state()")
-    check("switching genre keeps playing", st["playing"] and st["genre"] == "synthwave", st)
-    # Every piece must actually reach the output, not just flip a flag.
-    levels = {}
-    for g in ("synthwave", "ambient", "piano", "lofi"):
-        pg.evaluate(f"cvMusic.play('{g}')"); pg.wait_for_timeout(1500)
-        levels[g] = max(pg.evaluate("cvMusic.state().level") for _ in range(5))
-    check("all four genres produce sound (audio context running)",
-          pg.evaluate("cvMusic.state().ctx") == "running" and all(v > 0.003 for v in levels.values()),
-          {k: round(v, 4) for k, v in levels.items()})
-    pg.click("#music-menu [data-genre='synthwave']"); pg.wait_for_timeout(200)
-    pg.evaluate("cvMusic.volume(0.3)")
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
-    check("Escape closes the menu", pg.get_attribute("#music-menu", "hidden") is not None)
-    pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
-    labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
-    check("the palette has one music row that names what is playing",
-          labels.count("Musik") == 1 and not any(l.startswith("Spela: ") and l[7:] in ("Ambient", "Lo-fi", "Synthwave", "Piano") for l in labels)
-          and "Synthwave" in pg.locator(".cmdk-item", has_text="Musik").first.inner_text(), labels)
-    pg.locator(".cmdk-item", has_text="Musik").first.click(); pg.wait_for_timeout(300)
-    check("choosing it opens the music menu", pg.get_attribute("#music-menu", "hidden") is None)
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
-    pg.evaluate("cvMusic.stop()"); pg.wait_for_timeout(200)
-    check("stop stops", not pg.evaluate("cvMusic.state().playing")
-          and not pg.eval_on_selector("#music", "e=>e.classList.contains('is-playing')"))
-    pg.reload(); pg.wait_for_timeout(1000)
-    st = pg.evaluate("cvMusic.state()")
-    check("a return visit remembers the genre and volume but stays silent",
-          st["playing"] is False and st["started"] is False
-          and st["genre"] == "synthwave" and abs(st["volume"] - 0.3) < .01, st)
-    pg.evaluate("setLang('sv')"); pg.wait_for_timeout(300)
-    pg.emulate_media(media="print")
-    check("the music control stays off paper",
-          pg.eval_on_selector("#music", "e=>getComputedStyle(e).display") == "none")
-    pg.emulate_media(media="screen")
+    # --- No music: the page is silent and has no control for it ---
+    check("there is no music control or engine",
+          pg.locator("#music, #music-btn, #music-menu").count() == 0
+          and pg.evaluate("typeof window.cvMusic") == "undefined")
 
     # --- Moon and space weather ---
     check("the moon's phase is computed from a real ephemeris",
@@ -791,10 +738,10 @@ with sync_playwright() as p:
           len(data) == 16 and all(len(d["p"]) >= 60 and min(d["p"]) > 0 for d in data)
           and all(len(d["p"]) == (int(d["e"][:4]) - int(d["s"][:4])) * 12 + (int(d["e"][5:7]) - int(d["s"][5:7])) + 1 for d in data),
           [(d["t"], len(d["p"])) for d in data])
-    check("the game lives in the bar beside the music, not among the projects",
+    check("the game lives in the bar beside the menu, not among the projects",
           pg.locator(".controls #quiz-btn").count() == 1
           and pg.locator(".projects-grid > .project-card").count() == 6
-          and pg.eval_on_selector("#quiz-btn", "e=>e.previousElementSibling.id") == "music")
+          and pg.eval_on_selector("#quiz-btn", "e=>e.previousElementSibling.id") == "cmdk-hint")
     # --- The yield gap card ---
     yg = pg.locator(".project-card", has_text="Yieldgap").first
     check("the yield gap card names both valuations and discloses that the figures are AI-read",
@@ -868,46 +815,9 @@ with sync_playwright() as p:
           share.startswith("Gissa bolaget · " + str(st["score"]) + " p · ") and share.count("\U0001F7E9") == 7
           and share.count("\U0001F7E5") == 1 and share.endswith("https://antonalin.github.io/CV/"), share)
     # Daily round: the same date gives everyone the same eight questions
-    # --- Higher or lower? mode ---
-    pg.evaluate("cvQuiz.start(false, 'updown')"); pg.wait_for_timeout(300)
-    st = pg.evaluate("cvQuiz.state()")
-    check("the higher-or-lower mode shows the company, two options, a cut line and a question mark",
-          st["mode"] == "updown" and pg.evaluate("cvQuiz.answer()") in ("up", "down")
-          and pg.locator("#quiz-body .quiz-opts.is-updown button").count() == 2
-          and pg.locator("#quiz-body svg .quiz-cut").count() == 1 and pg.locator("#quiz-body svg .quiz-q").count() == 1
-          and pg.locator("#quiz-body svg .quiz-line-next").count() == 0
-          and pg.locator("#quiz-body .quiz-ud-name b").count() == 1
-          and pg.get_attribute("#quiz-mode", "aria-pressed") == "true"
-          and pg.get_attribute("#quiz-title-ud", "hidden") is None and pg.get_attribute("#quiz-title-guess", "hidden") is not None, st)
-    ans = pg.evaluate("cvQuiz.answer()")
-    pg.keyboard.press("1" if ans == "up" else "2"); pg.wait_for_timeout(300)
-    st = pg.evaluate("cvQuiz.state()")
-    check("a right up/down call scores, draws the dashed continuation in the matching colour and names the next-12-month return",
-          st["answered"] and st["score"] >= 100 and st["marks"] == [True]
-          and pg.locator("#quiz-body svg .quiz-line-next.is-" + ans).count() == 1
-          and pg.locator("#quiz-body svg .quiz-q").count() == 0
-          and pg.locator("#quiz-body .quiz-opts button.is-right").count() == 1
-          and "%" in pg.locator("#quiz-body .quiz-stats").inner_text(), st)
-    pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
-    ans = pg.evaluate("cvQuiz.answer()")
-    pg.keyboard.press("2" if ans == "up" else "1"); pg.wait_for_timeout(200)
-    st = pg.evaluate("cvQuiz.state()")
-    check("a wrong call scores nothing and marks the wrong button",
-          st["marks"] == [True, False] and st["streak"] == 0
-          and pg.locator("#quiz-body .quiz-opts button.is-wrong").count() == 1
-          and pg.locator("#quiz-body .quiz-opts button.is-right").count() == 1, st)
-    for _ in range(6):
-        pg.keyboard.press("Enter"); pg.wait_for_timeout(120)
-        a = pg.evaluate("cvQuiz.answer()"); pg.keyboard.press("1" if a == "up" else "2"); pg.wait_for_timeout(120)
-    pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
-    st = pg.evaluate("cvQuiz.state()")
-    check("the mode has its own best score and share text",
-          st["state"] == "final" and pg.evaluate("+localStorage.getItem('cv-quiz-best-ud')") == st["score"]
-          and pg.evaluate("cvQuiz.share()").lower().startswith("upp eller ner?")
-          and pg.locator("#quiz-body .quiz-final [data-act='mode']").count() == 1, st)
-    pg.click("#quiz-mode"); pg.wait_for_timeout(200)
-    check("the header button toggles back to guess-the-company",
-          pg.evaluate("cvQuiz.state().mode") == "guess" and pg.locator("#quiz-body .quiz-opts button").count() == 4)
+    check("there is only one game mode: no higher-or-lower toggle",
+          pg.locator("#quiz-mode, #quiz-title-ud").count() == 0
+          and pg.locator("#quiz-body [data-act='mode']").count() == 0)
 
     pg.evaluate("cvQuiz.start(true)"); pg.wait_for_timeout(200)
     first = [pg.evaluate("cvQuiz.answer()")]
@@ -942,7 +852,7 @@ with sync_playwright() as p:
     pg.click("#cmdk-hint"); pg.wait_for_timeout(300)
     labels = pg.locator(".cmdk-item .cmdk-label").all_inner_texts()
     check("the palette lists the game and the daily round, and leaves the replay to the map",
-          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela: Upp eller ner?" in labels and "Om den här sidan" in labels and "Spela upp karriärkartan" not in labels)
+          "Spela: Gissa bolaget" in labels and "Spela: Dagens omgång" in labels and "Spela: Upp eller ner?" not in labels and "Musik" not in labels and "Om den här sidan" in labels and "Spela upp karriärkartan" not in labels)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.emulate_media(media="print")
     # An even count leaves the last card in its own column; drop one and the
@@ -991,9 +901,12 @@ with sync_playwright() as p:
     check("closing it remembers today's date", pg.locator(".news-card").count() == 0
           and pg.evaluate("localStorage.getItem('cv-last-visit')") == pg.evaluate("new Date().toLocaleDateString('sv-SE')"))
     pg.evaluate("cvNews.check('2026-09-06')"); pg.wait_for_timeout(150)
-    pg.locator(".news-card a[data-i]").first.click(); pg.wait_for_timeout(300)
-    check("a row's action link runs it and closes the card",
-          pg.locator(".news-card").count() == 0 and pg.get_attribute("#quiz", "hidden") is None)
+    first = pg.locator(".news-card .news-list a").first
+    href, runs = first.get_attribute("href"), first.get_attribute("data-i") is not None
+    first.click(); pg.wait_for_timeout(300)
+    check("a row's link does what it says and closes the card",
+          pg.locator(".news-card").count() == 0
+          and (pg.get_attribute("#quiz", "hidden") is None if runs else pg.evaluate("location.hash") == href), href)
     pg.evaluate("cvQuiz.close()")
     pg.evaluate("cvNews.check('2026-09-06')"); pg.wait_for_timeout(150)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
