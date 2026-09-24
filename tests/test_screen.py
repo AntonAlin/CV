@@ -53,7 +53,8 @@ with sync_playwright() as p:
                    "hourly": {"time": [f"{_day.isoformat()}T{h:02d}:00" for h in range(24)],
                               "temperature_2m": [round(-4 + 5 * (1 - abs(h - 14) / 14), 1) for h in range(24)]}}
     pg.route("**elprisetjustnu.se/**", lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(SE2_FIXTURE)))
-    pg.route("**/api.open-meteo.com/**", lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(ARE_FIXTURE)))
+    meteo_urls = []
+    pg.route("**/api.open-meteo.com/**", lambda route: (meteo_urls.append(route.request.url), route.fulfill(status=200, content_type="application/json", body=_json.dumps(ARE_FIXTURE))))
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.on("console", lambda m: errors.append("console."+m.type+": "+m.text)
@@ -563,10 +564,12 @@ with sync_playwright() as p:
           lv["are"] and lv["are"]["temp"] == -1.3 and lv["are"]["code"] == 71
           and all(w in arec.locator(".live-note").inner_text() for w in ("Åreskutan", "−1,3", "°C", "m/s", "snö"))
           and arec.locator(".project-chart.is-live").count() == 1, arec.locator(".live-note").inner_text())
-    check("snow on Åreskutan falls in the hero and is measured in the sky line",
+    check("the card reads the summit, the sky reads the village",
+          any("elevation=1420" in u for u in meteo_urls) and any("latitude=63.3985" in u and "elevation=380" in u for u in meteo_urls), meteo_urls)
+    check("snow in Åre village falls in the hero and is measured in the sky line",
           pg.evaluate("document.body.classList.contains('is-snowing')")
           and pg.locator(".hero .hero-snow i").count() > 20
-          and "Snödjup Åreskutan" in pg.locator("#sky-line").inner_text()
+          and "Snödjup i byn" in pg.locator("#sky-line").inner_text()
           and "84\xa0cm" in pg.locator("#sky-line").inner_text()
           and "snöar nu" in pg.locator("#sky-line").inner_text(), pg.locator("#sky-line").inner_text())
     # --- Åre's weather paints the sky ---
@@ -586,7 +589,7 @@ with sync_playwright() as p:
           aur() < 0.05 and deck() > 0.95
           and float(pg.eval_on_selector(".stars-far", "e=>getComputedStyle(e).opacity")) < 0.2, (aur(), deck()))
     check("the sky line opens with Åre right now: temperature, snowfall and wind",
-          all(w in pg.locator("#sky-line").inner_text() for w in ("Åreskutan 1\xa0420 m", "just nu", "\u22121,3\xa0°C", "snöfall", "9\xa0m/s", "Modellvärde", "Open-Meteo")),
+          all(w in pg.locator("#sky-line").inner_text() for w in ("Åre by 380 m", "just nu", "\u22121,3\xa0°C", "snöfall", "9\xa0m/s", "Modellvärde för byn", "Open-Meteo")),
           pg.locator("#sky-line").inner_text())
     pg.evaluate("cvWx.apply({temp: 11.2, wind: 2, gust: 3, dir: 90, code: 0, cloud: 4, rain: 0, snowfall: 0})"); pg.wait_for_timeout(2900)
     stars = lambda: float(pg.eval_on_selector(".stars-far", "e=>getComputedStyle(e).opacity"))
@@ -651,7 +654,7 @@ with sync_playwright() as p:
     check("the badge carries an icon, a big temperature and a caption",
           pg.locator("#sky-line .wx-ico svg").count() == 1 and pg.locator("#sky-line .wx-temp").count() == 1
           and float(pg.eval_on_selector("#sky-line .wx-temp", "e=>parseFloat(getComputedStyle(e).fontSize)")) >= 18
-          and pg.locator("#sky-line .wx-cap").inner_text() == "Åreskutan 1\xa0420 m · just nu"
+          and pg.locator("#sky-line .wx-cap").inner_text() == "Åre by 380 m · just nu"
           and pg.locator("#sky-line .wx-src").count() == 1)
     sunpos = pg.evaluate("[getComputedStyle(document.body).getPropertyValue('--sun-x').trim(), getComputedStyle(document.body).getPropertyValue('--sun-y').trim(), cvTod.sun(new Date('2026-06-21T02:00:00Z')).az, cvTod.sun(new Date('2026-06-21T11:08:00Z')).az, cvTod.sun(new Date('2026-06-21T19:00:00Z')).az]")
     check("the sun is placed by Åre's real azimuth: east in the morning, south at noon, west in the evening",
