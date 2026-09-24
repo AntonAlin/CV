@@ -53,7 +53,8 @@ with sync_playwright() as p:
                    "hourly": {"time": [f"{_day.isoformat()}T{h:02d}:00" for h in range(24)],
                               "temperature_2m": [round(-4 + 5 * (1 - abs(h - 14) / 14), 1) for h in range(24)]}}
     pg.route("**elprisetjustnu.se/**", lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(SE2_FIXTURE)))
-    pg.route("**/api.open-meteo.com/**", lambda route: route.fulfill(status=200, content_type="application/json", body=_json.dumps(ARE_FIXTURE)))
+    meteo_urls = []
+    pg.route("**/api.open-meteo.com/**", lambda route: (meteo_urls.append(route.request.url), route.fulfill(status=200, content_type="application/json", body=_json.dumps(ARE_FIXTURE))))
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.on("console", lambda m: errors.append("console."+m.type+": "+m.text)
@@ -228,8 +229,10 @@ with sync_playwright() as p:
         const b = document.body.classList;
         b.remove('tod-day','tod-dusk','tod-night','tod-dawn');
         b.add('tod-night');
-        /* Åre's cloud cover veils the stars by design; measure them under a clear sky */
+        /* Åre's cloud cover and falling snow veil the stars by design; measure them under a clear sky */
         document.body.style.setProperty('--wx-cloud', '0');
+        window._wxCls = ['wx-rain','wx-snow','wx-fog'].filter(c => b.contains(c));
+        b.remove('wx-rain','wx-snow','wx-fog');
     })()""")
     pg.evaluate("window.scrollTo({top:2600,behavior:'instant'})"); pg.wait_for_timeout(700)
     pg.screenshot(path=str(WORK / "_startest.png"))
@@ -243,7 +246,7 @@ with sync_playwright() as p:
             b.remove('tod-day','tod-dusk','tod-night','tod-dawn');
             b.add(cls);
         }""", orig_tod[0])
-    pg.evaluate("(()=>{const w=cvWx.state(); if(w){document.body.style.setProperty('--wx-cloud', w.cloud.toFixed(2));}})()")
+    pg.evaluate("(()=>{const w=cvWx.state(); if(w){document.body.style.setProperty('--wx-cloud', w.cloud.toFixed(2));} (window._wxCls||[]).forEach(c=>document.body.classList.add(c));})()")
     pg.emulate_media(media="screen", reduced_motion="no-preference")
     pg.evaluate("window.scrollTo({top:0,behavior:'instant'})"); pg.wait_for_timeout(400)
 
@@ -541,7 +544,10 @@ with sync_playwright() as p:
           and not ferr, ferr)
     fpg.evaluate("document.body.classList.remove('tod-night'); document.body.classList.add('tod-day'); document.dispatchEvent(new CustomEvent('cv:tod'))")
     fpg.wait_for_timeout(100)
-    check("no forecast by day: the line stays hidden", fpg.get_attribute("#sky-line", "hidden") is not None)
+    check("no forecast by day: the badge keeps only Åre's clock",
+          fpg.get_attribute("#sky-line", "hidden") is None and fpg.locator("#sky-line .wx-clock").count() == 1
+          and "Kp" not in fpg.locator("#sky-line").inner_text() and "%" not in fpg.locator("#sky-line").inner_text(),
+          fpg.locator("#sky-line").inner_text())
     fctx.close()
 
     # --- Live cards ---
@@ -558,10 +564,12 @@ with sync_playwright() as p:
           lv["are"] and lv["are"]["temp"] == -1.3 and lv["are"]["code"] == 71
           and all(w in arec.locator(".live-note").inner_text() for w in ("Åreskutan", "−1,3", "°C", "m/s", "snö"))
           and arec.locator(".project-chart.is-live").count() == 1, arec.locator(".live-note").inner_text())
-    check("snow on Åreskutan falls in the hero and is measured in the sky line",
+    check("the card reads the summit, the sky reads the village",
+          any("elevation=1420" in u for u in meteo_urls) and any("latitude=63.3985" in u and "elevation=380" in u for u in meteo_urls), meteo_urls)
+    check("snow in Åre village falls in the hero and is measured in the sky line",
           pg.evaluate("document.body.classList.contains('is-snowing')")
           and pg.locator(".hero .hero-snow i").count() > 20
-          and "Snödjup Åreskutan" in pg.locator("#sky-line").inner_text()
+          and "Snödjup i byn" in pg.locator("#sky-line").inner_text()
           and "84\xa0cm" in pg.locator("#sky-line").inner_text()
           and "snöar nu" in pg.locator("#sky-line").inner_text(), pg.locator("#sky-line").inner_text())
     # --- Åre's weather paints the sky ---
@@ -581,13 +589,33 @@ with sync_playwright() as p:
           aur() < 0.05 and deck() > 0.95
           and float(pg.eval_on_selector(".stars-far", "e=>getComputedStyle(e).opacity")) < 0.2, (aur(), deck()))
     check("the sky line opens with Åre right now: temperature, snowfall and wind",
-          all(w in pg.locator("#sky-line").inner_text() for w in ("Åreskutan 1\xa0420 m", "just nu", "\u22121,3\xa0°C", "snöfall", "9\xa0m/s", "Modellvärde", "Open-Meteo")),
+          all(w in pg.locator("#sky-line").inner_text() for w in ("Åre by 380 m", "just nu", "\u22121,3\xa0°C", "snöfall", "9\xa0m/s", "Modellvärde för byn", "Open-Meteo")),
           pg.locator("#sky-line").inner_text())
     pg.evaluate("cvWx.apply({temp: 11.2, wind: 2, gust: 3, dir: 90, code: 0, cloud: 4, rain: 0, snowfall: 0})"); pg.wait_for_timeout(2900)
-    check("a clear sky brings the aurora and stars back and removes the snow",
-          "wx-clear" in pg.evaluate("document.body.className") and aur() > 0.5 and deck() < 0.02
-          and pg.locator(".hero .hero-snow").count() == 0
-          and "klart" in pg.locator("#sky-line").inner_text() and "11,2" in pg.locator("#sky-line").inner_text(), (aur(), deck()))
+    stars = lambda: float(pg.eval_on_selector(".stars-far", "e=>getComputedStyle(e).opacity"))
+    plough = lambda: float(pg.eval_on_selector(".const-plough", "e=>getComputedStyle(e).opacity"))
+    check("a clear day: no aurora, no stars, no Karlavagnen, no snow, a blue sky",
+          "wx-clear" in pg.evaluate("document.body.className") and aur() < 0.05 and stars() < 0.05 and plough() < 0.05
+          and deck() < 0.02 and pg.locator(".hero .hero-snow").count() == 0
+          and "klart" in pg.locator("#sky-line").inner_text() and "11,2" in pg.locator("#sky-line").inner_text(),
+          (aur(), stars(), plough(), deck()))
+    day_px = pg.evaluate("getComputedStyle(document.body).getPropertyValue('--sky-z').trim()")
+    for ph in ("tod-dusk", "tod-dawn"):
+        pg.evaluate("document.body.classList.remove('tod-day','tod-dusk','tod-dawn','tod-night'); document.body.classList.add(%r); document.dispatchEvent(new CustomEvent('cv:tod'))" % ph)
+        pg.wait_for_timeout(2900)
+        check("twilight (%s, so every summer night) keeps the stars hidden even when clear" % ph, stars() < 0.05 and plough() < 0.05, (stars(), plough()))
+    pg.evaluate("document.body.classList.remove('tod-dusk','tod-dawn'); document.body.classList.add('tod-night'); document.dispatchEvent(new CustomEvent('cv:tod'))"); pg.wait_for_timeout(2900)
+    night_px = pg.evaluate("getComputedStyle(document.body).getPropertyValue('--sky-z').trim()")
+    check("a dark, clear night brings the aurora, the stars and Karlavagnen back",
+          aur() > 0.5 and stars() > 0.9 and plough() > 0.9, (aur(), stars(), plough()))
+    check("the sky's colour follows the phase", day_px != night_px, (day_px, night_px))
+    pg.evaluate("cvWx.apply({temp: 1, wind: 2, gust: 3, dir: 90, code: 2, cloud: 45, rain: 0, snowfall: 0})"); pg.wait_for_timeout(2900)
+    check("a half-clouded night already veils most of the stars", stars() < 0.5, stars())
+    pg.evaluate("cvWx.apply({temp: 11.2, wind: 2, gust: 3, dir: 90, code: 0, cloud: 4, rain: 0, snowfall: 0})")
+    pg.evaluate("document.body.classList.remove('tod-night'); document.body.classList.add('tod-day'); document.dispatchEvent(new CustomEvent('cv:tod'))"); pg.wait_for_timeout(200)
+    clk = pg.evaluate("""[document.querySelector('#sky-line .wx-time') && document.querySelector('#sky-line .wx-time').textContent,
+        new Date().toLocaleTimeString('sv-SE', {timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit'})]""")
+    check("the badge shows Åre's own clock, not the visitor's", clk[0] is not None and clk[0] == clk[1], clk)
     pg.evaluate("cvWx.apply({temp: -8, wind: 16, gust: 24, dir: 270, code: 75, cloud: 100, rain: 0, snowfall: 3.1})"); pg.wait_for_timeout(200)
     st = pg.evaluate("cvWx.state()")
     check("a blizzard: wind-leaning heavy snow, a whitened deck and its own word",
@@ -626,7 +654,7 @@ with sync_playwright() as p:
     check("the badge carries an icon, a big temperature and a caption",
           pg.locator("#sky-line .wx-ico svg").count() == 1 and pg.locator("#sky-line .wx-temp").count() == 1
           and float(pg.eval_on_selector("#sky-line .wx-temp", "e=>parseFloat(getComputedStyle(e).fontSize)")) >= 18
-          and pg.locator("#sky-line .wx-cap").inner_text() == "Åreskutan 1\xa0420 m · just nu"
+          and pg.locator("#sky-line .wx-cap").inner_text() == "Åre by 380 m · just nu"
           and pg.locator("#sky-line .wx-src").count() == 1)
     sunpos = pg.evaluate("[getComputedStyle(document.body).getPropertyValue('--sun-x').trim(), getComputedStyle(document.body).getPropertyValue('--sun-y').trim(), cvTod.sun(new Date('2026-06-21T02:00:00Z')).az, cvTod.sun(new Date('2026-06-21T11:08:00Z')).az, cvTod.sun(new Date('2026-06-21T19:00:00Z')).az]")
     check("the sun is placed by Åre's real azimuth: east in the morning, south at noon, west in the evening",
@@ -1272,9 +1300,9 @@ with sync_playwright() as p:
     tzctx.close()
     check("different phases actually carry different aurora colours",
           len(set(seen.values())) > 1, seen)
-    check("stars are gone by day, faint in twilight, full at night",
-          star_op["tod-day"] == 0 and 0 < star_op["tod-dusk"] < star_op["tod-night"] == 1
-          and 0 < star_op["tod-dawn"] < star_op["tod-night"], star_op)
+    check("stars only once it is dark: gone by day and through twilight, full at night",
+          star_op["tod-day"] == 0 and star_op["tod-dusk"] == 0 and star_op["tod-dawn"] == 0
+          and star_op["tod-night"] == 1, star_op)
 
     pg.emulate_media(media="print")
     check("the sun and clouds are hidden in print",

@@ -115,8 +115,10 @@
     position:absolute;top:0;left:0;right:0;
     background-repeat:repeat;
     will-change:transform;
-    opacity:calc(var(--tod-star-op,1) * (1 - .85 * var(--wx-cloud,0)));
+    opacity:calc(var(--tod-star-op,1) * var(--sky-clear,1));
   }
+  /* Rain, snow and fog hide the sky whatever the cover figure says */
+  body.wx-rain .stars, body.wx-snow .stars, body.wx-fog .stars{opacity:0;}
   .stars-far{
     height:calc(100% + 400px);
     background-image:
@@ -408,23 +410,71 @@
   /* How much the stars show per phase: the full field at night, only the
      brightest through civil twilight, none at all while the sun is up. */
   @property --tod-star-op{syntax:'<number>';inherits:true;initial-value:1;}
+  /* How much of the aurora glow the phase allows: none against a lit sky */
+  @property --tod-aurora{syntax:'<number>';inherits:true;initial-value:1;}
   /* Åre's cloud cover right now, 0–1; dims stars, aurora, sun and moon */
   @property --wx-cloud{syntax:'<number>';inherits:true;initial-value:0;}
+  /* Stars need a properly clear sky: full below 20 % cover, gone from 60 % */
+  body{--sky-clear:clamp(0, calc((.6 - var(--wx-cloud,0)) / .4), 1);}
+  /* The hero's sky colour: zenith and horizon for a clear sky (-z, -h) and
+     for a closed one (-oz, -oh). The cover mixes between them. Initial
+     values are the night, so a visitor without JS sees the old dark sky. */
+  @property --sky-z{syntax:'<color>';inherits:true;initial-value:rgba(7,12,25,0);}
+  @property --sky-h{syntax:'<color>';inherits:true;initial-value:rgba(16,30,60,.45);}
+  @property --sky-oz{syntax:'<color>';inherits:true;initial-value:#0d1119;}
+  @property --sky-oh{syntax:'<color>';inherits:true;initial-value:#151a24;}
   body{transition:--tod-1 2.6s ease,--tod-2 2.6s ease,--tod-3 2.6s ease,
-                  --tod-glow 2.6s ease,--tod-star-op 2.6s ease,--wx-cloud 2.6s ease;}
+                  --tod-glow 2.6s ease,--tod-star-op 2.6s ease,--tod-aurora 2.6s ease,--wx-cloud 2.6s ease,
+                  --sky-z 2.6s ease,--sky-h 2.6s ease,--sky-oz 2.6s ease,--sky-oh 2.6s ease;}
   @media (prefers-reduced-motion: reduce){ body{transition:none;} }
 
-  body.tod-day  {--tod-1:#3ddc97;--tod-2:#ffb84d;--tod-3:#22b8cf;--tod-glow:rgba(255,196,120,.1);--tod-star-op:0;}
-  body.tod-dusk {--tod-1:#ff6fae;--tod-2:#8b5cf6;--tod-3:#ff9a5a;--tod-glow:rgba(255,110,140,.11);--tod-star-op:.3;}
-  body.tod-night{--tod-1:#3ddc97;--tod-2:#8b7cf6;--tod-3:#22b8cf;--tod-glow:rgba(91,108,255,.08);--tod-star-op:1;}
-  body.tod-dawn {--tod-1:#ff8f6b;--tod-2:#ff6fae;--tod-3:#ffcf6b;--tod-glow:rgba(255,150,110,.12);--tod-star-op:.3;}
+  /* Stars only once it is dark: twilight, and so every summer night in Åre,
+     keeps them hidden. */
+  body.tod-day  {--tod-1:#3ddc97;--tod-2:#ffb84d;--tod-3:#22b8cf;--tod-glow:rgba(255,196,120,.1);--tod-star-op:0;--tod-aurora:0;
+                 --sky-z:#1f5c9e;--sky-h:#4f8fcf;--sky-oz:#4d5868;--sky-oh:#6c7788;}
+  body.tod-dusk {--tod-1:#ff6fae;--tod-2:#8b5cf6;--tod-3:#ff9a5a;--tod-glow:rgba(255,110,140,.11);--tod-star-op:0;--tod-aurora:.3;
+                 --sky-z:#1c2250;--sky-h:#7a4262;--sky-oz:#262634;--sky-oh:#4a3c48;}
+  body.tod-night{--tod-1:#3ddc97;--tod-2:#8b7cf6;--tod-3:#22b8cf;--tod-glow:rgba(91,108,255,.08);--tod-star-op:1;--tod-aurora:1;
+                 --sky-z:rgba(7,12,25,0);--sky-h:rgba(16,30,60,.45);--sky-oz:#0d1119;--sky-oh:#151a24;}
+  body.tod-dawn {--tod-1:#ff8f6b;--tod-2:#ff6fae;--tod-3:#ffcf6b;--tod-glow:rgba(255,150,110,.12);--tod-star-op:0;--tod-aurora:.3;
+                 --sky-z:#22305e;--sky-h:#a0605a;--sky-oz:#2a2c3a;--sky-oh:#564a4e;}
+  /* Rain darkens a closed sky, snow and fog pale it */
+  body.wx-rain.tod-day{--sky-oz:#3a4452;--sky-oh:#525d6c;}
+  body.wx-snow.tod-day, body.wx-fog.tod-day{--sky-oz:#5f6a7b;--sky-oh:#8590a0;}
+  body.wx-rain:is(.tod-dusk,.tod-dawn){--sky-oz:#1e2029;--sky-oh:#34313a;}
+  body.wx-snow:is(.tod-dusk,.tod-dawn), body.wx-fog:is(.tod-dusk,.tod-dawn){--sky-oz:#34363f;--sky-oh:#5a5760;}
+
+  /* ---------- The hero's sky ----------
+     Åre's sky right now: the phase picks the colours, the cloud cover mixes a
+     clear sky toward a grey one, and the whole thing fades out at the bottom
+     of the hero so the CV below reads as before. A clear night is nearly
+     see-through: the page's own starfield is the sky then. */
+  .hero-sky{
+    position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,var(--sky-z) 0%,var(--sky-h) 48%,rgba(7,11,20,0) 96%);
+    background:linear-gradient(180deg,
+      color-mix(in oklab,var(--sky-z),var(--sky-oz) calc(var(--wx-cloud,0) * 100%)) 0%,
+      color-mix(in oklab,var(--sky-h),var(--sky-oh) calc(var(--wx-cloud,0) * 100%)) 48%,
+      rgba(7,11,20,0) 96%);
+  }
+  @media print{ .hero-sky{display:none !important;} }
+  /* A lit sky is far brighter than the void the hero's text was set for:
+     lift the quiet greys and give the words a soft shadow to stand on. */
+  /* Screen only: on paper the sky is gone, and a shadow would print as a
+     second copy of every word in the PDF's text layer. */
+  @media screen{
+    body:is(.tod-day,.tod-dusk,.tod-dawn) .hero-content{--text-lo:#d5dfeb;--text-faint:#b3c1d3;text-shadow:0 1px 14px rgba(4,10,24,.4);}
+    body:is(.tod-day,.tod-dusk,.tod-dawn) .hero .eyebrow{color:#c4f0f7;}
+  }
+  /* The last and first hour of sun: the horizon warms toward gold */
+  body.tod-day.sun-low{--sky-z:#29568c;--sky-h:#c58a62;--sky-oh:#7a7272;}
 
   .aurora-layer{
     position:absolute;inset:-20% -10% -10% -10%;
     z-index:0;pointer-events:none;
     filter:blur(60px) saturate(130%);
     --aurora-op:.55;
-    opacity:calc(var(--aurora-op) * (1 - var(--wx-cloud,0)));
+    opacity:calc(var(--aurora-op) * var(--tod-aurora,1) * (1 - var(--wx-cloud,0)));
   }
   .aurora-band{
     position:absolute;
@@ -506,7 +556,7 @@
     animation:sun-rays 140s linear infinite;opacity:calc(1 - 2.5 * var(--wx-cloud,0));
   }
   @keyframes sun-rays{to{transform:rotate(360deg);}}
-  body.tod-day .hero-sun{opacity:calc(.9 * (1 - .85 * var(--wx-cloud,0)));transform:scale(1);}
+  body.tod-day .hero-sun{opacity:calc(.9 * (1 - .95 * var(--wx-cloud,0)));transform:scale(1);}
 
   /* ---------- Share image ----------
      tools/build-og.py adds og-mode and captures 1200x630: the hero fills the
@@ -547,7 +597,7 @@
   @media (max-width:760px){ .hero-moon{top:3%;right:auto;left:8%;width:40px;height:40px;} }
 
   @media (prefers-reduced-motion: reduce){ .hero-moon{transition:none;} }
-  /* Snow: drawn only while Open-Meteo reports snowfall on Åreskutan */
+  /* Snow: drawn only while Open-Meteo reports snowfall in Åre village */
   .hero-snow{position:absolute;inset:-25% -25% 0;z-index:0;pointer-events:none;overflow:hidden;transform:rotate(var(--wx-tilt,0deg));transform-origin:50% 0;}
   body.wx-blizzard .hero-snow i{border-radius:40%;filter:blur(.8px);}
   .hero-snow i{
@@ -577,6 +627,9 @@
     color:var(--text-faint);
   }
   .sky-line[hidden]{display:none;}
+  .sky-line .wx-clock{display:flex;align-items:baseline;gap:8px;padding-bottom:5px;margin-bottom:1px;border-bottom:1px solid rgba(255,255,255,.07);}
+  .sky-line .wx-time{font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:600;letter-spacing:.01em;color:var(--text-hi);font-variant-numeric:tabular-nums;}
+  .sky-line .wx-where{white-space:nowrap;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);}
   .sky-line .wx-cap{font-size:9.5px;letter-spacing:.14em;color:var(--text-faint);opacity:.85;}
   .sky-line .wx-src{font-size:9px;letter-spacing:.06em;color:var(--text-faint);opacity:.6;margin-top:1px;}
   .sky-line .wx-main{display:flex;align-items:center;gap:9px;}
@@ -785,6 +838,11 @@
   .aurora-layer,.constellation{
     transition:transform 1.4s cubic-bezier(.2,.7,.3,1);
   }
+  /* The constellations are stars too: dark, clear nights only. No opacity
+     transition of its own: the variables already ease, and a second one on
+     top restarts every frame and lags far behind. */
+  .constellation{opacity:calc(var(--tod-star-op,1) * var(--sky-clear,1));}
+  body.wx-rain .constellation, body.wx-snow .constellation, body.wx-fog .constellation{opacity:0;}
 
   .hero-content{position:relative;z-index:1;}
 
@@ -1952,6 +2010,7 @@
 </div>
 
 <header class="hero">
+  <div class="hero-sky" aria-hidden="true"></div>
   <div class="aurora-layer">
     <div class="aurora-band b1"></div>
     <div class="aurora-band b2"></div>
@@ -1979,7 +2038,7 @@
   <div class="hero-deck" aria-hidden="true"></div>
   <div class="hero-flash" aria-hidden="true"></div>
   <div class="wrap hero-content">
-    <div class="sky-line" id="sky-line" role="status" aria-live="off" title="Open-Meteo, modellvärde för Åreskutans topp 1 420 m ö.h. / model estimate for Åreskutan's summit" hidden></div>
+    <div class="sky-line" id="sky-line" role="status" aria-live="off" title="Open-Meteo, modellvärde för Åre by 380 m ö.h. / model estimate for Åre village" hidden></div>
     <div class="portrait-frame" id="portrait-frame">
       <div class="portrait-ring">
         <img class="portrait-img is-active" data-idx="0" src="img/portrait-1.jpg" alt="Anton Ålin">
@@ -2576,7 +2635,7 @@
     </p>
     <div class="about-h"><span class="sv-only">Under huven</span><span class="en-only">Under the hood</span></div>
     <ul class="about-grid">
-      <li><b><span class="sv-only">Himlen</span><span class="en-only">The sky</span></b> · <span class="sv-only">Open-Meteos modellskattning för Åreskutans topp (1 420 m) styr moln, snö, regn, dimma och snöstorm; solhöjden över Åre beräknas astronomiskt, månfasen likaså, och norrskenet följer NOAA:s Kp-index</span><span class="en-only">Open-Meteo's model estimate for Åreskutan's summit (1,420 m) drives cloud, snow, rain, fog and blizzard; the sun's altitude over Åre is computed astronomically, so is the moon phase, and the aurora follows NOAA's Kp index</span></li>
+      <li><b><span class="sv-only">Himlen</span><span class="en-only">The sky</span></b> · <span class="sv-only">Open-Meteos modellskattning för Åre by (380 m) styr himlens färg, moln, snö, regn, dimma och snöstorm; solhöjden över Åre beräknas astronomiskt, månfasen likaså, stjärnorna syns bara när det är mörkt och klart, och norrskenet följer NOAA:s Kp-index</span><span class="en-only">Open-Meteo's model estimate for Åre village (380 m) drives the sky's colour, cloud, snow, rain, fog and blizzard; the sun's altitude over Åre is computed astronomically, so is the moon phase, the stars only come out when it is dark and clear, and the aurora follows NOAA's Kp index</span></li>
       <li><b><span class="sv-only">Live-kort</span><span class="en-only">Live cards</span></b> · <span class="sv-only">SE2-elpris och Årevädret hämtas när sidan öppnas, med statiska kurvor som reserv</span><span class="en-only">SE2 power price and Åre weather fetched on load, with static curves as fallback</span></li>
       <li><b>Monte Carlo</b> · <span class="sv-only">geometrisk brownsk rörelse på canvas, volatiliteten styrs med pekaren</span><span class="en-only">geometric Brownian motion on canvas, volatility driven by the pointer</span></li>
       <li><b><span class="sv-only">Aktiespelen</span><span class="en-only">Stock games</span></b> · <span class="sv-only">månadskurser från Alpha Vantage, uppdaterade varje vecka av en GitHub Action</span><span class="en-only">monthly prices from Alpha Vantage, refreshed weekly by a GitHub Action</span></li>
@@ -2615,7 +2674,7 @@
   /* ---------- Time-of-day mood ----------
      Picks the sky's phase from the visitor's own local hour and applies it as
      a body class; the actual colours live in CSS (see --tod-1/2/3/-glow),
-     this only decides which of the four applies. Rechecked every ten minutes
+     this only decides which of the four applies. Rechecked every minute
      in case a visit spans a phase boundary — the registered custom properties
      then ease the aurora across rather than snapping on the next repaint. */
   var cvTod = (function(){
@@ -2656,6 +2715,8 @@
     }
     function apply(){
       place();
+      var alt = sun(new Date()).alt;
+      document.body.classList.toggle('sun-low', alt > 0 && alt < 6);
       var next = phase(new Date());
       if(document.body.classList.contains(next)){ return; }
       PHASES.forEach(function(p){ document.body.classList.remove(p); });
@@ -2663,7 +2724,7 @@
       document.dispatchEvent(new CustomEvent('cv:tod'));
     }
     apply();
-    setInterval(apply, 10 * 60 * 1000);
+    setInterval(apply, 60 * 1000);
     return {phase: phase, sun: sun};
   })();
 
@@ -2704,22 +2765,38 @@
       var cls = kpClass(kp.now);
       if(cls){ document.body.classList.add(cls); }
     }
+    /* Åre's wall clock, whatever the visitor's own time zone */
+    function clock(isEn){
+      var now = new Date(), loc = isEn ? 'en-GB' : 'sv-SE', tz = 'Europe/Stockholm';
+      try {
+        var t = now.toLocaleTimeString(loc, {timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false});
+        var d = now.toLocaleDateString(loc, {timeZone: tz, weekday: 'short'}).replace('.', '') + ' '
+              + now.toLocaleDateString('sv-SE', {timeZone: tz, day: 'numeric', month: 'numeric'});
+      } catch(e) { return ''; }
+      return '<b class="wx-time">' + t + '</b><span class="wx-where">' + 'Åre \u00b7 ' + d + '</span>';
+    }
+    var lastClock = '';
+    function tick(){
+      var c = document.querySelector('#sky-line .wx-clock'); if(!c){ return; }
+      var html = clock(en()); if(html !== lastClock){ lastClock = html; c.innerHTML = html; }
+    }
     function line(){
       var el = document.getElementById('sky-line'); if(!el){ return; }
       var m = moon(), isEn = en(), parts = [];
       var wx = window.cvWx ? cvWx.state() : null;
       var moonUp = /tod-(night|dusk|dawn)/.test(document.body.className);
-      var main = '';
+      lastClock = clock(isEn);
+      var main = lastClock ? '<div class="wx-clock">' + lastClock + '</div>' : '';
       if(wx){
         var temp = typeof wx.temp === 'number' && !isNaN(wx.temp)
           ? (Math.round(wx.temp * 10) / 10).toLocaleString(isEn ? 'en-GB' : 'sv-SE').replace('-', '\u2212') + '\u00a0°C' : '';
-        main = '<div class="wx-cap">' + (isEn ? 'Åreskutan 1,420 m \u00b7 now' : 'Åreskutan 1\u00a0420 m \u00b7 just nu') + '</div>'
+        main += '<div class="wx-cap">' + (isEn ? 'Åre village 380 m \u00b7 now' : 'Åre by 380 m \u00b7 just nu') + '</div>'
           + '<div class="wx-main"><span class="wx-ico">' + cvWx.icon() + '</span><span><b class="wx-temp">' + temp + '</b>'
           + '<span class="wx-desc">' + cvWx.word(isEn) + (wx.wind >= 5 ? ' \u00b7 ' + Math.round(wx.wind) + '\u00a0m/s' : '') + '</span></span></div>';
       }
       if(moonUp){ parts.push('<span>\u263D <b>' + (isEn ? m.en : m.sv) + '</b> ' + Math.round(m.fraction * 100) + '\u00a0%</span>'); }
       if(snow && snow.depth >= .05){
-        parts.push('<span>\u2744 ' + (isEn ? 'Snow depth Åreskutan' : 'Snödjup Åreskutan') + ' <b>' + Math.round(snow.depth * 100) + '\u00a0cm</b>'
+        parts.push('<span>\u2744 ' + (isEn ? 'Snow depth in the village' : 'Snödjup i byn') + ' <b>' + Math.round(snow.depth * 100) + '\u00a0cm</b>'
           + (snow.falling > 0 ? ' \u00b7 ' + (isEn ? 'snowing now' : 'snöar nu') : '') + '</span>');
       }
       if(kp){
@@ -2730,7 +2807,7 @@
         if(tier >= 2 && wx && wx.cloud >= .75){ word += ' \u00b7 ' + (isEn ? 'overcast in Åre right now' : 'mulet i Åre just nu'); }
         parts.push('<span><i class="kp-dot kp-' + tier + '"></i>' + (isEn ? 'Aurora tonight' : 'Norrsken i natt') + ': <b>Kp ' + v.toFixed(v % 1 ? 1 : 0) + '</b> \u00b7 ' + word + '</span>');
       }
-      var src = wx ? '<div class="wx-src">' + (isEn ? 'Model estimate for the summit \u00b7 Open-Meteo' : 'Modellvärde för toppen \u00b7 Open-Meteo') + '</div>' : '';
+      var src = wx ? '<div class="wx-src">' + (isEn ? 'Model estimate for the village \u00b7 Open-Meteo' : 'Modellvärde för byn \u00b7 Open-Meteo') + '</div>' : '';
       el.innerHTML = main + (parts.length ? '<div class="wx-sub">' + parts.join('') + '</div>' : '') + src;
       if(main || parts.length){ el.removeAttribute('hidden'); } else { el.setAttribute('hidden', ''); }
       /* The badge sits in the hero's top padding; anything taller than that pushes the portrait down */
@@ -2775,12 +2852,13 @@
     document.addEventListener('cv:tod', line);
     drawMoon(); line(); load();
     setInterval(drawMoon, 60 * 60 * 1000);
+    setInterval(tick, 10 * 1000);
     return {moon: moon, kp: function(){ return kp; }, snow: function(){ return snow; }, parse: parse};
   })();
 
   /* ---------- Åre's weather in the sky ----------
-     The hero shows Open-Meteo's model estimate for Åreskutan's summit
-     (1 420 m) right now, not a station reading: cloud cover
+     The hero shows Open-Meteo's model estimate for Åre village
+     (380 m) right now, not a station reading: cloud cover
      veils stars, aurora, sun and moon; snow, rain, fog and thunder are drawn;
      a blizzard leans the snow with the wind and whitens the deck. Without a
      report (offline, file://) the sky stays as the hour alone paints it. */
@@ -2846,7 +2924,9 @@
       if(el && el.getAttribute('data-key') === k){ return; }
       if(el){ el.remove(); }
       el = document.createElement('div'); el.className = cls; el.setAttribute('aria-hidden', 'true'); el.setAttribute('data-key', k);
-      el.innerHTML = html(); hero.insertBefore(el, hero.firstChild);
+      el.innerHTML = html();
+      /* Above the sky's colour, below everything else */
+      var sky = hero.querySelector('.hero-sky'); hero.insertBefore(el, sky ? sky.nextSibling : hero.firstChild);
     }
     function rnd(a, b){ return a + Math.random() * (b - a); }
     function draw(c){
@@ -3515,11 +3595,25 @@
                      code: +c.weather_code, cloud: c.cloud_cover == null ? null : +c.cloud_cover, rain: +c.rain || 0,
                      hourly: h.temperature_2m.map(Number), cur: cur, snowfall: +c.snowfall || 0, snowDepth: +c.snow_depth || 0};
         renderAre();
-        document.dispatchEvent(new CustomEvent('cv:weather', {detail: state.are}));
+      }).catch(function(){});
+    }
+    /* --- Åre village, now: the hero's sky and the weather badge ---
+       The summit often sits in cloud while the village has sun, so the sky
+       reads the village (Åre torg, 380 m), not the card's summit. */
+    function village(){
+      getJSON('https://api.open-meteo.com/v1/forecast?latitude=63.3985&longitude=13.081&elevation=380'
+        + '&current=temperature_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,cloud_cover,rain,snowfall,snow_depth'
+        + '&timezone=Europe%2FStockholm&wind_speed_unit=ms').then(function(j){
+        var c = j && j.current;
+        if(!c || c.temperature_2m == null || c.weather_code == null){ throw new Error('shape'); }
+        state.sky = {temp: +c.temperature_2m, wind: +c.wind_speed_10m, gust: +c.wind_gusts_10m || 0, dir: +c.wind_direction_10m || 0,
+                     code: +c.weather_code, cloud: c.cloud_cover == null ? null : +c.cloud_cover, rain: +c.rain || 0,
+                     snowfall: +c.snowfall || 0, snowDepth: +c.snow_depth || 0};
+        document.dispatchEvent(new CustomEvent('cv:weather', {detail: state.sky}));
       }).catch(function(){});
     }
     /* The sky follows Åre through the visit, not only at the first paint */
-    setInterval(function(){ if(!document.hidden){ are(); } }, 20 * 60 * 1000);
+    setInterval(function(){ if(!document.hidden){ are(); village(); } }, 20 * 60 * 1000);
 
     /* --- Monte Carlo: geometric Brownian motion, live --- */
     function monteCarlo(){
@@ -3593,7 +3687,7 @@
     }
 
     document.addEventListener('cv:lang', function(){ renderSe2(); renderAre(); if(state.mc){ /* the note re-renders on the next frame */ } });
-    se2(); are(); monteCarlo();
+    se2(); are(); village(); monteCarlo();
     return {state: function(){ return state; }};
   })();
 
@@ -4336,6 +4430,9 @@
   var cvNews = (function(){
     var KEY = 'cv-last-visit';
     var CHANGES = [
+      {d: '2026-09-24', sv: 'Himlen följer <b>vädret i Åre by just nu</b>: blå dag, gyllene låg sol, grått under moln, och stjärnor bara när det är mörkt och klart. Väderrutan visar Åres klocka.',
+                        en: 'The sky follows <b>the weather in Åre village right now</b>: blue by day, gold at a low sun, grey under cloud, and stars only when it is dark and clear. The weather badge shows Åre\'s clock.',
+                        sv_a: 'Till toppen', en_a: 'To the top', href: '#top'},
       {d: '2026-09-10', sv: 'Fastighetskortet är utbytt mot <b>yieldgapet</b>: bokförd direktavkastning mot marknadens avkastningskrav, över 20 bolag.',
                         en: 'The real estate card is replaced by the <b>yield gap</b>: book yield against the market\'s required yield, across 20 companies.',
                         sv_a: 'Till projekten', en_a: 'To the projects', href: '#projects'},
@@ -5040,8 +5137,15 @@
        mid-visit takes effect without a reload. */
     var mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
 
+    /* Shooting stars need what the stars need: a dark night and a clear sky */
+    function visible(){
+      var b = document.body;
+      if(!b.classList.contains('tod-night') || /\bwx-(rain|snow|fog)\b/.test(b.className)){ return false; }
+      var w = window.cvWx && cvWx.state();
+      return !w || w.cloud < .5;
+    }
     function fall(){
-      if(!document.hidden && !(mq && mq.matches)){
+      if(!document.hidden && !(mq && mq.matches) && visible()){
         var x = innerWidth  * (0.15 + Math.random() * 0.65);
         var y = innerHeight * (0.05 + Math.random() * 0.35);
         var a = 18 + Math.random() * 14;    /* degrees below horizontal */
